@@ -1,0 +1,8 @@
+package: assets
+groups:
+  - path: assets/images
+    class_name: AppImages
+    types: [ .png, .jpg, .jpeg, .webp, .webm, .bmp ]
+  - path: assets/icons
+    class_name: AppIcons
+    types: [ .svg ]

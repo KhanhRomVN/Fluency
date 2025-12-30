@@ -1,0 +1,10 @@
+# This content tracks the managed properties of this Flutter project.
+# Used by Flutter tool to assess capabilities and perform upgrades etc.
+#
+# This file should be version controlled.
+
+version:
+  revision: 5874a72aa4c501908053a47385cd9a7719601d36
+  channel: stable
+
+project_type: app

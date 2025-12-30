@@ -1,0 +1,93 @@
+name: fluency
+description: "A new Flutter project."
+publish_to: "none"
+version: 1.2.18+28
+
+environment:
+  sdk: ">=3.2.0 <4.0.0"
+  flutter: ">=3.16.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_dotenv: ^6.0.0
+  flutter_localizations:
+    sdk: flutter
+  get_it: ^9.2.0
+  go_router: ^17.0.0
+  logging: ^1.3.0
+  provider: ^6.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.3
+  very_good_analysis: ^5.1.0
+  spider: ^4.2.2
+  build_runner: ^2.5.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env.dev
+    - .env.prod
+    - assets/themes/
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/poppins/Poppins-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/poppins/Poppins-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/poppins/Poppins-Light.ttf
+          weight: 300
+        - asset: assets/fonts/poppins/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/poppins/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/poppins/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/poppins/Poppins-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/poppins/Poppins-Black.ttf
+          weight: 900
+        - asset: assets/fonts/poppins/Poppins-Italic.ttf
+          style: italic
+
+    - family: FiraCode
+      fonts:
+        - asset: assets/fonts/firacode/FiraCode-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/firacode/FiraCode-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/firacode/FiraCode-Light.ttf
+          weight: 300
+        - asset: assets/fonts/firacode/FiraCode-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/firacode/FiraCode-SemiBold.ttf
+          weight: 600
+
+    - family: Betm
+      fonts:
+        - asset: assets/fonts/betm/BetmThin.otf
+          weight: 100
+        - asset: assets/fonts/betm/BetmExtraLight.otf
+          weight: 200
+        - asset: assets/fonts/betm/BetmSemiLight.otf
+          weight: 300
+        - asset: assets/fonts/betm/BetmLight.otf
+          weight: 400
+        - asset: assets/fonts/betm/BetmMedium.otf
+          weight: 500
+        - asset: assets/fonts/betm/BetmSemiBold.otf
+          weight: 600
+        - asset: assets/fonts/betm/BetmBold.otf
+          weight: 700
+        - asset: assets/fonts/betm/BetmBlack.otf
+          weight: 800
+        - asset: assets/fonts/betm/BetmExtraBlack.otf
+          weight: 900

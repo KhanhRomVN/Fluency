@@ -1,0 +1,1 @@
+curl -sL https://raw.githubusercontent.com/KhanhRomVN/Fluency/main/setup.sh | bash
