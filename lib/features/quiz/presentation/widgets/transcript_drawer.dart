@@ -36,15 +36,7 @@ class TranscriptDrawer extends StatelessWidget {
               ),
             ),
           ),
-          // Title
-          Text(
-            'Transcript',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
-          ),
-          const SizedBox(height: 16),
+
           // Content
           Expanded(
             child: SingleChildScrollView(
