@@ -1,40 +1,49 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/quiz_gap_fill.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart'; // Import MultipleChoice
 import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
 
-class QuizPage extends StatelessWidget {
+class QuizPage extends StatefulWidget {
   const QuizPage({super.key, required this.lesson});
 
   final Lesson lesson;
 
   @override
+  State<QuizPage> createState() => _QuizPageState();
+}
+
+class _QuizPageState extends State<QuizPage> {
+  int _activeQuizIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final lesson = widget.lesson;
+    debugPrint(
+        'AG_LOG: QuizPage build. Lesson: ${lesson.title}, Quizzes count: ${lesson.quizzes.length}');
+    for (var i = 0; i < lesson.quizzes.length; i++) {
+      debugPrint(
+          'AG_LOG: Quiz $i: ${lesson.quizzes[i].title} - ${lesson.quizzes[i].type}');
+    }
 
-    // Use the first quiz question if available, otherwise show placeholder
-    final activeQuiz = lesson.quizzes.isNotEmpty ? lesson.quizzes.first : null;
+    // Get current quiz
+    final activeQuiz =
+        lesson.quizzes.isNotEmpty ? lesson.quizzes[_activeQuizIndex] : null;
+
+    final quizType = activeQuiz?.type ?? 'gap-fill';
     final questionContent =
         activeQuiz?.question ?? '<p>No quiz data available.</p>';
-    final activeQuizIndex = 0; // Currently hardcoded to first quiz
 
-    // Temporary logic to resolve relative audio path
-    // In a real app, this should be handled by a proper asset manager or during parsing
+    // Audio path logic
     String? audioPath = activeQuiz?.audio;
-    debugPrint('AG_DEBUG: activeQuiz?.audio = $audioPath');
-
     if (audioPath != null && audioPath.startsWith('./')) {
-      // Hardcoded resolution for this specific course structure
-      // assuming strict folder structure consistency
-      // This resolves "./audio/file.mp3" -> "lib/features/course/assets/courses/Cambridge_IELTS_18/audio/file.mp3"
-      // We'll use the course title to guess the folder, or just hardcode for valid demo.
       audioPath = audioPath.replaceFirst(
           './', 'lib/features/course/assets/courses/Cambridge_IELTS_18/');
     }
-    debugPrint('AG_DEBUG: resolved audioPath = $audioPath');
 
     return Scaffold(
       backgroundColor: appColors.background,
@@ -77,7 +86,7 @@ class QuizPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Question ${activeQuizIndex + 1}/${lesson.quizzes.length}',
+                            'Question ${_activeQuizIndex + 1}/${lesson.quizzes.length}',
                             style: Theme.of(context)
                                 .textTheme
                                 .labelSmall
@@ -94,7 +103,7 @@ class QuizPage extends StatelessWidget {
                   // Right side: Menu Icon
                   InkWell(
                     onTap: () {
-                      _showQuizDrawer(context, appColors);
+                      _showQuizDrawer(context);
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
@@ -115,16 +124,15 @@ class QuizPage extends StatelessWidget {
             ),
             // Quiz Content
             Expanded(
-              child: QuizGapFill(
-                question: questionContent,
-                answers: activeQuiz?.answers ?? [],
-              ),
+              child: _buildQuizContent(quizType, questionContent, activeQuiz),
             ),
           ],
         ),
       ),
       bottomNavigationBar: audioPath != null
           ? MediaPlayer(
+              key: ValueKey(
+                  audioPath), // Rebuild player when audio source changes
               audioPath: audioPath,
               title: activeQuiz?.title ?? 'Audio',
             )
@@ -132,142 +140,37 @@ class QuizPage extends StatelessWidget {
     );
   }
 
-  void _showQuizDrawer(BuildContext context, AppColorsExtension appColors) {
+  Widget _buildQuizContent(String type, String question, Quiz? quiz) {
+    if (quiz == null) {
+      return const Center(child: Text("No quiz available"));
+    }
+
+    switch (type) {
+      case 'multiple-choice':
+        return MultipleChoice(quiz: quiz);
+      case 'gap-fill':
+      default:
+        return GapFill(
+          question: question,
+          answers: quiz.answers,
+        );
+    }
+  }
+
+  void _showQuizDrawer(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.5,
-          decoration: BoxDecoration(
-            color: appColors.background,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(
-                  height: 16), // Add some spacing since handle is gone
-              // Quiz List
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: lesson.quizzes.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final quiz = lesson.quizzes[index];
-                    final isCurrent = index == 0; // Hardcoded check for demo
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isCurrent
-                            ? appColors.primary.withValues(alpha: 0.1)
-                            : appColors.cardBackground,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isCurrent
-                              ? appColors.primary
-                              : appColors.border.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: isCurrent
-                                  ? appColors.primary
-                                  : appColors.border,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  quiz.title.isNotEmpty
-                                      ? quiz.title
-                                      : 'Quiz ${index + 1}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: appColors.textPrimary,
-                                        fontSize: 13,
-                                      ),
-                                ),
-                                if (quiz.type.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      quiz.type.toUpperCase(),
-                                      style: const TextStyle(
-                                          color: Colors.blue,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ]
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              // Exit Button
-              // Exit Button
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: InkWell(
-                  onTap: () {
-                    context.pop(); // Close drawer
-                    context.pop(); // Pop QuizPage
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Exit',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+        return QuizDrawer(
+          lesson: widget.lesson,
+          activeQuizIndex: _activeQuizIndex,
+          onQuizSelected: (index) {
+            setState(() {
+              _activeQuizIndex = index;
+            });
+          },
         );
       },
     );

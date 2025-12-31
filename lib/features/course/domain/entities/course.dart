@@ -100,6 +100,8 @@ class Quiz {
   final String question;
   final String? audio; // Optional audio path
   // We can add answers later if needed, but parsing them is good practice
+  final List<QuizQuestion> questions;
+  // We can add answers later if needed, but parsing them is good practice
   final List<QuizAnswer> answers;
 
   const Quiz({
@@ -110,6 +112,7 @@ class Quiz {
     required this.quizNumber,
     required this.question,
     this.audio,
+    this.questions = const [],
     required this.answers,
   });
 
@@ -122,6 +125,10 @@ class Quiz {
       quizNumber: json['quizNumber'] as int? ?? 0,
       question: json['question'] as String? ?? '',
       audio: json['audio'] as String?,
+      questions: (json['questions'] as List?)
+              ?.map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       answers: (json['answers'] as List?)
               ?.map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -146,6 +153,52 @@ class QuizAnswer {
       id: json['id'] as String? ?? '',
       answer: json['answer'] as String? ?? '',
       explain: json['explain'] as String? ?? '',
+    );
+  }
+}
+
+class QuizQuestion {
+  final String id;
+  final String question;
+  final List<QuizOption> options;
+  final String answer;
+  final String explain;
+
+  const QuizQuestion({
+    required this.id,
+    required this.question,
+    required this.options,
+    required this.answer,
+    required this.explain,
+  });
+
+  factory QuizQuestion.fromJson(Map<String, dynamic> json) {
+    return QuizQuestion(
+      id: json['id'] as String? ?? '',
+      question: json['question'] as String? ?? '',
+      options: (json['options'] as List?)
+              ?.map((e) => QuizOption.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      answer: json['answer'] as String? ?? '',
+      explain: json['explain'] as String? ?? '',
+    );
+  }
+}
+
+class QuizOption {
+  final String key;
+  final String text;
+
+  const QuizOption({
+    required this.key,
+    required this.text,
+  });
+
+  factory QuizOption.fromJson(Map<String, dynamic> json) {
+    return QuizOption(
+      key: json['key'] as String? ?? '',
+      text: json['text'] as String? ?? '',
     );
   }
 }

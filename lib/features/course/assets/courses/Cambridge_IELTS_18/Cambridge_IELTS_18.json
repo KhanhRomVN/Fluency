@@ -19,63 +19,116 @@
       "lessonNumber": 1,
       "quiz": [
         {
-          "id": "ielts18_test1_part1",
-          "title": "Part 1: Transport Survey",
+          "id": "quiz_01",
+          "title": "Transport Survey",
           "type": "gap-fill",
           "instruction": "<p>Write </p><p style='bold'>ONE WORD AND/OR A NUMBER</p><p> for each answer.</p>",
-          "quizNumber": 10,
-          "question": "<p style='bold center'>Transport survey</p></n><p style='bold'>Name: </p><p>Sadie Jones</p></n><p style='bold'>Year of birth: </p><p>1991</p></n><p style='bold'>Postcode: </p></gap id='answer_01'></n><p style='bold'>Travelling by bus</p></n><p>Date of bus journey: </p></gap id='answer_02'></n><p style='bold'>Reason for trip: </p><p>shopping and visit to the </p></gap id='answer_03'></n><p>Travelled by bus because cost of </p></gap id='answer_04'><p> too high</p></n><p>Got on bus at </p></gap id='answer_05'><p> Street</p></n><p style='bold'>Complaints about bus service:</p></n><p>- bus today was </p></gap id='answer_06'></n><p>- frequency of buses in the </p></gap id='answer_07'></n><p style='bold'>Travelling by car</p></n><p>Goes to the </p></gap id='answer_08'><p> by car</p></n><p style='bold'>Travelling by bicycle</p></n><p>Dislikes travelling by bike in the city centre because of the </p></gap id='answer_09'></n><p>Doesn’t own a bike because of a lack of </p></gap id='answer_10'>",
-          "audio": "./audio/Cambridge_IELTS_18_Test1_Part1.mp3",
+          "quizNumber": 1,
+          "question": "<p style='bold center 20'>Transport survey</p></n><p style='bold'>Name: </p><p>Sadie Jones</p></n><p style='bold'>Year of birth: </p><p>1991</p></n><p style='bold'>Postcode: </p></gap id='answer_01'></n><p style='bold'>Travelling by bus</p></n><p>Date of bus journey: </p></gap id='answer_02'></n><p style='bold'>Reason for trip: </p><p>shopping and visit to the </p></gap id='answer_03'></n><p>Travelled by bus because cost of </p></gap id='answer_04'><p> too high</p></n><p>Got on bus at </p></gap id='answer_05'><p> Street</p></n><p style='bold'>Complaints about bus service:</p></n><p>- bus today was </p></gap id='answer_06'></n><p>- frequency of buses in the </p></gap id='answer_07'></n><p style='bold'>Travelling by car</p></n><p>Goes to the </p></gap id='answer_08'><p> by car</p></n><p style='bold'>Travelling by bicycle</p></n><p>Dislikes travelling by bike in the city centre because of the </p></gap id='answer_09'></n><p>Doesn’t own a bike because of a lack of </p></gap id='answer_10'>",
+          "audio": "./audio/Cambridge_IELTS_18_Test1_Listening_Part1.mp3",
           "answers": [
             {
               "id": "answer_01",
               "answer": "DW30 7YZ",
-              "explain": "Sau khi xác nhận tên (Sadie Jones) và năm sinh (1991), người phỏng vấn yêu cầu mã bưu chính: 'So, next your post code, please'. Sadie trả lời rõ ràng từng ký tự: 'It's DW30 7 Y Z'. Một điểm cần lưu ý là ngay sau đó người phỏng vấn hỏi liệu địa chỉ này có phải ở 'Wells' không, Sadie đính chính là 'Harborne', nhưng thông tin cần điền vào chỗ trống chỉ là mã bưu chính. Người nghe cần cẩn thận phân biệt giữa số 0 và chữ O, cũng như bắt kịp tốc độ đánh vần các ký tự cuối."
+              "explain": "<p>Sau khi xác nhận tên (Sadie Jones) và năm sinh (1991), người phỏng vấn yêu cầu mã bưu chính: 'So, next your post code, please'. Sadie trả lời rõ ràng từng ký tự: 'It's DW30 7 Y Z'. Một điểm cần lưu ý là ngay sau đó người phỏng vấn hỏi liệu địa chỉ này có phải ở 'Wells' không, Sadie đính chính là 'Harborne', nhưng thông tin cần điền vào chỗ trống chỉ là mã bưu chính. Người nghe cần cẩn thận phân biệt giữa số 0 và chữ O, cũng như bắt kịp tốc độ đánh vần các ký tự cuối.</p>"
             },
             {
               "id": "answer_02",
               "answer": "24th April",
-              "explain": "Đây là một câu hỏi có bẫy về thời gian. Người phỏng vấn xác nhận ngày hôm nay: 'It's the 24th of April, isn't it?' (Hôm nay là 24/4 phải không?). Sadie ban đầu hơi do dự và hỏi ngược lại: 'Isn't it the 25th?' (Không phải 25 à?). Tuy nhiên, ngay lập tức cô ấy nhận ra mình sai và đồng ý với người phỏng vấn: 'Uh, no, actually, you're right' (À không, thực ra anh đúng rồi). Do đó, đáp án chính xác phải là ngày mà cả hai cùng thống nhất là '24th April' (hoặc 24 April). Nếu người nghe chỉ nghe thoáng qua số 25 mà không nghe đoạn đính chính phía sau sẽ rất dễ bị sai."
+              "explain": "<p>Đây là một câu hỏi có bẫy về thời gian. Người phỏng vấn xác nhận ngày hôm nay: 'It's the 24th of April, isn't it?' (Hôm nay là 24/4 phải không?). Sadie ban đầu hơi do dự và hỏi ngược lại: 'Isn't it the 25th?' (Không phải 25 à?). Tuy nhiên, ngay lập tức cô ấy nhận ra mình sai và đồng ý với người phỏng vấn: 'Uh, no, actually, you're right' (À không, thực ra anh đúng rồi). Do đó, đáp án chính xác phải là ngày mà cả hai cùng thống nhất là '24th April' (hoặc 24 April). Nếu người nghe chỉ nghe thoáng qua số 25 mà không nghe đoạn đính chính phía sau sẽ rất dễ bị sai.</p>"
             },
             {
               "id": "answer_03",
               "answer": "dentist",
-              "explain": "Người phỏng vấn nhìn thấy Sadie mang theo túi mua sắm nên đoán: 'I can see you've got some shopping with you' (Tôi thấy cô có đi mua sắm). Sadie xác nhận có đi mua sắm ('Yes, I did some shopping'), NHƯNG cô dùng từ nối 'but' để nhấn mạnh lý do chính: 'but the main reason I came here was to go to the dentist' (nhưng lý do chính tôi đến đây là để đi nha sĩ). Đề bài yêu cầu điền 'visit to the...', nên từ cần điền khớp ngữ pháp và ngữ nghĩa nhất là 'dentist'. 'Shopping' ở đây đóng vai trò là thông tin gây nhiễu (distractor)."
+              "explain": "<p>Người phỏng vấn nhìn thấy Sadie mang theo túi mua sắm nên đoán: 'I can see you've got some shopping with you' (Tôi thấy cô có đi mua sắm). Sadie xác nhận có đi mua sắm ('Yes, I did some shopping'), NHƯNG cô dùng từ nối 'but' để nhấn mạnh lý do chính: 'but the main reason I came here was to go to the dentist' (nhưng lý do chính tôi đến đây là để đi nha sĩ). Đề bài yêu cầu điền 'visit to the...', nên từ cần điền khớp ngữ pháp và ngữ nghĩa nhất là 'dentist'. 'Shopping' ở đây đóng vai trò là thông tin gây nhiễu (distractor).</p>"
             },
             {
               "id": "answer_04",
               "answer": "parking",
-              "explain": "Câu hỏi yêu cầu tìm nguyên nhân khiến chi phí (cost) quá cao. Trong bài nghe, Sadie giải thích lý do cô ngừng lái xe ô tô: 'because parking was so difficult to find and it costs so much' (vì chỗ đậu xe rất khó tìm và nó tốn kém quá). Cụm từ 'costs so much' trong bài nghe tương đương với 'cost of ... too high' trong câu hỏi. Mặc dù cô ấy cũng phàn nàn về việc khó tìm chỗ ('difficult to find'), nhưng từ khóa liên quan trực tiếp đến vấn đề tiền bạc/chi phí ở đây là 'parking' (việc đỗ xe)."
+              "explain": "<p>Câu hỏi yêu cầu tìm nguyên nhân khiến chi phí (cost) quá cao. Trong bài nghe, Sadie giải thích lý do cô ngừng lái xe ô tô: 'because parking was so difficult to find and it costs so much' (vì chỗ đậu xe rất khó tìm và nó tốn kém quá). Cụm từ 'costs so much' trong bài nghe tương đương với 'cost of ... too high' trong câu hỏi. Mặc dù cô ấy cũng phàn nàn về việc khó tìm chỗ ('difficult to find'), nhưng từ khóa liên quan trực tiếp đến vấn đề tiền bạc/chi phí ở đây là 'parking' (việc đỗ xe).</p>"
             },
             {
               "id": "answer_05",
               "answer": "Claxby",
-              "explain": "Người phỏng vấn hỏi nơi bắt đầu chuyến đi ('Where did you start your journey?'). Sadie trả lời: 'At the bus stop on Claxby Street'. Để đảm bảo độ chính xác, người phỏng vấn đã đánh vần lại từng chữ cái: 'Is that C-L-A-X-B-Y?'. Sadie xác nhận 'That's right'. Người nghe cần chú ý kỹ phần đánh vần này để viết đúng chính tả danh từ riêng, đặc biệt là các âm dễ nhầm lẫn như 'X' hay 'B'."
+              "explain": "<p>Người phỏng vấn hỏi nơi bắt đầu chuyến đi ('Where did you start your journey?'). Sadie trả lời: 'At the bus stop on Claxby Street'. Để đảm bảo độ chính xác, người phỏng vấn đã đánh vần lại từng chữ cái: 'Is that C-L-A-X-B-Y?'. Sadie xác nhận 'That's right'. Người nghe cần chú ý kỹ phần đánh vần này để viết đúng chính tả danh từ riêng, đặc biệt là các âm dễ nhầm lẫn như 'X' hay 'B'.</p>"
             },
             {
               "id": "answer_06",
               "answer": "late",
-              "explain": "Câu hỏi nằm trong mục phàn nàn (complaints) về chuyến xe hôm nay. Sadie khen xe buýt thường tiện lợi, nhưng cô đưa ra một vấn đề cụ thể xảy ra sáng nay: 'but this morning it was late' (nhưng sáng nay nó bị trễ). Cô nói thêm là trễ khoảng 10 phút ('only about 10 minutes'). Từ cần điền vào chỗ trống 'bus today was...' là một tính từ mô tả trạng thái tiêu cực đó, nên đáp án là 'late'."
+              "explain": "<p>Câu hỏi nằm trong mục phàn nàn (complaints) về chuyến xe hôm nay. Sadie khen xe buýt thường tiện lợi, nhưng cô đưa ra một vấn đề cụ thể xảy ra sáng nay: 'but this morning it was late' (nhưng sáng nay nó bị trễ). Cô nói thêm là trễ khoảng 10 phút ('only about 10 minutes'). Từ cần điền vào chỗ trống 'bus today was...' là một tính từ mô tả trạng thái tiêu cực đó, nên đáp án là 'late'.</p>"
             },
             {
               "id": "answer_07",
               "answer": "evening",
-              "explain": "Sadie tiếp tục phàn nàn về lịch trình (timetable). Cô nói rằng ban ngày thì ổn, nhưng 'anytime I've been in town in the evening... I've noticed you have to wait a long time for a bus' (bất cứ khi nào tôi ở phố vào buổi tối... tôi nhận thấy phải chờ xe buýt rất lâu). Cụm từ 'wait a long time' (chờ lâu) đồng nghĩa với việc tần suất xe (frequency) thấp/thưa thớt. Đề bài hỏi về tần suất xe buýt trong khoảng thời gian nào ('in the ...'), nên từ chỉ thời gian cần điền chính xác là 'evening'."
+              "explain": "<p>Sadie tiếp tục phàn nàn về lịch trình (timetable). Cô nói rằng ban ngày thì ổn, nhưng 'anytime I've been in town in the evening... I've noticed you have to wait a long time for a bus' (bất cứ khi nào tôi ở phố vào buổi tối... tôi nhận thấy phải chờ xe buýt rất lâu). Cụm từ 'wait a long time' (chờ lâu) đồng nghĩa với việc tần suất xe (frequency) thấp/thưa thớt. Đề bài hỏi về tần suất xe buýt trong khoảng thời gian nào ('in the ...'), nên từ chỉ thời gian cần điền chính xác là 'evening'.</p>"
             },
             {
               "id": "answer_08",
               "answer": "supermarket",
-              "explain": "Chuyển sang chủ đề đi ô tô (Travelling by car). Sadie nói cô có xe nhưng ít dùng. Mục đích chính cô dùng xe là: 'Mainly just to go to the supermarket' (Chủ yếu chỉ để đi siêu thị). Ngay sau đó có một thông tin gây nhiễu là chồng cô dùng xe để đi đến 'golf club' vào cuối tuần. Vì câu hỏi tập trung vào hành vi của Sadie ('Goes to the...'), nên đáp án phải là 'supermarket', không phải 'golf club'."
+              "explain": "<p>Chuyển sang chủ đề đi ô tô (Travelling by car). Sadie nói cô có xe nhưng ít dùng. Mục đích chính cô dùng xe là: 'Mainly just to go to the supermarket' (Chủ yếu chỉ để đi siêu thị). Ngay sau đó có một thông tin gây nhiễu là chồng cô dùng xe để đi đến 'golf club' vào cuối tuần. Vì câu hỏi tập trung vào hành vi của Sadie ('Goes to the...'), nên đáp án phải là 'supermarket', không phải 'golf club'.</p>"
             },
             {
               "id": "answer_09",
               "answer": "pollution",
-              "explain": "Câu hỏi đề cập đến việc đi xe đạp (Travelling by bicycle) và lý do cô ấy không thích đi trong trung tâm thành phố. Trong bài nghe, Sadie nói: 'I'm not keen on cycling there because of all the pollution' (Tôi không hứng thú đạp xe ở đó vì tất cả sự ô nhiễm). Từ 'not keen on' tương đương với 'Dislikes' trong đề bài. Nguyên nhân trực tiếp được nhắc đến sau 'because of' chính là 'pollution'. Sadie cũng nói cô muốn đạp xe đi làm nhưng ô nhiễm là rào cản lớn."
+              "explain": "<p>Câu hỏi đề cập đến việc đi xe đạp (Travelling by bicycle) và lý do cô ấy không thích đi trong trung tâm thành phố. Trong bài nghe, Sadie nói: 'I'm not keen on cycling there because of all the pollution' (Tôi không hứng thú đạp xe ở đó vì tất cả sự ô nhiễm). Từ 'not keen on' tương đương với 'Dislikes' trong đề bài. Nguyên nhân trực tiếp được nhắc đến sau 'because of' chính là 'pollution'. Sadie cũng nói cô muốn đạp xe đi làm nhưng ô nhiễm là rào cản lớn.</p>"
             },
             {
               "id": "answer_10",
               "answer": "storage",
-              "explain": "Câu hỏi cuối cùng hỏi lý do cô ấy không sở hữu (doesn't own) một chiếc xe đạp. Sadie giải thích hoàn cảnh sống: 'I live in a flat on the second floor' (Tôi sống trong căn hộ tầng 2) và vấn đề chính là: 'it doesn't have any storage' (nó không có chỗ nào để cất giữ đồ/kho). Vì thiếu chỗ để ('lack of storage') nên cô sẽ phải để xe ở hành lang, điều này bất tiện. Do đó, danh từ cần điền phù hợp với cụm 'lack of...' là 'storage'."
+              "explain": "<p>Câu hỏi cuối cùng hỏi lý do cô ấy không sở hữu (doesn't own) một chiếc xe đạp. Sadie giải thích hoàn cảnh sống: 'I live in a flat on the second floor' (Tôi sống trong căn hộ tầng 2) và vấn đề chính là: 'it doesn't have any storage' (nó không có chỗ nào để cất giữ đồ/kho). Vì thiếu chỗ để ('lack of storage') nên cô sẽ phải để xe ở hành lang, điều này bất tiện. Do đó, danh từ cần điền phù hợp với cụm 'lack of...' là 'storage'.</p>"
+            }
+          ]
+        },
+        {
+          "id": "quiz_02",
+          "title": "",
+          "type": "multiple-choice",
+          "instruction": "<p>Choose the correct letter A, B or C.</p>",
+          "quizNumber": 2,
+          "audio": "./audio/Cambridge_IELTS_18_Test1_Listening_Part2.mp3",
+
+          "questions": [
+            {
+              "id": "question_01",
+              "question": "Why does the speaker apologise about the seats?",
+              "options": [
+                { "key": "A", "text": "They are too small." },
+                { "key": "B", "text": "There are not enough of them." },
+                { "key": "C", "text": "Some of them are very close together." }
+              ],
+              "answer": "C",
+              "explain": "<p>Diễn giả nói: 'We have brought in extra seats so that no one has to stand' (Chúng tôi đã mang thêm ghế để không ai phải đứng) -> Loại B. Tuy nhiên, bà nói thêm: 'but it does mean that the people at the back of the room may be a bit squashed' (nhưng điều đó có nghĩa là những người ở cuối phòng có thể bị chèn ép một chút). Từ 'squashed' ám chỉ việc phải ngồi chen chúc, sát vào nhau, tương đương với ý 'very close together' trong đáp án C [1][3].</p>"
+            },
+            {
+              "id": "question_02",
+              "question": "What does the speaker say about the age of volunteers?",
+              "options": [
+                {
+                  "key": "A",
+                  "text": "The age of volunteers is less important than other factors."
+                },
+                {
+                  "key": "B",
+                  "text": "Young volunteers are less reliable than older ones."
+                },
+                {
+                  "key": "C",
+                  "text": "Most volunteers are about 60 years old."
+                }
+              ],
+              "answer": "A",
+              "explain": "<p>Diễn giả khẳng định rằng các yếu tố khác như 'reliability' (sự đáng tin cậy) là cốt yếu ('crucial') và nhấn mạnh: 'age isn't related to these in our experience' (tuổi tác không liên quan đến những điều này theo kinh nghiệm của chúng tôi). Điều này có nghĩa là tuổi tác ít quan trọng hơn các yếu tố phẩm chất khác -> Chọn A. Bà cũng nói tình nguyện viên có thể từ 16 đến 60+, phủ định ý C [1][3].</p>"
+            },
+            {
+              "id": "question_03",
+              "question": "What does the speaker say about training?",
+              "options": [
+                { "key": "A", "text": "It is continuous." },
+                { "key": "B", "text": "It is conducted by a manager." },
+                { "key": "C", "text": "It takes place online." }
+              ],
+              "answer": "A",
+              "explain": "<p>Diễn giả nói: 'training doesn't end when you start working for us. It takes place before, during, and after periods of work' (đào tạo không kết thúc khi bạn bắt đầu làm việc... nó diễn ra trước, trong và sau quá trình làm việc). Ý này đồng nghĩa với 'continuous' (liên tục). Đáp án B sai vì thường do 'other experienced volunteers' hướng dẫn. Đáp án C sai vì 'it's all face to face' (tất cả đều trực tiếp) [1][3].</p>"
             }
           ]
         }
