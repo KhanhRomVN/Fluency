@@ -98,6 +98,7 @@ class Quiz {
   final String instruction;
   final int quizNumber;
   final String question;
+  final String? audio; // Optional audio path
   // We can add answers later if needed, but parsing them is good practice
   final List<QuizAnswer> answers;
 
@@ -108,6 +109,7 @@ class Quiz {
     required this.instruction,
     required this.quizNumber,
     required this.question,
+    this.audio,
     required this.answers,
   });
 
@@ -119,6 +121,7 @@ class Quiz {
       instruction: json['instruction'] as String? ?? '',
       quizNumber: json['quizNumber'] as int? ?? 0,
       question: json['question'] as String? ?? '',
+      audio: json['audio'] as String?,
       answers: (json['answers'] as List?)
               ?.map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
               .toList() ??

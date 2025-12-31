@@ -1,6 +1,7 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_gap_fill.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/quiz_gap_fill.dart';
+import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +20,21 @@ class QuizPage extends StatelessWidget {
     final questionContent =
         activeQuiz?.question ?? '<p>No quiz data available.</p>';
     final activeQuizIndex = 0; // Currently hardcoded to first quiz
+
+    // Temporary logic to resolve relative audio path
+    // In a real app, this should be handled by a proper asset manager or during parsing
+    String? audioPath = activeQuiz?.audio;
+    debugPrint('AG_DEBUG: activeQuiz?.audio = $audioPath');
+
+    if (audioPath != null && audioPath.startsWith('./')) {
+      // Hardcoded resolution for this specific course structure
+      // assuming strict folder structure consistency
+      // This resolves "./audio/file.mp3" -> "lib/features/course/assets/courses/Cambridge_IELTS_18/audio/file.mp3"
+      // We'll use the course title to guess the folder, or just hardcode for valid demo.
+      audioPath = audioPath.replaceFirst(
+          './', 'lib/features/course/assets/courses/Cambridge_IELTS_18/');
+    }
+    debugPrint('AG_DEBUG: resolved audioPath = $audioPath');
 
     return Scaffold(
       backgroundColor: appColors.background,
@@ -109,6 +125,12 @@ class QuizPage extends StatelessWidget {
           ],
         ),
       ),
+      bottomNavigationBar: audioPath != null
+          ? MediaPlayer(
+              audioPath: audioPath,
+              title: activeQuiz?.title ?? 'Audio',
+            )
+          : null,
     );
   }
 

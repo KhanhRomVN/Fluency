@@ -18,6 +18,7 @@ dependencies:
   logging: ^1.3.0
   provider: ^6.1.5+1
   flutter_svg: ^2.0.10
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -37,6 +38,7 @@ flutter:
     - assets/themes/
     - assets/icons/
     - lib/features/course/assets/courses/Cambridge_IELTS_18/
+    - lib/features/course/assets/courses/Cambridge_IELTS_18/audio/
     - lib/features/course/assets/courses/Hacker_TOEIC_Start_Listening/
     - lib/features/course/assets/courses/Hacker_TOEIC_Start_Reading/
     - lib/features/course/assets/courses/Oxford_Reading_Writing_1/
