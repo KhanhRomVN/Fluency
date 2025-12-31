@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 class MultipleChoice extends StatefulWidget {
   const MultipleChoice({
     required this.quiz,
+    this.onCheck,
     super.key,
   });
 
@@ -13,6 +14,7 @@ class MultipleChoice extends StatefulWidget {
   // which might not be fully parsed by the current Quiz model yet.
   // Ideally, we'd pass a specific MultipleChoiceData object.
   final Quiz quiz;
+  final VoidCallback? onCheck;
 
   @override
   State<MultipleChoice> createState() => _MultipleChoiceState();
@@ -92,6 +94,9 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                   setState(() {
                     _isChecked = true;
                   });
+                  debugPrint(
+                      'AG_LOG: MultipleChoice Check Answers pressed. Calling widget.onCheck');
+                  widget.onCheck?.call();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: appColors.primary,

@@ -99,6 +99,7 @@ class Quiz {
   final int quizNumber;
   final String question;
   final String? audio; // Optional audio path
+  final String? transcript; // Optional transcript
   // We can add answers later if needed, but parsing them is good practice
   final List<QuizQuestion> questions;
   // We can add answers later if needed, but parsing them is good practice
@@ -112,6 +113,7 @@ class Quiz {
     required this.quizNumber,
     required this.question,
     this.audio,
+    this.transcript,
     this.questions = const [],
     required this.answers,
   });
@@ -125,6 +127,7 @@ class Quiz {
       quizNumber: json['quizNumber'] as int? ?? 0,
       question: json['question'] as String? ?? '',
       audio: json['audio'] as String?,
+      transcript: json['transcript'] as String?,
       questions: (json['questions'] as List?)
               ?.map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
               .toList() ??

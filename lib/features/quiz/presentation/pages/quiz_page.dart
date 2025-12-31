@@ -4,6 +4,8 @@ import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart'; // Import MultipleChoice
 import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
+import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -18,6 +20,14 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   int _activeQuizIndex = 0;
+  bool _isQuizChecked = false;
+
+  void _onQuizChecked() {
+    debugPrint('AG_LOG: _onQuizChecked called in QuizPage');
+    setState(() {
+      _isQuizChecked = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +55,16 @@ class _QuizPageState extends State<QuizPage> {
           './', 'lib/features/course/assets/courses/Cambridge_IELTS_18/');
     }
 
+    String audioFileName = 'Audio';
+    if (audioPath != null) {
+      audioFileName = audioPath.split('/').last;
+    }
+
+    // Transcript Icon Logic Debug
+    debugPrint('AG_LOG: QuizPage build. _isQuizChecked: $_isQuizChecked');
+    debugPrint(
+        'AG_LOG: Active Quiz Transcript: ${activeQuiz?.transcript != null ? "Present" : "NULL"}');
+
     return Scaffold(
       backgroundColor: appColors.background,
       body: SafeArea(
@@ -65,7 +85,10 @@ class _QuizPageState extends State<QuizPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          lesson.title,
+                          activeQuiz?.title.isNotEmpty == true
+                              ? activeQuiz!.title
+                              : lesson
+                                  .title, // Use Quiz Title, fallback to Lesson Title
                           style:
                               Theme.of(context).textTheme.titleSmall?.copyWith(
                                     // Reduced font size
@@ -100,24 +123,48 @@ class _QuizPageState extends State<QuizPage> {
                       ],
                     ),
                   ),
-                  // Right side: Menu Icon
-                  InkWell(
-                    onTap: () {
-                      _showQuizDrawer(context);
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6.0), // Reduced padding
-                      child: SvgPicture.asset(
-                        'assets/icons/menu_quiz.svg',
-                        width: 20, // Reduced icon size
-                        height: 20,
-                        colorFilter: ColorFilter.mode(
-                          appColors.textPrimary,
-                          BlendMode.srcIn,
+                  // Right side: Menu Icon + Transcript Icon
+                  Row(
+                    children: [
+                      if (_isQuizChecked && activeQuiz?.transcript != null)
+                        InkWell(
+                          onTap: () {
+                            _showTranscriptDrawer(
+                                context, activeQuiz!.transcript!, audioPath);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: SvgPicture.asset(
+                              'assets/icons/transcript.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                appColors.textPrimary,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
+                        ),
+                      InkWell(
+                        onTap: () {
+                          _showQuizDrawer(context);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6.0), // Reduced padding
+                          child: SvgPicture.asset(
+                            'assets/icons/menu_quiz.svg',
+                            width: 20, // Reduced icon size
+                            height: 20,
+                            colorFilter: ColorFilter.mode(
+                              appColors.textPrimary,
+                              BlendMode.srcIn,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -134,7 +181,7 @@ class _QuizPageState extends State<QuizPage> {
               key: ValueKey(
                   audioPath), // Rebuild player when audio source changes
               audioPath: audioPath,
-              title: activeQuiz?.title ?? 'Audio',
+              title: audioFileName, // Use audio filename
             )
           : null,
     );
@@ -147,12 +194,16 @@ class _QuizPageState extends State<QuizPage> {
 
     switch (type) {
       case 'multiple-choice':
-        return MultipleChoice(quiz: quiz);
+        return MultipleChoice(
+          quiz: quiz,
+          onCheck: _onQuizChecked,
+        );
       case 'gap-fill':
       default:
         return GapFill(
           question: question,
           answers: quiz.answers,
+          onCheck: _onQuizChecked,
         );
     }
   }
@@ -169,9 +220,22 @@ class _QuizPageState extends State<QuizPage> {
           onQuizSelected: (index) {
             setState(() {
               _activeQuizIndex = index;
+              _isQuizChecked = false; // Reset checked state on quiz change
             });
           },
         );
+      },
+    );
+  }
+
+  void _showTranscriptDrawer(
+      BuildContext context, String transcript, String? audioPath) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return TranscriptDrawer(transcript: transcript, audioPath: audioPath);
       },
     );
   }

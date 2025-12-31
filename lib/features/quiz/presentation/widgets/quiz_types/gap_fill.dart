@@ -8,11 +8,13 @@ class GapFill extends StatefulWidget {
   const GapFill({
     required this.question,
     required this.answers,
+    this.onCheck,
     super.key,
   });
 
   final String question;
   final List<QuizAnswer> answers;
+  final VoidCallback? onCheck;
 
   @override
   State<GapFill> createState() => _GapFillState();
@@ -100,6 +102,9 @@ class _GapFillState extends State<GapFill> {
                   setState(() {
                     _isChecked = true;
                   });
+                  debugPrint(
+                      'AG_LOG: GapFill Check Answers pressed. Calling widget.onCheck');
+                  widget.onCheck?.call();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: appColors.primary,
