@@ -29,12 +29,17 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - .env.dev
     - .env.prod
     - assets/themes/
     - assets/icons/
+    - lib/features/course/assets/courses/Cambridge_IELTS_18/
+    - lib/features/course/assets/courses/Hacker_TOEIC_Start_Listening/
+    - lib/features/course/assets/courses/Hacker_TOEIC_Start_Reading/
+    - lib/features/course/assets/courses/Oxford_Reading_Writing_1/
 
   fonts:
     - family: Poppins

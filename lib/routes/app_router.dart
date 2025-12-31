@@ -30,6 +30,15 @@ class AppRouter {
         path: RouteConstants.splash,
         builder: (context, state) => const SplashPage(),
       ),
+      GoRoute(
+        path:
+            '${RouteConstants.course}/${RouteConstants.courseDetail}/${RouteConstants.quiz}',
+        parentNavigatorKey: _rootNavigatorKey, // Ensure it covers the shell
+        builder: (context, state) {
+          final lesson = state.extra as Lesson;
+          return QuizPage(lesson: lesson);
+        },
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainPage(navigationShell: navigationShell);
@@ -59,12 +68,7 @@ class AppRouter {
                       final course = state.extra as Course?;
                       return CourseDetailPage(course: course);
                     },
-                    routes: [
-                      GoRoute(
-                        path: RouteConstants.quiz,
-                        builder: (context, state) => const QuizPage(),
-                      ),
-                    ],
+                    routes: [],
                   ),
                 ],
               ),

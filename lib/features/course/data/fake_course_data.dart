@@ -152,9 +152,30 @@ class FakeCourseData {
     completedLessons: 0,
   );
 
+  static const Course cambridgeIelts18 = Course(
+    id: 'course_004',
+    title: 'Cambridge IELTS 18',
+    imageUrl: 'https://i.ibb.co/G3fY83zT/English-IELTS-18-231x300.jpg',
+    author: 'Cambridge University Press',
+    translator: '',
+    adapter: 'KhanhRomVN',
+    pageCount: 144,
+    publisher: 'Cambridge University Press',
+    publicationYear: 2023,
+    skill: ['Listening', 'Reading', 'Writing', 'Speaking'],
+    shortDescription: 'The latest official Cambridge IELTS practice tests.',
+    fullDescription:
+        'Authentic examination papers from Cambridge Assessment English provide perfect practice because they are EXACTLY like the real test. '
+        'Inside IELTS 18 with Answers with Audio you will find FOUR complete examination papers plus details of the different parts of the test and the scoring system, so you can familiarise yourself with the test format and practise your exam technique.',
+    targetAudience: 'Global',
+    lessons: [],
+    completedLessons: 0,
+  );
+
   static const List<Course> courses = [
     hackerToeicListening,
     hackerToeicReading,
     oxfordReadingWriting,
+    cambridgeIelts18,
   ];
 }

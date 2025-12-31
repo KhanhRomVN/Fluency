@@ -1,0 +1,42 @@
+{
+  "id": "course_002",
+  "title": "Hacker TOEIC Start Reading",
+  "imageUrl": "https://bizweb.dktcdn.net/100/180/408/products/hacker-toeic-start-reading-5c1892e0-398c-4e31-becf-1f9e74e874b9.jpg",
+  "author": "David Cho",
+  "translator": "Alphabooks",
+  "adapter": "KhanhRomVN",
+  "pageCount": 500,
+  "publisher": "NXB Dân Trí",
+  "publicationYear": 2020,
+  "skill": ["Reading"],
+  "shortDescription": "Master TOEIC Reading fundamentals with ease.",
+  "fullDescription": "Comprehensive reading practice for TOEIC beginners.",
+  "targetAudience": "Vietnamese",
+  "lessons": [
+    {
+      "id": "l_rw_01",
+      "title": "Part 5: Incomplete Sentences",
+      "lessonNumber": 1,
+      "quizCount": 30
+    },
+    {
+      "id": "l_rw_02",
+      "title": "Part 6: Text Completion",
+      "lessonNumber": 2,
+      "quizCount": 16
+    },
+    {
+      "id": "l_rw_03",
+      "title": "Part 7: Reading Comprehension",
+      "lessonNumber": 3,
+      "quizCount": 40
+    },
+    {
+      "id": "l_rw_04",
+      "title": "Practice Test",
+      "lessonNumber": 4,
+      "quizCount": 100
+    }
+  ],
+  "completedLessons": 1
+}

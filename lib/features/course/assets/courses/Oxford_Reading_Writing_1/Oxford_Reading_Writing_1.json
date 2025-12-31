@@ -1,0 +1,42 @@
+{
+  "id": "course_003",
+  "title": "Oxford English Practice Series - Reading & Writing 1",
+  "imageUrl": "https://shop.oupchina.com.hk/cdn/shop/products/oxford-english-practice-series-reading-writing-xiao-xue-bu-chong-lian-xi-oupshop-xiao-577913.png?v=1635239829&width=1200",
+  "author": "Oxford",
+  "translator": "Oxford",
+  "adapter": "KhanhRomVN",
+  "pageCount": 150,
+  "publisher": "Oxford University Press",
+  "publicationYear": 2021,
+  "skill": ["Reading", "Writing"],
+  "shortDescription": "Essential reading and writing practice.",
+  "fullDescription": "Develop key reading and writing skills with engaging exercises.",
+  "targetAudience": "Global",
+  "lessons": [
+    {
+      "id": "l_ox_01",
+      "title": "Unit 1: Family",
+      "lessonNumber": 1,
+      "quizCount": 15
+    },
+    {
+      "id": "l_ox_02",
+      "title": "Unit 2: School",
+      "lessonNumber": 2,
+      "quizCount": 15
+    },
+    {
+      "id": "l_ox_03",
+      "title": "Unit 3: Hobbies",
+      "lessonNumber": 3,
+      "quizCount": 15
+    },
+    {
+      "id": "l_ox_04",
+      "title": "Review 1",
+      "lessonNumber": 4,
+      "quizCount": 30
+    }
+  ],
+  "completedLessons": 0
+}

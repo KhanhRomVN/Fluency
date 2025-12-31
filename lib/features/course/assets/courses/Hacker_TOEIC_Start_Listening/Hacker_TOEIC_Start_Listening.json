@@ -1,0 +1,54 @@
+{
+  "id": "course_001",
+  "title": "Hacker TOEIC Start Listening",
+  "imageUrl": "https://bizweb.dktcdn.net/100/180/408/products/hacker-toeic-start-listening-43ca5917-9ea4-47e7-a463-e8ce824ad6e0.jpg",
+  "author": "David Cho",
+  "translator": "Alphabooks",
+  "adapter": "KhanhRomVN",
+  "pageCount": 576,
+  "publisher": "NXB Dân Trí",
+  "publicationYear": 2020,
+  "skill": ["Listening"],
+  "shortDescription": "The ultimate guide to mastering TOEIC Listening for beginners.",
+  "fullDescription": "This course is designed for those starting their TOEIC journey. It covers all fundamental listening concepts, provides extensive practice exercises, and includes detailed explanations in Vietnamese to help you understand even the trickiest parts. Optimized for mobile learning with interactive lessons.",
+  "targetAudience": "Vietnamese",
+  "lessons": [
+    {
+      "id": "l_01",
+      "title": "Part 1: Photographs",
+      "lessonNumber": 1,
+      "quizCount": 10
+    },
+    {
+      "id": "l_02",
+      "title": "Part 2: Question-Response",
+      "lessonNumber": 2,
+      "quizCount": 25
+    },
+    {
+      "id": "l_03",
+      "title": "Part 3: Conversations",
+      "lessonNumber": 3,
+      "quizCount": 30
+    },
+    {
+      "id": "l_04",
+      "title": "Part 4: Talks",
+      "lessonNumber": 4,
+      "quizCount": 20
+    },
+    {
+      "id": "l_05",
+      "title": "Practice Test 1",
+      "lessonNumber": 5,
+      "quizCount": 100
+    },
+    {
+      "id": "l_06",
+      "title": "Practice Test 2",
+      "lessonNumber": 6,
+      "quizCount": 100
+    }
+  ],
+  "completedLessons": 4
+}

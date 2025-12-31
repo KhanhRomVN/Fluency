@@ -1,19 +1,42 @@
 import 'package:fluency/core/constants/route_constants.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
-import 'package:fluency/features/course/data/fake_course_data.dart';
+import 'package:fluency/features/course/data/course_repository.dart';
+import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/widgets/course_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-class CourseListPage extends StatelessWidget {
+class CourseListPage extends StatefulWidget {
   const CourseListPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Accessing fake data
-    const courses = FakeCourseData.courses;
+  State<CourseListPage> createState() => _CourseListPageState();
+}
 
+class _CourseListPageState extends State<CourseListPage> {
+  final CourseRepository _courseRepository = CourseRepository();
+  List<Course> _courses = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    final courses = await _courseRepository.getCourses();
+    if (mounted) {
+      setState(() {
+        _courses = courses;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -156,26 +179,35 @@ class CourseListPage extends StatelessWidget {
               ),
             ),
             // Course List
-            SliverPadding(
-              padding: const EdgeInsets.only(bottom: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final course = courses[index];
-                    return CourseCard(
-                      course: course,
-                      onTap: () {
-                        context.push(
-                          '${RouteConstants.course}/detail',
-                          extra: course,
-                        );
-                      },
-                    );
-                  },
-                  childCount: courses.length,
+            if (_isLoading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_courses.isEmpty)
+              const SliverFillRemaining(
+                child: Center(child: Text('No courses found.')),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.only(bottom: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final course = _courses[index];
+                      return CourseCard(
+                        course: course,
+                        onTap: () {
+                          context.push(
+                            '${RouteConstants.course}/detail',
+                            extra: course,
+                          );
+                        },
+                      );
+                    },
+                    childCount: _courses.length,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

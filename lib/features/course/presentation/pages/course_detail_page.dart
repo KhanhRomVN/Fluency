@@ -1,8 +1,10 @@
+import 'package:fluency/core/constants/route_constants.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/data/fake_course_data.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/widgets/lesson_card.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class CourseDetailPage extends StatelessWidget {
   const CourseDetailPage({super.key, this.course});
@@ -223,6 +225,12 @@ class CourseDetailPage extends StatelessWidget {
                       lesson: lesson,
                       isCompleted: isCompleted,
                       isLocked: isLocked,
+                      onTap: () {
+                        context.push(
+                          '${RouteConstants.course}/${RouteConstants.courseDetail}/${RouteConstants.quiz}',
+                          extra: lesson,
+                        );
+                      },
                     );
                   },
                   childCount: displayCourse.lessons.isNotEmpty

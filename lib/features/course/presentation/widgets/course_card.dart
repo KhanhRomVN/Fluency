@@ -73,7 +73,7 @@ class CourseCard extends StatelessWidget {
                             color: Colors.grey[500],
                             fontStyle: FontStyle.italic,
                           ),
-                      maxLines: 2, // Max 2 lines as requested
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
@@ -126,13 +126,18 @@ class CourseCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     // Skills (Moved down)
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        ...course.skill
-                            .map((skill) => _buildSkillTag(context, skill)),
-                      ],
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          ...course.skill.map((skill) {
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: _buildSkillTag(context, skill),
+                            );
+                          }),
+                        ],
+                      ),
                     ),
                   ],
                 ),
