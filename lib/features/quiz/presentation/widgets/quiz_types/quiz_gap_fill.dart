@@ -20,6 +20,8 @@ class QuizGapFill extends StatefulWidget {
 class _QuizGapFillState extends State<QuizGapFill> {
   // Map of gap ID to text controller
   final Map<String, TextEditingController> _controllers = {};
+  bool _isChecked = false;
+  bool _areAllGapsFilled = false;
 
   @override
   void initState() {
@@ -36,13 +38,25 @@ class _QuizGapFillState extends State<QuizGapFill> {
   }
 
   void _parseGaps() {
+    _controllers.clear(); // Clear old controllers if re-parsing
     final regex = RegExp(r"</gap id='(.*?)'>");
     final matches = regex.allMatches(widget.question);
     for (final match in matches) {
       final id = match.group(1);
-      if (id != null && !_controllers.containsKey(id)) {
+      if (id != null) {
         _controllers[id] = TextEditingController();
+        _controllers[id]!.addListener(_checkIfAllGapsFilled);
       }
+    }
+    _checkIfAllGapsFilled();
+  }
+
+  void _checkIfAllGapsFilled() {
+    final allFilled = _controllers.values.every((c) => c.text.isNotEmpty);
+    if (allFilled != _areAllGapsFilled) {
+      setState(() {
+        _areAllGapsFilled = allFilled;
+      });
     }
   }
 
@@ -57,17 +71,51 @@ class _QuizGapFillState extends State<QuizGapFill> {
   @override
   Widget build(BuildContext context) {
     // Using SingleChildScrollView if the content is long
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 4,
+    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
-          runSpacing: 4, // Reduced from 8
-          children: _buildContent(context),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
+
+                runSpacing: 4, // Reduced from 8
+                children: _buildContent(context),
+              ),
+            ),
+          ),
         ),
-      ),
+        if (_areAllGapsFilled && !_isChecked)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isChecked = true;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: appColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Check answers', // CONSIDER: Localize this
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -228,48 +276,93 @@ class _QuizGapFillState extends State<QuizGapFill> {
       orElse: () => const QuizAnswer(id: '', answer: '', explain: ''),
     );
     final maxLength = answer.answer.isNotEmpty ? answer.answer.length : 20;
+    final controller = _controllers[id]!;
+    final userAnswer = controller.text;
+    final isCorrect =
+        userAnswer.toLowerCase().trim() == answer.answer.toLowerCase().trim();
 
-    widgets.add(
-      IntrinsicWidth(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 40),
-          child: TextField(
-            controller: _controllers[id],
-            maxLength: maxLength,
-            maxLengthEnforcement: MaxLengthEnforcement.enforced,
-            buildCounter: (
-              context, {
-              required currentLength,
-              required isFocused,
-              required maxLength,
-            }) =>
-                null,
+    if (_isChecked) {
+      if (isCorrect) {
+        // Correct case: Text in Primary Color
+        widgets.add(
+          Text(
+            userAnswer,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: appColors.textPrimary,
+                  color: appColors.primary,
                   fontWeight: FontWeight.bold,
                 ),
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 4,
-                vertical: 0,
+          ),
+        );
+      } else {
+        // Incorrect case: User text red strikethrough + Correct text primary
+        widgets.add(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                userAnswer,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.red,
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: Colors.red,
+                    ),
               ),
-              hintText: '',
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: appColors.primary.withValues(alpha: 0.5),
+              const SizedBox(width: 4),
+              Text(
+                answer.answer,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: appColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      // Normal Input Case
+      widgets.add(
+        IntrinsicWidth(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 40),
+            child: TextField(
+              controller: controller,
+              maxLength: maxLength,
+              maxLengthEnforcement: MaxLengthEnforcement.enforced,
+              buildCounter: (
+                context, {
+                required currentLength,
+                required isFocused,
+                required maxLength,
+              }) =>
+                  null,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: appColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 0,
                 ),
-              ),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: appColors.primary,
-                  width: 2,
+                hintText: '',
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: appColors.primary.withValues(alpha: 0.5),
+                  ),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: appColors.primary,
+                    width: 2,
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
   }
 }

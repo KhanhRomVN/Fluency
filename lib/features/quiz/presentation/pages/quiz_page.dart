@@ -115,11 +115,9 @@ class QuizPage extends StatelessWidget {
             ),
             // Quiz Content
             Expanded(
-              child: SingleChildScrollView(
-                child: QuizGapFill(
-                  question: questionContent,
-                  answers: activeQuiz?.answers ?? [],
-                ),
+              child: QuizGapFill(
+                question: questionContent,
+                answers: activeQuiz?.answers ?? [],
               ),
             ),
           ],
