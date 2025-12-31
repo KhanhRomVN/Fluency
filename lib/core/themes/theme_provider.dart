@@ -50,6 +50,6 @@ class ThemeProvider extends ChangeNotifier {
   // Preload default theme
   Future<void> init() async {
     await loadAvailableThemes();
-    await loadTheme('assets/themes/DefaultDark.json');
+    await loadTheme('assets/themes/SoftTeal.json');
   }
 }

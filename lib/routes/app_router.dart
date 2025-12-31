@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/route_constants.dart';
+import '../../features/course/domain/entities/course.dart';
 import '../../features/course/presentation/pages/course_detail_page.dart';
 import '../../features/course/presentation/pages/course_list_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -54,7 +55,10 @@ class AppRouter {
                 routes: [
                   GoRoute(
                     path: RouteConstants.courseDetail,
-                    builder: (context, state) => const CourseDetailPage(),
+                    builder: (context, state) {
+                      final course = state.extra as Course?;
+                      return CourseDetailPage(course: course);
+                    },
                     routes: [
                       GoRoute(
                         path: RouteConstants.quiz,

@@ -17,6 +17,7 @@ dependencies:
   go_router: ^17.0.0
   logging: ^1.3.0
   provider: ^6.1.5+1
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
@@ -33,6 +34,7 @@ flutter:
     - .env.dev
     - .env.prod
     - assets/themes/
+    - assets/icons/
 
   fonts:
     - family: Poppins

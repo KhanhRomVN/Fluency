@@ -26,6 +26,7 @@ class Application extends StatelessWidget {
           }
 
           return MaterialApp.router(
+            debugShowCheckedModeBanner: false,
             title: 'Fluency',
             theme: themeProvider.currentTheme, // Dynamic theme
             // darkTheme: AppTheme.dark, // We control everything via 'theme' now
