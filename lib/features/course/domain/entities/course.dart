@@ -40,11 +40,13 @@ class Lesson {
   final String title;
   final String description; // Optional
   final int lessonNumber;
+  final int quizCount;
 
   const Lesson({
     required this.id,
     required this.title,
     this.description = '',
     required this.lessonNumber,
+    this.quizCount = 0,
   });
 }
