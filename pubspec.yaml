@@ -42,7 +42,8 @@ flutter:
     - .env.prod
     - assets/themes/
     - assets/icons/
-    - assets/fonts/    
+    - assets/fonts/
+    # - lib/features/course/mock
 
   fonts:
     - family: Poppins
