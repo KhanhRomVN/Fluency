@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/themes/app_theme.dart';
 import 'routes/app_router.dart';
 import 'package:provider/provider.dart';
+import 'features/course/presentation/providers/course_provider.dart';
 import 'core/themes/theme_provider.dart';
 
 import 'core/l10n/app_localizations.dart';
@@ -12,8 +13,11 @@ class Application extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider()..init(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
+        ChangeNotifierProvider(create: (_) => CourseProvider()..loadCourses()),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           if (!themeProvider.isThemeLoaded) {

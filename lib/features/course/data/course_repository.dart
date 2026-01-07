@@ -1,20 +1,60 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:convert';
+// import 'dart:io'; // Removed to support web
 
 import 'package:fluency/features/course/data/services/zip_course_loader.dart';
+import 'package:fluency/features/course/data/services/zip_course_loader.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:universal_io/io.dart';
 
 class CourseRepository {
   // List of known course files in assets
   static const String _coursesAssetPath = 'lib/features/course/assets/courses';
   final ZipCourseLoader _zipLoader = ZipCourseLoader();
 
+  Future<void> importCourse(String path) async {
+    try {
+      final file = File(path);
+      if (!await file.exists()) {
+        throw Exception('File not found: $path');
+      }
+
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final importDir = Directory('${appDocDir.path}/imported_courses');
+      if (!await importDir.exists()) {
+        await importDir.create(recursive: true);
+      }
+
+      final fileName = path.split('/').last;
+      final newPath = '${importDir.path}/$fileName';
+
+      await file.copy(newPath);
+      print('Copied imported course to $newPath');
+
+      // Optionally verify extraction immediately
+      final importedFile = File(newPath);
+      await _zipLoader.extractZipFileFromFile(importedFile);
+    } catch (e) {
+      print('Error importing course: $e');
+      rethrow;
+    }
+  }
+
   Future<List<Course>> getCourses() async {
     final List<Course> courses = [];
 
     // Load courses from ZIP files first
-    await _loadCoursesFromZip(courses);
+    if (!kIsWeb) {
+      await _loadCoursesFromZip(courses);
+    }
+
+    // Load courses from imported ZIP files
+    if (!kIsWeb) {
+      await _loadCoursesFromLocalZips(courses);
+    }
 
     // Then load from regular JSON files (for backward compatibility)
     await _loadCoursesFromJson(courses);
@@ -72,6 +112,64 @@ class CourseRepository {
       }
     } catch (e) {
       print('Error loading courses from ZIP: $e');
+    }
+  }
+
+  /// Load courses from imported ZIP files in local storage
+  Future<void> _loadCoursesFromLocalZips(List<Course> courses) async {
+    try {
+      final zipFiles = await _zipLoader.listImportedZipFiles();
+      print('Found ${zipFiles.length} imported ZIP files');
+
+      for (final zipFile in zipFiles) {
+        try {
+          print('Processing imported ZIP: ${zipFile.path}');
+
+          // Extract ZIP file
+          final extractedDir = await _zipLoader.extractZipFileFromFile(zipFile);
+          if (extractedDir == null) {
+            print('Failed to extract imported ZIP ${zipFile.path}');
+            continue;
+          }
+
+          // Load course JSON
+          final courseJson = await _zipLoader.loadCourseJson(extractedDir);
+          if (courseJson == null) {
+            print('No course JSON found in imported ZIP ${zipFile.path}');
+            continue;
+          }
+
+          var course = Course.fromJson(courseJson);
+
+          // Check for duplication
+          if (courses.any((c) => c.title == course.title)) {
+            print('Skipping duplicate imported course: ${course.title}');
+            continue;
+          }
+
+          // Load lessons
+          final lessonJsons = await _zipLoader.loadLessonJsons(extractedDir);
+          if (lessonJsons.isNotEmpty) {
+            final lessons =
+                lessonJsons.map((json) => Lesson.fromJson(json)).toList();
+
+            final allLessons = [...course.lessons, ...lessons];
+            allLessons.sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber));
+
+            course = course.copyWith(lessons: allLessons);
+          }
+
+          // Resolve paths using extracted directory
+          course = _resolvePathsFromZip(course, extractedDir);
+
+          courses.insert(0, course); // Add imported courses to the top
+          print('Successfully loaded imported course: ${course.title}');
+        } catch (e) {
+          print('Error loading course from imported ZIP ${zipFile.path}: $e');
+        }
+      }
+    } catch (e) {
+      print('Error loading courses from imported ZIPs: $e');
     }
   }
 

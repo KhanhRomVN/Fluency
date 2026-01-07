@@ -2,6 +2,7 @@ import 'package:fluency/core/constants/route_constants.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/data/course_repository.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/course/presentation/widgets/course_image.dart';
 import 'package:fluency/features/course/presentation/widgets/lesson_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -152,16 +153,9 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                     ],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: Image.network(
-                    displayCourse.imageUrl,
+                  child: CourseImage(
+                    imageUrl: displayCourse.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const AspectRatio(
-                      aspectRatio: 2 / 3,
-                      child: ColoredBox(
-                        color: Colors.grey,
-                        child: Icon(Icons.error),
-                      ),
-                    ),
                   ),
                 ),
               ),

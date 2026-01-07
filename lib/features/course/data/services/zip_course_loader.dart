@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -23,6 +23,16 @@ class ZipCourseLoader {
     return cacheDir;
   }
 
+  /// Get the directory for imported courses
+  Future<Directory> _getImportedCoursesDirectory() async {
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final importDir = Directory('${appDocDir.path}/imported_courses');
+    if (!await importDir.exists()) {
+      await importDir.create(recursive: true);
+    }
+    return importDir;
+  }
+
   /// List all ZIP files in the courses assets folder
   Future<List<String>> listZipFiles() async {
     // Skip ZIP loading on web platform (path_provider not supported)
@@ -44,6 +54,23 @@ class ZipCourseLoader {
       return zipFiles;
     } catch (e) {
       print('Error listing ZIP files: $e');
+      return [];
+    }
+  }
+
+  /// List all ZIP files in the imported courses directory
+  Future<List<File>> listImportedZipFiles() async {
+    try {
+      final importDir = await _getImportedCoursesDirectory();
+      final List<File> zipFiles = [];
+      await for (final entity in importDir.list()) {
+        if (entity is File && entity.path.endsWith('.zip')) {
+          zipFiles.add(entity);
+        }
+      }
+      return zipFiles;
+    } catch (e) {
+      print('Error listing imported ZIP files: $e');
       return [];
     }
   }
@@ -105,6 +132,56 @@ class ZipCourseLoader {
       return extractDir;
     } catch (e) {
       print('Error extracting ZIP file $assetPath: $e');
+      return null;
+    }
+  }
+
+  /// Extract a ZIP file from a local File object
+  Future<Directory?> extractZipFileFromFile(File zipFile) async {
+    try {
+      final courseName = zipFile.path.split('/').last.replaceAll('.zip', '');
+
+      // Check if already extracted
+      if (_extractedCourses.containsKey(courseName)) {
+        final cachedDir = _extractedCourses[courseName]!;
+        if (await cachedDir.exists()) {
+          print('Using cached extracted course: $courseName');
+          return cachedDir;
+        }
+      }
+
+      print('Extracting local ZIP file: ${zipFile.path}');
+
+      final bytes = await zipFile.readAsBytes();
+      final archive = ZipDecoder().decodeBytes(bytes);
+
+      final cacheDir = await _getCacheDirectory();
+      final extractDir = Directory('${cacheDir.path}/$courseName');
+
+      if (await extractDir.exists()) {
+        await extractDir.delete(recursive: true);
+      }
+      await extractDir.create(recursive: true);
+
+      for (final file in archive) {
+        final filename = file.name;
+        if (file.isFile) {
+          final data = file.content as List<int>;
+          final outputFile = File('${extractDir.path}/$filename');
+          await outputFile.parent.create(recursive: true);
+          await outputFile.writeAsBytes(data);
+        } else {
+          final dir = Directory('${extractDir.path}/$filename');
+          await dir.create(recursive: true);
+        }
+      }
+
+      print(
+          'Successfully extracted local ZIP $courseName to ${extractDir.path}');
+      _extractedCourses[courseName] = extractDir;
+      return extractDir;
+    } catch (e) {
+      print('Error extracting local ZIP file ${zipFile.path}: $e');
       return null;
     }
   }

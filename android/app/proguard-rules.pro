@@ -25,3 +25,7 @@
     @com.google.android.gms.common.annotation.KeepName *;
 }
 -dontwarn com.google.android.gms.**
+
+# AutoValue
+-keep class com.google.auto.value.** { *; }
+-dontwarn com.google.auto.value.**

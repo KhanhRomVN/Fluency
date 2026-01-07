@@ -22,6 +22,8 @@ dependencies:
   archive: ^3.4.0
   path_provider: ^2.1.0
   http: ^1.6.0
+  file_picker: ^10.3.8
+  universal_io: ^2.3.1
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +45,10 @@ flutter:
     - assets/flags/
     - assets/fonts/
     - lib/features/course/assets/courses/
+    - lib/features/course/assets/courses/Cambridge_IELTS_18/
+    - lib/features/course/assets/courses/Cambridge_IELTS_18/audio/
+    - lib/features/course/assets/courses/Cambridge_IELTS_18/image/
+    - lib/features/course/assets/courses/Cambridge_IELTS_18/passage/
     
 
   fonts:

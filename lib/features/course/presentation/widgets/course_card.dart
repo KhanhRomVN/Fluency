@@ -1,5 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/course/presentation/widgets/course_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -37,16 +38,10 @@ class CourseCard extends StatelessWidget {
                 topLeft: Radius.circular(12),
                 bottomLeft: Radius.circular(12),
               ),
-              child: Image.network(
-                course.imageUrl,
+              child: CourseImage(
+                imageUrl: course.imageUrl,
                 width: 90,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 90,
-                  height: 120, // Keep fallback height consistent
-                  color: Colors.grey[800],
-                  child: const Icon(Icons.broken_image, color: Colors.grey),
-                ),
               ),
             ),
             // Course Info
