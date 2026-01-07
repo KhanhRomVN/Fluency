@@ -43,7 +43,10 @@ flutter:
     - assets/themes/
     - assets/icons/
     - assets/fonts/
-    # - lib/features/course/mock
+    - lib/core/mock/Cambridge_IELTS_18/
+    - lib/core/mock/Cambridge_IELTS_18/audio/
+    - lib/core/mock/Cambridge_IELTS_18/passage/
+    - lib/core/mock/Cambridge_IELTS_18/image/
 
   fonts:
     - family: Poppins

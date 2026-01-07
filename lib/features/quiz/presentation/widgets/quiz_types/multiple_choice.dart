@@ -137,10 +137,15 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                 ),
           ),
           const SizedBox(height: 12),
-          // Options
-          ...question.options.map((option) {
-            final isSelected = selectedOptionKey == option.key;
-            final isAnswerCorrect = option.key == question.answer;
+          // Options (enumerate and generate keys as A, B, C...)
+          ...question.options.asMap().entries.map((entry) {
+            final index = entry.key;
+            final optionText = entry.value;
+            final optionKey = String.fromCharCode(65 + index); // 65 = 'A'
+
+            final isSelected = selectedOptionKey == optionKey;
+            final isAnswerCorrect =
+                optionKey == question.answer || optionText == question.answer;
 
             Color borderColor = appColors.border;
             Color backgroundColor = Colors.transparent;
@@ -169,7 +174,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: InkWell(
-                onTap: () => _onOptionSelected(question.id, option.key),
+                onTap: () => _onOptionSelected(question.id, optionKey),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding:
@@ -205,7 +210,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                             ? const Icon(Icons.check,
                                 size: 16, color: Colors.white)
                             : Text(
-                                option.key,
+                                optionKey,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: appColors.textSecondary,
@@ -216,7 +221,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          option.text,
+                          optionText,
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: textColor,

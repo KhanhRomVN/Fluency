@@ -138,7 +138,8 @@ class Quiz {
   final String? transcript; // Optional transcript
   final String? passage; // Optional passage file path
   final List<QuizQuestion> questions;
-  final List<QuizAnswer> answers;
+  final List<QuizAnswer> answers; // For gap-fill quizzes
+  final List<String>? answersString; // For multi-answer multiple choice
 
   // Additional fields for different quiz types
   final List<String>?
@@ -161,6 +162,7 @@ class Quiz {
     this.passage,
     this.questions = const [],
     required this.answers,
+    this.answersString,
     this.options,
     this.matchings,
     this.subtype,
@@ -170,6 +172,25 @@ class Quiz {
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
+    // Parse answers - can be List<QuizAnswer> or List<String>
+    List<QuizAnswer> quizAnswers = [];
+    List<String>? stringAnswers;
+
+    if (json['answers'] != null) {
+      final answersJson = json['answers'];
+      if (answersJson is List && answersJson.isNotEmpty) {
+        if (answersJson.first is Map) {
+          // Array of QuizAnswer objects (gap-fill)
+          quizAnswers = answersJson
+              .map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
+              .toList();
+        } else {
+          // Array of strings (multi-answer multiple choice)
+          stringAnswers = answersJson.map((e) => e.toString()).toList();
+        }
+      }
+    }
+
     return Quiz(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -184,10 +205,8 @@ class Quiz {
               ?.map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      answers: (json['answers'] as List?)
-              ?.map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      answers: quizAnswers,
+      answersString: stringAnswers,
       options: (json['options'] as List?)?.map((e) => e as String).toList(),
       matchings: (json['matchings'] as List?)
           ?.map((e) => MatchingItem.fromJson(e as Map<String, dynamic>))
@@ -204,7 +223,7 @@ class Quiz {
 
 class QuizAnswer {
   final String id;
-  final String answer;
+  final List<String> answer;
   final String explain;
 
   const QuizAnswer({
@@ -214,9 +233,19 @@ class QuizAnswer {
   });
 
   factory QuizAnswer.fromJson(Map<String, dynamic> json) {
+    // Handle both String and List<String> for answer
+    List<String> parsedAnswer;
+    if (json['answer'] is List) {
+      parsedAnswer = (json['answer'] as List).map((e) => e.toString()).toList();
+    } else if (json['answer'] is String) {
+      parsedAnswer = [json['answer'] as String];
+    } else {
+      parsedAnswer = [];
+    }
+
     return QuizAnswer(
       id: json['id'] as String? ?? '',
-      answer: json['answer'] as String? ?? '',
+      answer: parsedAnswer,
       explain: json['explain'] as String? ?? '',
     );
   }
@@ -225,7 +254,7 @@ class QuizAnswer {
 class QuizQuestion {
   final String id;
   final String question;
-  final List<QuizOption> options;
+  final List<String> options;
   final String answer;
   final String explain;
 
@@ -241,9 +270,7 @@ class QuizQuestion {
     return QuizQuestion(
       id: json['id'] as String? ?? '',
       question: json['question'] as String? ?? '',
-      options: (json['options'] as List?)
-              ?.map((e) => QuizOption.fromJson(e as Map<String, dynamic>))
-              .toList() ??
+      options: (json['options'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
       answer: json['answer'] as String? ?? '',
       explain: json['explain'] as String? ?? '',

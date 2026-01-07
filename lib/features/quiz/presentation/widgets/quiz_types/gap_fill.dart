@@ -161,13 +161,15 @@ class _GapFillState extends State<GapFill> {
     // Find the answer for this gap
     final answer = widget.answers.firstWhere(
       (a) => a.id == id,
-      orElse: () => const QuizAnswer(id: '', answer: '', explain: ''),
+      orElse: () => const QuizAnswer(id: '', answer: [], explain: ''),
     );
-    final maxLength = answer.answer.isNotEmpty ? answer.answer.length : 20;
+    final maxLength = answer.answer.isNotEmpty
+        ? answer.answer.map((e) => e.length).reduce((a, b) => a > b ? a : b)
+        : 20;
     final controller = _controllers[id]!;
     final userAnswer = controller.text;
-    final isCorrect =
-        userAnswer.toLowerCase().trim() == answer.answer.toLowerCase().trim();
+    final isCorrect = answer.answer.any(
+        (ans) => userAnswer.toLowerCase().trim() == ans.toLowerCase().trim());
 
     if (_isChecked) {
       Widget content;
@@ -195,7 +197,7 @@ class _GapFillState extends State<GapFill> {
             ),
             const SizedBox(width: 4),
             Text(
-              answer.answer,
+              answer.answer.firstOrNull ?? '',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: appColors.primary,
                     fontWeight: FontWeight.bold,

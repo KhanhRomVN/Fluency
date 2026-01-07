@@ -2,10 +2,12 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart'; // Import MultipleChoice
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
+import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
+import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -21,6 +23,8 @@ class QuizPage extends StatefulWidget {
 class _QuizPageState extends State<QuizPage> {
   int _activeQuizIndex = 0;
   bool _isQuizChecked = false;
+  bool _showPassageDrawer = false;
+  bool _showTutorialDrawer = false;
 
   void _onQuizChecked() {
     debugPrint('AG_LOG: _onQuizChecked called in QuizPage');
@@ -62,97 +66,40 @@ class _QuizPageState extends State<QuizPage> {
     debugPrint(
         'AG_LOG: Active Quiz Transcript: ${activeQuiz?.transcript != null ? "Present" : "NULL"}');
 
-    return Scaffold(
-      backgroundColor: appColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navbar
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 8), // Reduced padding
-              decoration: BoxDecoration(
-                color: appColors.cardBackground,
-              ),
-              child: Row(
-                children: [
-                  // Left side: Title + Question Counter
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          activeQuiz?.title.isNotEmpty == true
-                              ? activeQuiz!.title
-                              : lesson
-                                  .title, // Use Quiz Title, fallback to Lesson Title
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    // Reduced font size
-                                    fontWeight: FontWeight.bold,
-                                    color: appColors.textPrimary,
-                                  ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: appColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Question ${_activeQuizIndex + 1}/${lesson.quizzes.length}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: appColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
-                                ),
-                          ),
-                        ),
-                      ],
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: appColors.background,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Top Navbar
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: appColors.cardBackground,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: appColors.border.withValues(alpha: 0.5),
+                        width: 0.5,
+                      ),
                     ),
                   ),
-                  // Right side: Menu Icon + Transcript Icon
-                  Row(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (_isQuizChecked && activeQuiz?.transcript != null)
-                        InkWell(
-                          onTap: () {
-                            _showTranscriptDrawer(
-                                context, activeQuiz!.transcript!, audioPath);
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(6.0),
-                            child: SvgPicture.asset(
-                              'assets/icons/transcript.svg',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                appColors.textPrimary,
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                          ),
-                        ),
+                      // Left: Back button
                       InkWell(
                         onTap: () {
-                          _showQuizDrawer(context);
+                          Navigator.of(context).pop();
                         },
                         borderRadius: BorderRadius.circular(8),
                         child: Padding(
-                          padding: const EdgeInsets.all(6.0), // Reduced padding
+                          padding: const EdgeInsets.all(6.0),
                           child: SvgPicture.asset(
-                            'assets/icons/menu_quiz.svg',
-                            width: 20, // Reduced icon size
+                            'icons/chevron_left.svg',
+                            width: 20,
                             height: 20,
                             colorFilter: ColorFilter.mode(
                               appColors.textPrimary,
@@ -161,26 +108,196 @@ class _QuizPageState extends State<QuizPage> {
                           ),
                         ),
                       ),
+
+                      // Center: Quiz label
+                      Text(
+                        'Quiz',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: appColors.textPrimary,
+                            ),
+                      ),
+
+                      // Right: Icon row
+                      Row(
+                        children: [
+                          // Passage icon (if available)
+                          if (activeQuiz?.passage != null)
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _showPassageDrawer = true;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: SvgPicture.asset(
+                                  'icons/pilcrow.svg',
+                                  width: 18,
+                                  height: 18,
+                                  colorFilter: ColorFilter.mode(
+                                    appColors.textPrimary,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Tutorial/Instruction icon (if available)
+                          if (activeQuiz?.instruction != null &&
+                              activeQuiz!.instruction.isNotEmpty)
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _showTutorialDrawer = true;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: SvgPicture.asset(
+                                  'icons/circle_dot_dashed.svg',
+                                  width: 18,
+                                  height: 18,
+                                  colorFilter: ColorFilter.mode(
+                                    appColors.primary,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Transcript icon (shown after checking)
+                          if (_isQuizChecked && activeQuiz?.transcript != null)
+                            InkWell(
+                              onTap: () {
+                                _showTranscriptDrawer(context,
+                                    activeQuiz!.transcript!, audioPath);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6.0),
+                                child: SvgPicture.asset(
+                                  'icons/audio_lines.svg',
+                                  width: 18,
+                                  height: 18,
+                                  colorFilter: ColorFilter.mode(
+                                    appColors.textPrimary,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Question counter badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            margin: const EdgeInsets.only(right: 4),
+                            decoration: BoxDecoration(
+                              color: appColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${_activeQuizIndex + 1}/${lesson.quizzes.length}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: appColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                            ),
+                          ),
+
+                          // Info icon
+                          InkWell(
+                            onTap: () {
+                              // TODO: Show info/help
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: SvgPicture.asset(
+                                'icons/info.svg',
+                                width: 18,
+                                height: 18,
+                                colorFilter: ColorFilter.mode(
+                                  appColors.textPrimary,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Menu icon
+                          InkWell(
+                            onTap: () {
+                              _showQuizDrawer(context);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: SvgPicture.asset(
+                                'icons/align_end_vertical.svg',
+                                width: 18,
+                                height: 18,
+                                colorFilter: ColorFilter.mode(
+                                  appColors.textPrimary,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                // Quiz Content
+                Expanded(
+                  child:
+                      _buildQuizContent(quizType, questionContent, activeQuiz),
+                ),
+              ],
             ),
-            // Quiz Content
-            Expanded(
-              child: _buildQuizContent(quizType, questionContent, activeQuiz),
-            ),
-          ],
+          ),
+          bottomNavigationBar: audioPath != null
+              ? MediaPlayer(
+                  key: ValueKey(
+                      audioPath), // Rebuild player when audio source changes
+                  audioPath: audioPath,
+                  title: audioFileName, // Use audio filename
+                )
+              : null,
         ),
-      ),
-      bottomNavigationBar: audioPath != null
-          ? MediaPlayer(
-              key: ValueKey(
-                  audioPath), // Rebuild player when audio source changes
-              audioPath: audioPath,
-              title: audioFileName, // Use audio filename
-            )
-          : null,
+        // Passage Drawer
+        if (_showPassageDrawer)
+          PassageDrawer(
+            isOpen: _showPassageDrawer,
+            onClose: () {
+              setState(() {
+                _showPassageDrawer = false;
+              });
+            },
+            passagePath: activeQuiz?.passage,
+          ),
+        // Tutorial Drawer
+        if (_showTutorialDrawer)
+          TutorialDrawer(
+            isOpen: _showTutorialDrawer,
+            onClose: () {
+              setState(() {
+                _showTutorialDrawer = false;
+              });
+            },
+            content: activeQuiz?.instruction ?? '',
+          ),
+      ],
     );
   }
 

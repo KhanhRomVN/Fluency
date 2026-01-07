@@ -69,4 +69,5 @@ test_project
 FluencyStudio_temp
 
 # Course ZIP files (too large for git)
-lib/features/course/data/mock
+temp
+lib/core/mock
