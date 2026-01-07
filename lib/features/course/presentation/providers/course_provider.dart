@@ -17,7 +17,6 @@ class CourseProvider extends ChangeNotifier {
     try {
       _courses = await _repository.getCourses();
     } catch (e) {
-      debugPrint('Error loading courses: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -33,7 +32,6 @@ class CourseProvider extends ChangeNotifier {
       // Reload courses to reflect changes
       await loadCourses();
     } catch (e) {
-      debugPrint('Error importing course: $e');
       _isLoading = false;
       notifyListeners();
       rethrow;

@@ -18,8 +18,6 @@ class QuizDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    debugPrint(
-        'AG_LOG: QuizDrawer build. Quizzes count: ${lesson.quizzes.length}');
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,

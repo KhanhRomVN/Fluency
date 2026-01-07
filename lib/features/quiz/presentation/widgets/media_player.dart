@@ -6,10 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class MediaPlayer extends StatefulWidget {
-  const MediaPlayer({super.key, required this.audioPath, this.title = ''});
+  const MediaPlayer({
+    super.key,
+    required this.audioPath,
+    this.title = '',
+    this.externalPlayer,
+  });
 
   final String audioPath;
   final String title;
+  final AudioPlayer? externalPlayer;
 
   @override
   State<MediaPlayer> createState() => _MediaPlayerState();
@@ -31,7 +37,8 @@ class _MediaPlayerState extends State<MediaPlayer> {
   @override
   void initState() {
     super.initState();
-    _player = AudioPlayer();
+    // Use external player if provided, otherwise create a new one
+    _player = widget.externalPlayer ?? AudioPlayer();
     _initAudio();
   }
 
@@ -40,7 +47,17 @@ class _MediaPlayerState extends State<MediaPlayer> {
     await _player.setReleaseMode(ReleaseMode.stop);
 
     // Initialize audio source properly
-    await _setSource();
+    if (widget.externalPlayer == null) {
+      await _setSource();
+    } else {
+      // If external player is used, source might be set by parent.
+      // But we ensure it's set if not playing or if path changed.
+      // For simplicity/safety, we can try setting it if state is stopped/completed.
+      if (_player.state == PlayerState.stopped ||
+          _player.state == PlayerState.completed) {
+        await _setSource();
+      }
+    }
 
     _durationSubscription = _player.onDurationChanged.listen((duration) {
       setState(() => _duration = duration);
@@ -67,17 +84,12 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
   Future<void> _setSource() async {
     try {
-      debugPrint('AG_DEBUG: Loading audio from ${widget.audioPath}');
       // Workaround: Load bytes from rootBundle because AssetSource assumes 'assets/' prefix.
       // The provided path is a full lib path which behaves like a key in rootBundle.
       final bytes = await DefaultAssetBundle.of(context).load(widget.audioPath);
       final audioBytes = bytes.buffer.asUint8List();
-      debugPrint('AG_DEBUG: Audio bytes loaded, size: ${audioBytes.length}');
       await _player.setSourceBytes(audioBytes);
-      debugPrint('AG_DEBUG: Audio source set successfully');
-    } catch (e) {
-      debugPrint('AG_DEBUG: Error loading audio source: $e');
-    }
+    } catch (e) {}
   }
 
   @override
@@ -86,7 +98,11 @@ class _MediaPlayerState extends State<MediaPlayer> {
     _positionSubscription?.cancel();
     _playerCompleteSubscription?.cancel();
     _playerStateChangeSubscription?.cancel();
-    _player.dispose();
+
+    // Only dispose if we created it
+    if (widget.externalPlayer == null) {
+      _player.dispose();
+    }
     super.dispose();
   }
 

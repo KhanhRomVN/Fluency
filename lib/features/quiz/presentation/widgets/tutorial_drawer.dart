@@ -186,15 +186,21 @@ class TutorialDrawer extends StatelessWidget {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
-                      child: RichText(
-                        textAlign: TextAlign.start,
-                        text: TextSpan(
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: appColors.textPrimary,
-                                    height: 1.6,
-                                  ),
-                          children: _parseContentToTextSpans(context, content),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          textAlign: TextAlign.start,
+                          text: TextSpan(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: appColors.textPrimary,
+                                  height: 1.6,
+                                ),
+                            children:
+                                _parseContentToTextSpans(context, content),
+                          ),
                         ),
                       ),
                     ),

@@ -1,5 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,12 +10,14 @@ class GapFill extends StatefulWidget {
     required this.question,
     required this.answers,
     this.onCheck,
+    this.onShowExplain,
     super.key,
   });
 
   final String question;
   final List<QuizAnswer> answers;
   final VoidCallback? onCheck;
+  final void Function(String explanation)? onShowExplain;
 
   @override
   State<GapFill> createState() => _GapFillState();
@@ -76,51 +79,54 @@ class _GapFillState extends State<GapFill> {
     // Using SingleChildScrollView if the content is long
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
-    return Column(
+    return Stack(
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 4,
+        Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4,
 
-                runSpacing: 4, // Reduced from 8
-                children: _buildContent(context),
-              ),
-            ),
-          ),
-        ),
-        if (_areAllGapsFilled && !_isChecked)
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _isChecked = true;
-                  });
-                  debugPrint(
-                      'AG_LOG: GapFill Check Answers pressed. Calling widget.onCheck');
-                  widget.onCheck?.call();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    runSpacing: 4, // Reduced from 8
+                    children: _buildContent(context),
                   ),
                 ),
-                child: const Text(
-                  'Check answers', // CONSIDER: Localize this
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
               ),
             ),
-          ),
+            if (_areAllGapsFilled && !_isChecked)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _isChecked = true;
+                      });
+                      widget.onCheck?.call();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: appColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Check answers', // CONSIDER: Localize this
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -261,58 +267,9 @@ class _GapFillState extends State<GapFill> {
   }
 
   void _showExplanation(BuildContext context, QuizAnswer answer) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.5,
-          decoration: BoxDecoration(
-            color: appColors.background,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: appColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                'Explanation',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
-                    children: _buildRichText(
-                      context,
-                      answer.explain.isNotEmpty
-                          ? answer.explain
-                          : '<p>No explanation available.</p>',
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+    final explanation = answer.explain.isNotEmpty
+        ? answer.explain
+        : '<p>No explanation available.</p>';
+    widget.onShowExplain?.call(explanation);
   }
 }

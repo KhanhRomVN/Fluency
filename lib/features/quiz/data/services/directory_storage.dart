@@ -198,12 +198,10 @@ class DirectoryStorage {
               ((entries[0] as Map?)?['senses'] as List?)?.isEmpty == true;
 
           if (isBad) {
-            debugPrint('Primary API result poor for $word, trying fallback...');
             data = null;
           }
         }
       } catch (e) {
-        debugPrint('Primary API failed, trying fallback...');
         data = null;
       }
 
@@ -223,9 +221,7 @@ class DirectoryStorage {
               usedFallback = true;
             }
           }
-        } catch (e) {
-          debugPrint('Fallback API also failed: $e');
-        }
+        } catch (e) {}
       }
 
       if (data == null) return null;
@@ -236,7 +232,6 @@ class DirectoryStorage {
       }
       return parsedEntry;
     } catch (error) {
-      debugPrint('Failed to fetch word definition: $error');
       return null;
     }
   }
@@ -349,7 +344,6 @@ class DirectoryStorage {
         meanings: meanings,
       );
     } catch (e) {
-      debugPrint('Error parsing entry: $e');
       return null;
     }
   }

@@ -1,13 +1,14 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart';
+import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -25,9 +26,24 @@ class _QuizPageState extends State<QuizPage> {
   bool _isQuizChecked = false;
   bool _showPassageDrawer = false;
   bool _showTutorialDrawer = false;
+  bool _showTranscriptDrawer = false;
+  bool _showExplainDrawer = false;
+  String _currentExplanation = '';
+  late AudioPlayer _audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
 
   void _onQuizChecked() {
-    debugPrint('AG_LOG: _onQuizChecked called in QuizPage');
     setState(() {
       _isQuizChecked = true;
     });
@@ -37,12 +53,6 @@ class _QuizPageState extends State<QuizPage> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final lesson = widget.lesson;
-    debugPrint(
-        'AG_LOG: QuizPage build. Lesson: ${lesson.title}, Quizzes count: ${lesson.quizzes.length}');
-    for (var i = 0; i < lesson.quizzes.length; i++) {
-      debugPrint(
-          'AG_LOG: Quiz $i: ${lesson.quizzes[i].title} - ${lesson.quizzes[i].type}');
-    }
 
     // Get current quiz
     final activeQuiz =
@@ -60,11 +70,6 @@ class _QuizPageState extends State<QuizPage> {
     if (audioPath != null) {
       audioFileName = audioPath.split('/').last;
     }
-
-    // Transcript Icon Logic Debug
-    debugPrint('AG_LOG: QuizPage build. _isQuizChecked: $_isQuizChecked');
-    debugPrint(
-        'AG_LOG: Active Quiz Transcript: ${activeQuiz?.transcript != null ? "Present" : "NULL"}');
 
     return Stack(
       children: [
@@ -172,8 +177,9 @@ class _QuizPageState extends State<QuizPage> {
                           if (_isQuizChecked && activeQuiz?.transcript != null)
                             InkWell(
                               onTap: () {
-                                _showTranscriptDrawer(context,
-                                    activeQuiz!.transcript!, audioPath);
+                                setState(() {
+                                  _showTranscriptDrawer = true;
+                                });
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
@@ -272,6 +278,7 @@ class _QuizPageState extends State<QuizPage> {
                       audioPath), // Rebuild player when audio source changes
                   audioPath: audioPath,
                   title: audioFileName, // Use audio filename
+                  externalPlayer: _audioPlayer,
                 )
               : null,
         ),
@@ -297,6 +304,30 @@ class _QuizPageState extends State<QuizPage> {
             },
             content: activeQuiz?.instruction ?? '',
           ),
+        // Explain Drawer
+        if (_showExplainDrawer)
+          ExplainDrawer(
+            isOpen: _showExplainDrawer,
+            onClose: () {
+              setState(() {
+                _showExplainDrawer = false;
+              });
+            },
+            explanation: _currentExplanation,
+          ),
+        // Transcript Drawer
+        if (_showTranscriptDrawer)
+          TranscriptDrawer(
+            isOpen: _showTranscriptDrawer,
+            onClose: () {
+              setState(() {
+                _showTranscriptDrawer = false;
+              });
+            },
+            transcriptPath: activeQuiz?.transcript,
+            audioPath: audioPath,
+            audioPlayer: _audioPlayer,
+          ),
       ],
     );
   }
@@ -311,6 +342,12 @@ class _QuizPageState extends State<QuizPage> {
         return MultipleChoice(
           quiz: quiz,
           onCheck: _onQuizChecked,
+          onShowExplain: (explanation) {
+            setState(() {
+              _currentExplanation = explanation;
+              _showExplainDrawer = true;
+            });
+          },
         );
       case 'gap-fill':
       default:
@@ -318,6 +355,12 @@ class _QuizPageState extends State<QuizPage> {
           question: question,
           answers: quiz.answers,
           onCheck: _onQuizChecked,
+          onShowExplain: (explanation) {
+            setState(() {
+              _currentExplanation = explanation;
+              _showExplainDrawer = true;
+            });
+          },
         );
     }
   }
@@ -338,18 +381,6 @@ class _QuizPageState extends State<QuizPage> {
             });
           },
         );
-      },
-    );
-  }
-
-  void _showTranscriptDrawer(
-      BuildContext context, String transcript, String? audioPath) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return TranscriptDrawer(transcript: transcript, audioPath: audioPath);
       },
     );
   }

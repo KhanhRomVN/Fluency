@@ -101,7 +101,7 @@ class ExplainDrawer extends StatelessWidget {
           child: Material(
             color: Colors.transparent,
             child: Container(
-              height: MediaQuery.of(context).size.height * 0.75,
+              height: MediaQuery.of(context).size.height * 0.70,
               decoration: BoxDecoration(
                 color: appColors.background,
                 borderRadius: const BorderRadius.vertical(
@@ -134,13 +134,30 @@ class ExplainDrawer extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Explanation',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                        Row(
+                          children: [
+                            SvgPicture.asset(
+                              'assets/icons/badge_info.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                appColors.primary,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Explanation',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: appColors.textPrimary,
+                                    fontSize: 18,
                                   ),
+                            ),
+                          ],
                         ),
                         InkWell(
                           onTap: onClose,
@@ -171,15 +188,19 @@ class ExplainDrawer extends StatelessWidget {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
-                      child: RichText(
-                        textAlign: TextAlign.start,
-                        text: TextSpan(
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: appColors.textPrimary,
-                                    height: 1.6,
-                                  ),
-                          children: _parseContentToTextSpans(context, content),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: RichText(
+                          textAlign: TextAlign.start,
+                          text: TextSpan(
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: appColors.textPrimary,
+                                      height: 1.6,
+                                    ),
+                            children:
+                                _parseContentToTextSpans(context, content),
+                          ),
                         ),
                       ),
                     ),

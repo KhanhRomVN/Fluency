@@ -62,10 +62,7 @@ class _SpeakingState extends State<Speaking> {
     });
   }
 
-  void _handleFinish() {
-    // Could navigate back or show completion
-    debugPrint('Quiz finished: $_answers');
-  }
+  void _handleFinish() {}
 
   @override
   Widget build(BuildContext context) {

@@ -1,61 +1,509 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
+import 'package:fluency/features/quiz/domain/entities/transcript_model.dart';
 import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-class TranscriptDrawer extends StatelessWidget {
+class TranscriptDrawer extends StatefulWidget {
   const TranscriptDrawer({
     super.key,
-    required this.transcript,
-    required this.audioPath,
+    required this.isOpen,
+    required this.onClose,
+    this.transcriptPath,
+    this.audioPath,
+    this.audioPlayer,
   });
 
-  final String transcript;
+  final bool isOpen;
+  final VoidCallback onClose;
+  final String? transcriptPath;
   final String? audioPath;
+  final AudioPlayer? audioPlayer;
+
+  @override
+  State<TranscriptDrawer> createState() => _TranscriptDrawerState();
+}
+
+class _TranscriptDrawerState extends State<TranscriptDrawer> {
+  TranscriptData? _transcriptData;
+  bool _isLoading = false;
+  String? _error;
+  String? _activeDialogueId;
+  Duration _currentTime = Duration.zero;
+  StreamSubscription<Duration>? _positionSubscription;
+
+  // Track active segment for auto-scroll
+  final GlobalKey _activeSegmentKey = GlobalKey();
+  int _lastActiveSegmentIndex = -1;
+
+  @override
+  void didUpdateWidget(TranscriptDrawer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isOpen && widget.transcriptPath != oldWidget.transcriptPath) {
+      _loadTranscript();
+    }
+    // Handle audio player changes if necessary, though unlikely to change instance
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isOpen && widget.transcriptPath != null) {
+      _loadTranscript();
+    }
+    _initAudioListener();
+  }
+
+  @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _initAudioListener() {
+    if (widget.audioPlayer != null) {
+      _positionSubscription = widget.audioPlayer!.onPositionChanged.listen((p) {
+        if (mounted) {
+          setState(() {
+            _currentTime = p;
+          });
+          _checkAutoScroll();
+        }
+      });
+    }
+  }
+
+  void _checkAutoScroll() {
+    if (_transcriptData == null) return;
+
+    final currentSeconds = _currentTime.inSeconds;
+    int activeIndex = -1;
+
+    for (int i = 0; i < _transcriptData!.transcript.length; i++) {
+      final segment = _transcriptData!.transcript[i];
+      final start = segment.timestamps.startSeconds;
+      final end = segment.timestamps.endSeconds;
+
+      if (currentSeconds >= start && currentSeconds < end) {
+        activeIndex = i;
+        break;
+      }
+    }
+
+    if (activeIndex != -1 && activeIndex != _lastActiveSegmentIndex) {
+      _lastActiveSegmentIndex = activeIndex;
+      // Scroll to active segment
+      if (_activeSegmentKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _activeSegmentKey.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.5, // Center in viewport
+        );
+      }
+    }
+  }
+
+  Future<void> _loadTranscript() async {
+    if (widget.transcriptPath == null || widget.transcriptPath!.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final jsonString = await rootBundle.loadString(widget.transcriptPath!);
+      final jsonData = json.decode(jsonString) as Map<String, dynamic>;
+      setState(() {
+        _transcriptData = TranscriptData.fromJson(jsonData);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load transcript: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isOpen) return const SizedBox.shrink();
+
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+
+    return Stack(
+      children: [
+        // Backdrop
+        GestureDetector(
+          onTap: widget.onClose,
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.5),
+          ),
+        ),
+
+        // Drawer
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: BoxDecoration(
+                color: appColors.background,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 40,
+                    offset: const Offset(0, -10),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 48,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: appColors.border.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            SvgPicture.asset(
+                              'icons/audio_lines.svg',
+                              width: 18,
+                              height: 18,
+                              colorFilter: ColorFilter.mode(
+                                appColors.primary,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Transcript',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.textPrimary,
+                                    fontSize: 18,
+                                  ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: widget.onClose,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            child: SvgPicture.asset(
+                              'icons/x.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                appColors.textSecondary,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Divider(
+                    color: appColors.border.withValues(alpha: 0.5),
+                    height: 1,
+                  ),
+
+                  // Content
+                  Expanded(
+                    child: _buildContent(appColors),
+                  ),
+
+                  // MediaPlayer at bottom
+                  if (widget.audioPath != null) ...[
+                    Divider(
+                      color: appColors.border.withValues(alpha: 0.5),
+                      height: 1,
+                    ),
+                    MediaPlayer(
+                      key: ValueKey(widget.audioPath),
+                      audioPath: widget.audioPath!,
+                      title: widget.audioPath!.split('/').last,
+                      externalPlayer: widget.audioPlayer,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent(AppColorsExtension appColors) {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: appColors.primary),
+            const SizedBox(height: 16),
+            Text(
+              'Loading transcript...',
+              style: TextStyle(color: appColors.textSecondary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _error!,
+            style: TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    if (_transcriptData == null || widget.transcriptPath == null) {
+      return Center(
+        child: Text(
+          'No transcript available.',
+          style: TextStyle(color: appColors.textSecondary),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: _transcriptData!.transcript.asMap().entries.map((entry) {
+          final index = entry.key;
+          final segment = entry.value;
+          final isLast = index == _transcriptData!.transcript.length - 1;
+
+          // Determine if active
+          final start = segment.timestamps.startSeconds;
+          final end = segment.timestamps.endSeconds;
+          final currentSeconds = _currentTime.inSeconds;
+          final isActive = currentSeconds >= start && currentSeconds < end;
+
+          return Column(
+            children: [
+              _buildSegment(segment, appColors, isActive),
+              if (!isLast)
+                Divider(
+                  color: appColors.border.withValues(alpha: 0.3),
+                  height: 1,
+                ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSegment(
+      TranscriptSegment segment, AppColorsExtension appColors, bool isActive) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.5,
+      key: isActive ? _activeSegmentKey : null,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: appColors.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        color: isActive
+            ? appColors.primary.withValues(alpha: 0.05)
+            : Colors.transparent,
+        border: Border(
+          left: BorderSide(
+            color: isActive ? appColors.primary : Colors.transparent,
+            width: 4,
+          ),
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: appColors.border,
-                borderRadius: BorderRadius.circular(2),
+          // Header: Speaker + Timestamp
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Speaker
+              Row(
+                children: [
+                  Icon(
+                    Icons.person,
+                    size: 14,
+                    color: appColors.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    segment.speaker.replaceAll('_', ' '),
+                    style: TextStyle(
+                      color: appColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
+              // Timestamp + Seek button
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? appColors.primary.withValues(alpha: 0.2)
+                          : appColors.border.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 12,
+                          color: isActive
+                              ? appColors.primary
+                              : appColors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          segment.timestamps.start,
+                          style: TextStyle(
+                            color: isActive
+                                ? appColors.primary
+                                : appColors.textSecondary,
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // ScanEye seek button (only show when NOT active)
+                  if (!isActive)
+                    InkWell(
+                      onTap: () {
+                        // Phase 6 - Implement seek to timestamp
+                        if (widget.audioPlayer != null) {
+                          widget.audioPlayer!.seek(
+                            Duration(seconds: segment.timestamps.startSeconds),
+                          );
+                          widget.audioPlayer!.resume();
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(4),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: SvgPicture.asset(
+                          'icons/scan_eye.svg',
+                          width: 16,
+                          height: 16,
+                          colorFilter: ColorFilter.mode(
+                            appColors.textSecondary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Dialogues
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: appColors.textPrimary.withValues(alpha: 0.9),
+                fontSize: 15,
+                height: 1.6,
+              ),
+              children: segment.dialogues.map((dialogue) {
+                return _buildDialogueSpan(dialogue, appColors);
+              }).toList(),
             ),
           ),
-
-          // Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.start,
-                children: RichTextParser.buildRichText(context, transcript),
-              ),
-            ),
-          ),
-          // Media Player (Pinned to bottom of drawer)
-          if (audioPath != null)
-            MediaPlayer(
-              key: ValueKey(audioPath! + '_drawer'), // Unique key
-              audioPath: audioPath!,
-              title: audioPath!.split('/').last,
-            ),
         ],
       ),
     );
+  }
+
+  InlineSpan _buildDialogueSpan(
+      Dialogue dialogue, AppColorsExtension appColors) {
+    final isActive = _activeDialogueId == dialogue.id;
+
+    return TextSpan(
+      children: [
+        // Original text
+        TextSpan(
+          text: _parseHtmlContent(dialogue.original),
+          style: TextStyle(
+            backgroundColor:
+                isActive ? appColors.primary.withValues(alpha: 0.2) : null,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              setState(() {
+                _activeDialogueId = isActive ? null : dialogue.id;
+              });
+            },
+        ),
+        // Translation (inline)
+        if (isActive)
+          TextSpan(
+            text:
+                ' ${_parseHtmlContent(dialogue.translation)}', // Add space prefix
+            style: TextStyle(
+              color: appColors.textSecondary,
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w500,
+              backgroundColor: Colors.grey.withValues(alpha: 0.2),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // HTML parser - handle styles inline without line breaks
+  String _parseHtmlContent(String content) {
+    // Remove </n> tags and replace with space (inline)
+    String result = content.replaceAll(RegExp(r'</n\s*>'), ' ');
+    // Remove other HTML tags but keep text inline
+    result = result.replaceAll(RegExp(r'<[^>]*>'), '');
+    return result;
   }
 }

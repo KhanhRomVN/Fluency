@@ -35,9 +35,6 @@ class Runner {
 
   static void _initLogger() {
     Logger.root.level = Level.ALL;
-    Logger.root.onRecord.listen((record) {
-      // Basic print for now, can be improved
-      debugPrint('${record.level.name}: ${record.time}: ${record.message}');
-    });
+    Logger.root.onRecord.listen((record) {});
   }
 }
