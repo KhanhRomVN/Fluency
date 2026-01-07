@@ -33,6 +33,7 @@ class _SpeakingState extends State<Speaking> {
               question: widget.quiz.question,
               options: const [],
               answer: '',
+              validAnswers: const [],
               explain: '',
             )
           ];

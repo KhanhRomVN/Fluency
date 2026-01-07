@@ -2,6 +2,8 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 
 class QuizDrawer extends StatelessWidget {
   const QuizDrawer({
@@ -115,8 +117,11 @@ class QuizDrawer extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final quiz = lesson.quizzes[index];
                   final isActive = index == activeQuizIndex;
-                  final isCompleted = index % 3 == 0; // Mock data
-                  final isInProgress = index % 3 == 1; // Mock data
+                  final isCompleted = context
+                      .watch<QuizStateProvider>()
+                      .isQuizCompleted(lesson.id, quiz.id);
+                  const isInProgress =
+                      false; // TODO: Implement in progress state if needed
 
                   return InkWell(
                     onTap: () {

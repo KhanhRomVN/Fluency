@@ -255,7 +255,9 @@ class QuizQuestion {
   final String id;
   final String question;
   final List<String> options;
-  final String answer;
+  final String
+      answer; // Kept for backward compat, but use validAnswers for logic
+  final List<String> validAnswers;
   final String explain;
 
   const QuizQuestion({
@@ -263,16 +265,54 @@ class QuizQuestion {
     required this.question,
     required this.options,
     required this.answer,
+    required this.validAnswers,
     required this.explain,
   });
 
   factory QuizQuestion.fromJson(Map<String, dynamic> json) {
+    // Handle answer field which might be String or List
+    String singleAnswer = '';
+    List<String> answersList = [];
+
+    // Check 'answers' (plural) first as it's explicit for lists in the user's JSON
+    if (json['answers'] != null) {
+      if (json['answers'] is List) {
+        answersList =
+            (json['answers'] as List).map((e) => e.toString()).toList();
+      } else if (json['answers'] is String) {
+        // Fallback if someone used 'answers' for a string
+        singleAnswer = json['answers'] as String;
+        answersList = [singleAnswer];
+      }
+    }
+
+    // If answersList is still empty, try 'answer' (singular)
+    if (answersList.isEmpty && json['answer'] != null) {
+      if (json['answer'] is String) {
+        singleAnswer = json['answer'] as String;
+        if (singleAnswer.contains(',')) {
+          answersList = singleAnswer.split(',').map((e) => e.trim()).toList();
+        } else {
+          answersList = [singleAnswer];
+        }
+      } else if (json['answer'] is List) {
+        answersList =
+            (json['answer'] as List).map((e) => e.toString()).toList();
+      }
+    }
+
+    // Update singleAnswer if it wasn't set but answersList was populated from 'answers'
+    if (singleAnswer.isEmpty && answersList.isNotEmpty) {
+      singleAnswer = answersList.join(',');
+    }
+
     return QuizQuestion(
       id: json['id'] as String? ?? '',
       question: json['question'] as String? ?? '',
       options: (json['options'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
-      answer: json['answer'] as String? ?? '',
+      answer: singleAnswer,
+      validAnswers: answersList,
       explain: json['explain'] as String? ?? '',
     );
   }

@@ -1,4 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
@@ -47,6 +49,16 @@ class _QuizPageState extends State<QuizPage> {
     setState(() {
       _isQuizChecked = true;
     });
+
+    final lesson = widget.lesson;
+    final activeQuiz =
+        lesson.quizzes.isNotEmpty ? lesson.quizzes[_activeQuizIndex] : null;
+
+    if (activeQuiz != null) {
+      context
+          .read<QuizStateProvider>()
+          .markQuizCompleted(lesson.id, activeQuiz.id);
+    }
   }
 
   @override

@@ -1,7 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
 import 'package:flutter/material.dart';
 
 class MultipleChoice extends StatefulWidget {
@@ -12,9 +11,6 @@ class MultipleChoice extends StatefulWidget {
     super.key,
   });
 
-  // Accepting the whole Quiz object since MC might need access to nested 'questions'
-  // which might not be fully parsed by the current Quiz model yet.
-  // Ideally, we'd pass a specific MultipleChoiceData object.
   final Quiz quiz;
   final VoidCallback? onCheck;
   final void Function(String explanation)? onShowExplain;
@@ -24,22 +20,48 @@ class MultipleChoice extends StatefulWidget {
 }
 
 class _MultipleChoiceState extends State<MultipleChoice> {
-  final Map<String, String> _selectedOptions = {};
+  // Key: Question ID, Value: Set of selected option keys
+  final Map<String, Set<String>> _selectedOptions = {};
   bool _isChecked = false;
   bool _areAllAnswered = false;
 
-  void _onOptionSelected(String questionId, String optionKey) {
-    if (_isChecked) return; // Disable changes after checking
+  void _onOptionSelected(QuizQuestion question, String optionKey) {
+    if (_isChecked) return;
+
+    final questionId = question.id;
+    final isMultiSelect = question.validAnswers.length > 1;
 
     setState(() {
-      _selectedOptions[questionId] = optionKey;
+      if (!_selectedOptions.containsKey(questionId)) {
+        _selectedOptions[questionId] = {};
+      }
+
+      final selectedSet = _selectedOptions[questionId]!;
+
+      if (isMultiSelect) {
+        // Toggle selection
+        if (selectedSet.contains(optionKey)) {
+          selectedSet.remove(optionKey);
+        } else {
+          selectedSet.add(optionKey);
+        }
+      } else {
+        // Radio behavior
+        selectedSet.clear();
+        selectedSet.add(optionKey);
+      }
+
       _checkIfAllAnswered();
     });
   }
 
   void _checkIfAllAnswered() {
+    // Ideally check if user selected correct amount of answers?
+    // For now, just check if at least one option is selected per question.
     final allAnswered = widget.quiz.questions.every(
-      (q) => _selectedOptions.containsKey(q.id),
+      (q) =>
+          _selectedOptions.containsKey(q.id) &&
+          _selectedOptions[q.id]!.isNotEmpty,
     );
     if (allAnswered != _areAllAnswered) {
       setState(() {
@@ -63,6 +85,9 @@ class _MultipleChoiceState extends State<MultipleChoice> {
         ),
       );
     }
+
+    // Determine correctness for score/feedback if needed
+    // currently just visual feedback per item
 
     return Stack(
       children: [
@@ -115,7 +140,6 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                   ),
                 ),
               ),
-            // If checked, maybe show score or just leave it visually marked
           ],
         ),
       ],
@@ -124,8 +148,12 @@ class _MultipleChoiceState extends State<MultipleChoice> {
 
   Widget _buildQuestionItem(BuildContext context, QuizQuestion question,
       AppColorsExtension appColors) {
-    final selectedOptionKey = _selectedOptions[question.id];
-    final isCorrect = selectedOptionKey == question.answer;
+    final selectedSet = _selectedOptions[question.id] ?? {};
+
+    // Logic: A question is correct if selectedSet matches validAnswers
+    // But individual option coloring depends on:
+    // 1. Is it a valid answer?
+    // 2. Is it selected?
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
@@ -141,31 +169,39 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                 ),
           ),
           const SizedBox(height: 12),
-          // Options (enumerate and generate keys as A, B, C...)
+          // Options
           ...question.options.asMap().entries.map((entry) {
             final index = entry.key;
             final optionText = entry.value;
             final optionKey = String.fromCharCode(65 + index); // 65 = 'A'
 
-            final isSelected = selectedOptionKey == optionKey;
-            final isAnswerCorrect =
-                optionKey == question.answer || optionText == question.answer;
+            final isSelected = selectedSet.contains(optionKey);
+
+            // Check if this specific option is one of the correct answers
+            final isCorrectOption = question.validAnswers.contains(optionKey) ||
+                question.validAnswers.contains(optionText);
 
             Color borderColor = appColors.border;
             Color backgroundColor = Colors.transparent;
             Color textColor = appColors.textPrimary;
+            IconData? statusIcon;
+            Color? iconColor;
 
             if (_isChecked) {
-              if (isAnswerCorrect) {
-                // Always highlight the correct answer in Green
+              if (isCorrectOption) {
+                // Correct answer(s) should always be green
                 borderColor = appColors.primary;
                 backgroundColor = appColors.primary.withValues(alpha: 0.1);
                 textColor = appColors.primary;
-              } else if (isSelected && !isCorrect) {
-                // Highlight incorrect selection in Red
+                statusIcon = Icons.check;
+                iconColor = Colors.white;
+              } else if (isSelected && !isCorrectOption) {
+                // User chose this, but it's wrong -> Red
                 borderColor = Colors.red;
                 backgroundColor = Colors.red.withValues(alpha: 0.1);
                 textColor = Colors.red;
+                statusIcon = Icons.close;
+                iconColor = Colors.white;
               }
             } else {
               if (isSelected) {
@@ -178,7 +214,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: InkWell(
-                onTap: () => _onOptionSelected(question.id, optionKey),
+                onTap: () => _onOptionSelected(question, optionKey),
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding:
@@ -196,31 +232,41 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _isChecked && isAnswerCorrect
-                              ? appColors.primary
+                          color: _isChecked
+                              ? (isCorrectOption
+                                  ? appColors.primary
+                                  : (isSelected
+                                      ? Colors.red
+                                      : Colors.transparent))
                               : (isSelected
                                   ? appColors.primary
                                   : Colors.transparent),
                           border: Border.all(
-                            color: _isChecked && isAnswerCorrect
-                                ? appColors.primary
+                            color: _isChecked
+                                ? (isCorrectOption
+                                    ? appColors.primary
+                                    : (isSelected
+                                        ? Colors.red
+                                        : appColors.border))
                                 : (isSelected
                                     ? appColors.primary
                                     : appColors.border),
                             width: 2,
                           ),
                         ),
-                        child: (isSelected || (_isChecked && isAnswerCorrect))
-                            ? const Icon(Icons.check,
-                                size: 16, color: Colors.white)
-                            : Text(
-                                optionKey,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: appColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
+                        child: statusIcon != null && _isChecked
+                            ? Icon(statusIcon, size: 16, color: iconColor)
+                            : (isSelected
+                                ? const Icon(Icons.check,
+                                    size: 16, color: Colors.white)
+                                : Text(
+                                    optionKey,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: appColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  )),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -270,7 +316,6 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     );
   }
 
-  /// Helper to build rich text using the shared RichTextParser
   Widget _buildRichText(BuildContext context, String content) {
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.start,
