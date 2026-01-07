@@ -15,7 +15,7 @@ class RichTextParser {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     final combinedRegex = RegExp(
-      r"(</gap id='.*?'>)|(</n>)|(<p.*?>)|(</p>)",
+      r"(</gap id='.*?'>)|(</n\s*?>)|(<p.*?>)|(</p>)",
       caseSensitive: false,
     );
 
@@ -26,7 +26,12 @@ class RichTextParser {
     bool isCenter = false;
     double? fontSize;
 
+    // Debug logging for parser
+    debugPrint('AG_LOG: RichTextParser input length: ${content.length}');
+    // debugPrint('AG_LOG: RichTextParser input content: $content'); // Uncomment if needed, but it's long
+
     final matches = combinedRegex.allMatches(content);
+    debugPrint('AG_LOG: RichTextParser found ${matches.length} matches');
 
     for (final match in matches) {
       if (match.start > lastIndex) {
@@ -45,6 +50,7 @@ class RichTextParser {
       }
 
       final tag = match.group(0)!;
+      debugPrint('AG_LOG: Parsing tag: $tag at index ${match.start}');
 
       if (tag.toLowerCase().startsWith('</gap')) {
         if (isQuestion && onGapFound != null) {
@@ -57,7 +63,8 @@ class RichTextParser {
             }
           }
         }
-      } else if (tag.toLowerCase() == '</n>') {
+      } else if (tag.toLowerCase().startsWith('</n')) {
+        debugPrint('AG_LOG: Found Newline tag');
         _addNewline(widgets);
       } else if (tag.toLowerCase().startsWith('<p')) {
         isBold = tag.contains("bold");

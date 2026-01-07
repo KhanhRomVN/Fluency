@@ -49,11 +49,8 @@ class _QuizPageState extends State<QuizPage> {
         activeQuiz?.question ?? '<p>No quiz data available.</p>';
 
     // Audio path logic
-    String? audioPath = activeQuiz?.audio;
-    if (audioPath != null && audioPath.startsWith('./')) {
-      audioPath = audioPath.replaceFirst(
-          './', 'lib/features/course/assets/courses/Cambridge_IELTS_18/');
-    }
+    final String? audioPath = activeQuiz?.audio;
+    // Path is already resolved in CourseRepository if it was relative.
 
     String audioFileName = 'Audio';
     if (audioPath != null) {

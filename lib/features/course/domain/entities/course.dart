@@ -34,6 +34,42 @@ class Course {
     this.completedLessons = 0,
   });
 
+  Course copyWith({
+    String? id,
+    String? title,
+    String? imageUrl,
+    String? author,
+    String? translator,
+    String? adapter,
+    int? pageCount,
+    String? publisher,
+    int? publicationYear,
+    List<String>? skill,
+    String? shortDescription,
+    String? fullDescription,
+    String? targetAudience,
+    List<Lesson>? lessons,
+    int? completedLessons,
+  }) {
+    return Course(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      imageUrl: imageUrl ?? this.imageUrl,
+      author: author ?? this.author,
+      translator: translator ?? this.translator,
+      adapter: adapter ?? this.adapter,
+      pageCount: pageCount ?? this.pageCount,
+      publisher: publisher ?? this.publisher,
+      publicationYear: publicationYear ?? this.publicationYear,
+      skill: skill ?? this.skill,
+      shortDescription: shortDescription ?? this.shortDescription,
+      fullDescription: fullDescription ?? this.fullDescription,
+      targetAudience: targetAudience ?? this.targetAudience,
+      lessons: lessons ?? this.lessons,
+      completedLessons: completedLessons ?? this.completedLessons,
+    );
+  }
+
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
       id: json['id'] as String? ?? '',
@@ -96,14 +132,22 @@ class Quiz {
   final String title;
   final String type;
   final String instruction;
-  final int quizNumber;
+  final String quizNumber;
   final String question;
   final String? audio; // Optional audio path
   final String? transcript; // Optional transcript
-  // We can add answers later if needed, but parsing them is good practice
+  final String? passage; // Optional passage file path
   final List<QuizQuestion> questions;
-  // We can add answers later if needed, but parsing them is good practice
   final List<QuizAnswer> answers;
+
+  // Additional fields for different quiz types
+  final List<String>?
+      options; // For multiple choice options (simple string array)
+  final List<MatchingItem>? matchings; // For matching-dropdown quizzes
+  final String? subtype; // 'single-answer' | 'multi-answer'
+  final int? min; // Minimum word count for writing quizzes
+  final String? example; // Example answer for writing/speaking
+  final List<ChatMessage>? chats; // For chatting quizzes
 
   const Quiz({
     required this.id,
@@ -114,8 +158,15 @@ class Quiz {
     required this.question,
     this.audio,
     this.transcript,
+    this.passage,
     this.questions = const [],
     required this.answers,
+    this.options,
+    this.matchings,
+    this.subtype,
+    this.min,
+    this.example,
+    this.chats,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
@@ -124,10 +175,11 @@ class Quiz {
       title: json['title'] as String? ?? '',
       type: json['type'] as String? ?? '',
       instruction: json['instruction'] as String? ?? '',
-      quizNumber: json['quizNumber'] as int? ?? 0,
+      quizNumber: json['quizNumber']?.toString() ?? '',
       question: json['question'] as String? ?? '',
       audio: json['audio'] as String?,
       transcript: json['transcript'] as String?,
+      passage: json['passage'] as String?,
       questions: (json['questions'] as List?)
               ?.map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -136,6 +188,16 @@ class Quiz {
               ?.map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      options: (json['options'] as List?)?.map((e) => e as String).toList(),
+      matchings: (json['matchings'] as List?)
+          ?.map((e) => MatchingItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      subtype: json['subtype'] as String?,
+      min: json['min'] as int?,
+      example: json['example'] as String?,
+      chats: (json['chats'] as List?)
+          ?.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -202,6 +264,49 @@ class QuizOption {
     return QuizOption(
       key: json['key'] as String? ?? '',
       text: json['text'] as String? ?? '',
+    );
+  }
+}
+
+class MatchingItem {
+  final String id;
+  final String question;
+  final String answer;
+  final String explain;
+
+  const MatchingItem({
+    required this.id,
+    required this.question,
+    required this.answer,
+    required this.explain,
+  });
+
+  factory MatchingItem.fromJson(Map<String, dynamic> json) {
+    return MatchingItem(
+      id: json['id'] as String? ?? '',
+      question: json['question'] as String? ?? '',
+      answer: json['answer'] as String? ?? '',
+      explain: json['explain'] as String? ?? '',
+    );
+  }
+}
+
+class ChatMessage {
+  final String id;
+  final String role; // 'bot' | 'user'
+  final String content;
+
+  const ChatMessage({
+    required this.id,
+    required this.role,
+    required this.content,
+  });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'] as String? ?? '',
+      role: json['role'] as String? ?? '',
+      content: json['content'] as String? ?? '',
     );
   }
 }

@@ -1,7 +1,6 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id 'com.google.gms.google-services'
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -36,26 +35,19 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    signingConfigs {
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-        }
-    }
-
     namespace = "com.khanhromvn.fluency"
     compileSdkVersion 35
     ndkVersion "27.0.11902837"
 
     defaultConfig {
         multiDexEnabled true
-        dexOptions {
-            javaMaxHeapSize "8g"
-            preDexLibraries true
-            jumboMode true
-        }
+    }
+
+    // Optimize build speed
+    dexOptions {
+        javaMaxHeapSize "4g"
+        preDexLibraries true
+        threadCount 8
     }
 
     compileOptions {
@@ -63,6 +55,7 @@ android {
         coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+        incremental true
     }
 
     tasks.withType(JavaCompile).configureEach {
@@ -87,8 +80,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Optimize debug builds for speed
+            minifyEnabled false
+            shrinkResources false
+            debuggable true
+        }
+        
         release {
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             minifyEnabled true
             shrinkResources true
@@ -97,12 +99,20 @@ android {
             }
         }
     }
+    
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            release {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
 }
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:32.7.4')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.android.gms:play-services-auth:21.0.0'
     implementation 'org.tensorflow:tensorflow-lite:2.9.0'
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.2'
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'

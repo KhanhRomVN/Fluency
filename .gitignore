@@ -66,3 +66,7 @@ test/coverage_helper_test.dart
 # Node
 node_modules/
 test_project
+FluencyStudio_temp
+
+# Course ZIP files (too large for git)
+lib/features/course/assets/courses/*.zip

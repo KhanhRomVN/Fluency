@@ -1,21 +1,97 @@
 import 'package:fluency/core/constants/route_constants.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
-import 'package:fluency/features/course/data/fake_course_data.dart';
+import 'package:fluency/features/course/data/course_repository.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/widgets/lesson_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class CourseDetailPage extends StatelessWidget {
+class CourseDetailPage extends StatefulWidget {
   const CourseDetailPage({super.key, this.course});
 
   final Course? course;
 
   @override
+  State<CourseDetailPage> createState() => _CourseDetailPageState();
+}
+
+class _CourseDetailPageState extends State<CourseDetailPage> {
+  Course? _course;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.course != null) {
+      _course = widget.course;
+      _isLoading = false;
+    } else {
+      _loadCourse();
+    }
+  }
+
+  Future<void> _loadCourse() async {
+    try {
+      final repository = CourseRepository();
+      final courses = await repository.getCourses();
+      if (courses.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _course = courses.first; // Default to first course for dev
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'No courses found.';
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading course: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Fallback to fake data if course is null (e.g. direct navigation for dev)
-    final displayCourse = course ?? FakeCourseData.hackerToeicListening;
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: appColors.background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMessage != null || _course == null) {
+      return Scaffold(
+        backgroundColor: appColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: appColors.textPrimary),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Center(
+          child: Text(
+            _errorMessage ?? 'Course not found',
+            style: TextStyle(color: appColors.textPrimary),
+          ),
+        ),
+      );
+    }
+
+    final displayCourse = _course!;
 
     return Scaffold(
       backgroundColor: appColors.background,
@@ -233,9 +309,7 @@ class CourseDetailPage extends StatelessWidget {
                       },
                     );
                   },
-                  childCount: displayCourse.lessons.isNotEmpty
-                      ? displayCourse.lessons.length * 2 - 1
-                      : 0,
+                  childCount: displayCourse.lessons.length * 2 - 1,
                 ),
               ),
             ),
