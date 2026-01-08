@@ -197,6 +197,7 @@ class ExplainDrawer extends StatelessWidget {
                                 Theme.of(context).textTheme.bodyLarge?.copyWith(
                                       color: appColors.textPrimary,
                                       height: 1.6,
+                                      fontSize: 16,
                                     ),
                             children:
                                 _parseContentToTextSpans(context, content),

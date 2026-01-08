@@ -68,30 +68,13 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Title
-              if (widget.quiz.title.isNotEmpty) ...[
-                Text(
-                  widget.quiz.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
-                        fontSize: 20,
-                      ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
               // Instruction
               if (widget.quiz.instruction.isNotEmpty) ...[
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    textTheme: Theme.of(context).textTheme.copyWith(
-                          bodyMedium: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontSize: 16),
-                        ),
-                  ),
+                DefaultTextStyle(
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium!
+                      .copyWith(fontSize: 16),
                   child: Wrap(
                     crossAxisAlignment: WrapCrossAlignment.start,
                     children: RichTextParser.buildRichText(
@@ -100,7 +83,7 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                Divider(height: 32, color: appColors.border),
               ],
 
               // Selected Words Area
@@ -117,6 +100,7 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: appColors.textSecondary,
                               fontStyle: FontStyle.italic,
+                              fontSize: 16,
                             ),
                       )
                     : Wrap(
@@ -153,6 +137,7 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: appColors.textPrimary,
+                      fontSize: 16,
                     ),
               ),
               const SizedBox(height: 8),

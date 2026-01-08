@@ -79,30 +79,13 @@ class _SpeakingState extends State<Speaking> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Title
-              if (widget.quiz.title.isNotEmpty) ...[
-                Text(
-                  widget.quiz.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
-                        fontSize: 20,
-                      ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
               // Instruction
               if (widget.quiz.instruction.isNotEmpty) ...[
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    textTheme: Theme.of(context).textTheme.copyWith(
-                          bodyMedium: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontSize: 16),
-                        ),
-                  ),
+                DefaultTextStyle(
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium!
+                      .copyWith(fontSize: 16),
                   child: Wrap(
                     crossAxisAlignment: WrapCrossAlignment.start,
                     children: RichTextParser.buildRichText(
@@ -111,7 +94,7 @@ class _SpeakingState extends State<Speaking> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                Divider(height: 32, color: appColors.border),
               ],
 
               // Question
@@ -121,6 +104,7 @@ class _SpeakingState extends State<Speaking> {
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: appColors.textPrimary,
                         height: 1.5,
+                        fontSize: 16,
                       ),
                 ),
               const SizedBox(height: 16),
@@ -219,6 +203,7 @@ class _SpeakingState extends State<Speaking> {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: appColors.textPrimary,
                           height: 1.6,
+                          fontSize: 16,
                         ),
                   ),
                 ),

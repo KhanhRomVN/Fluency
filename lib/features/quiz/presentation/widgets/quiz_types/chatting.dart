@@ -19,30 +19,11 @@ class Chatting extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Title
-        if (quiz.title.isNotEmpty) ...[
-          Text(
-            quiz.title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                  fontSize: 20,
-                ),
-          ),
-          const SizedBox(height: 12),
-        ],
-
         // Instruction
         if (quiz.instruction.isNotEmpty) ...[
-          Theme(
-            data: Theme.of(context).copyWith(
-              textTheme: Theme.of(context).textTheme.copyWith(
-                    bodyMedium: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontSize: 16),
-                  ),
-            ),
+          DefaultTextStyle(
+            style:
+                Theme.of(context).textTheme.bodyMedium!.copyWith(fontSize: 16),
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.start,
               children: RichTextParser.buildRichText(
@@ -51,7 +32,7 @@ class Chatting extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          Divider(height: 32, color: appColors.border),
         ],
 
         // Chat Messages
@@ -97,6 +78,7 @@ class Chatting extends StatelessWidget {
                             color:
                                 isUser ? Colors.white : appColors.textPrimary,
                             height: 1.5,
+                            fontSize: 16,
                           ),
                     ),
                   ),

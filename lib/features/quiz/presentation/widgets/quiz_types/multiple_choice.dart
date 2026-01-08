@@ -99,33 +99,16 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
-                    if (widget.quiz.title.isNotEmpty) ...[
-                      Text(
-                        widget.quiz.title,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: appColors.textPrimary,
-                              fontSize: 20,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-
                     // Instruction
                     if (widget.quiz.instruction.isNotEmpty) ...[
-                      Theme(
-                        data: Theme.of(context).copyWith(
-                          textTheme: Theme.of(context).textTheme.copyWith(
-                                bodyMedium: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(fontSize: 16),
-                              ),
-                        ),
+                      DefaultTextStyle(
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium!
+                            .copyWith(fontSize: 16),
                         child: _buildRichText(context, widget.quiz.instruction),
                       ),
-                      const SizedBox(height: 24),
+                      Divider(height: 32, color: appColors.border),
                     ],
                     // Questions List
                     ...questions.map((question) {
@@ -189,6 +172,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: appColors.textPrimary,
+                  fontSize: 16,
                 ),
           ),
           const SizedBox(height: 12),
@@ -301,6 +285,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                                     fontWeight: isSelected
                                         ? FontWeight.bold
                                         : FontWeight.normal,
+                                    fontSize: 16,
                                   ),
                         ),
                       ),

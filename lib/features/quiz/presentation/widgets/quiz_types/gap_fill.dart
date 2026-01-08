@@ -95,49 +95,45 @@ class _GapFillState extends State<GapFill> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title
-                      if (widget.title != null && widget.title!.isNotEmpty) ...[
-                        Text(
-                          widget.title!,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: appColors.textPrimary,
-                                    fontSize: 20,
-                                  ),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-
                       // Instruction
                       if (widget.instruction != null &&
                           widget.instruction!.isNotEmpty) ...[
-                        Theme(
-                          data: Theme.of(context).copyWith(
-                            textTheme: Theme.of(context).textTheme.copyWith(
-                                  bodyMedium: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(fontSize: 16),
-                                ),
-                          ),
-                          child: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.start,
-                            children: RichTextParser.buildRichText(
-                              context,
-                              widget.instruction!,
+                        DefaultTextStyle(
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium!
+                              .copyWith(fontSize: 16),
+                          child: Text.rich(
+                            TextSpan(
+                              children: RichTextParser.buildTextSpans(
+                                context,
+                                widget.instruction!,
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        Divider(height: 32, color: appColors.border),
                       ],
 
-                      Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 4,
-
-                        runSpacing: 4, // Reduced from 8
-                        children: _buildContent(context),
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          textTheme: Theme.of(context).textTheme.copyWith(
+                                bodyMedium: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(fontSize: 16),
+                              ),
+                        ),
+                        child: Builder(
+                          builder: (context) {
+                            return Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: _buildContent(context),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),

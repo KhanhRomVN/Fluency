@@ -113,16 +113,18 @@ class Lesson {
   });
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
+    final quizzes = (json['quiz'] as List?)
+            ?.map((e) => Quiz.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const [];
+
     return Lesson(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       lessonNumber: json['lessonNumber'] as int? ?? 0,
-      quizCount: json['quizCount'] as int? ?? 0,
-      quizzes: (json['quiz'] as List?)
-              ?.map((e) => Quiz.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      quizCount: quizzes.length,
+      quizzes: quizzes,
     );
   }
 }

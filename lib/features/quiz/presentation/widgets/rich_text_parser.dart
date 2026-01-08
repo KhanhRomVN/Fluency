@@ -142,4 +142,98 @@ class RichTextParser {
     // Wrap doesn't like explicit line breaks easily unless we force a full width item.
     widgets.add(const SizedBox(width: double.infinity, height: 8));
   }
+
+  /// Parses content into a list of InlineSpans for use in Text.rich or RichText.
+  /// Better for inline flow than buildRichText (which returns separate Widgets).
+  static List<InlineSpan> buildTextSpans(
+    BuildContext context,
+    String content, {
+    bool isQuestion = false,
+    Widget? Function(String id)? onGapFound,
+  }) {
+    final List<InlineSpan> spans = [];
+    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+
+    final combinedRegex = RegExp(
+      r"(</gap id='.*?'>)|(</n\s*?>)|(<p.*?>)|(</p>)",
+      caseSensitive: false,
+    );
+
+    int lastIndex = 0;
+
+    // Current style context
+    bool isBold = false;
+    double? fontSize;
+
+    final matches = combinedRegex.allMatches(content);
+    for (final match in matches) {
+      if (match.start > lastIndex) {
+        final text = content.substring(lastIndex, match.start);
+        if (text.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: text,
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                fontSize: fontSize,
+                color: appColors.textPrimary,
+              ),
+            ),
+          );
+        }
+      }
+
+      final tag = match.group(0)!;
+
+      if (tag.toLowerCase().startsWith('</gap')) {
+        if (isQuestion && onGapFound != null) {
+          final idMatch = RegExp(r"id='(.*?)'").firstMatch(tag);
+          final id = idMatch?.group(1);
+          if (id != null) {
+            final gapWidget = onGapFound(id);
+            if (gapWidget != null) {
+              spans.add(
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.baseline,
+                  baseline: TextBaseline.alphabetic,
+                  child: gapWidget,
+                ),
+              );
+            }
+          }
+        }
+      } else if (tag.toLowerCase().startsWith('</n')) {
+        spans.add(const TextSpan(text: '\n'));
+      } else if (tag.toLowerCase().startsWith('<p')) {
+        isBold = tag.contains("bold");
+        final fontSizeMatch = RegExp(r'\d+').firstMatch(tag);
+        if (fontSizeMatch != null) {
+          fontSize = double.tryParse(fontSizeMatch.group(0)!);
+        }
+      } else if (tag.toLowerCase() == '</p>') {
+        isBold = false;
+        fontSize = null;
+      }
+
+      lastIndex = match.end;
+    }
+
+    if (lastIndex < content.length) {
+      final text = content.substring(lastIndex);
+      if (text.isNotEmpty) {
+        spans.add(
+          TextSpan(
+            text: text,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: fontSize,
+              color: appColors.textPrimary,
+            ),
+          ),
+        );
+      }
+    }
+
+    return spans;
+  }
 }

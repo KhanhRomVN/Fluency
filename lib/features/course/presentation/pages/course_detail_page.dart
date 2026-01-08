@@ -289,7 +289,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                     final lesson = displayCourse.lessons[itemIndex];
                     final isCompleted =
                         itemIndex < displayCourse.completedLessons;
-                    final isLocked = itemIndex > displayCourse.completedLessons;
+                    final isLocked = false; // Always unlocked for now
 
                     return LessonCard(
                       lesson: lesson,

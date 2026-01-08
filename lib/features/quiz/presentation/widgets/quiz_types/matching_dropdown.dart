@@ -82,30 +82,13 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Title
-              if (widget.quiz.title.isNotEmpty) ...[
-                Text(
-                  widget.quiz.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
-                        fontSize: 20,
-                      ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
               // Instruction
               if (widget.quiz.instruction.isNotEmpty) ...[
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    textTheme: Theme.of(context).textTheme.copyWith(
-                          bodyMedium: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(fontSize: 16), // Increased font size
-                        ),
-                  ),
+                DefaultTextStyle(
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium!
+                      .copyWith(fontSize: 16), // Increased font size
                   child: Wrap(
                     crossAxisAlignment: WrapCrossAlignment.start,
                     children: RichTextParser.buildRichText(
@@ -114,7 +97,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                Divider(height: 32, color: appColors.border),
               ],
 
               // Matchings List
@@ -255,7 +238,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                         style: TextStyle(
                           color: appColors.textSecondary,
                           fontWeight: FontWeight.w600,
-                          fontSize: 15, // Increased font size
+                          fontSize: 16, // Increased font size
                         ),
                       ),
                       icon: Icon(
@@ -280,7 +263,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                             style: TextStyle(
                               color: appColors.textPrimary,
                               fontWeight: FontWeight.bold,
-                              fontSize: 15, // Increased font size
+                              fontSize: 16, // Increased font size
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -295,7 +278,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                               style: TextStyle(
                                 color: textColor,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 15, // Increased font size
+                                fontSize: 16, // Increased font size
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -354,7 +337,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                         style: const TextStyle(
                           color: Colors.red,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 16,
                           decoration: TextDecoration.underline,
                           decorationColor: Colors.red,
                         ),

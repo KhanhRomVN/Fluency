@@ -3,9 +3,12 @@ import 'dart:io';
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/quiz/domain/entities/passage_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:path/path.dart' as p;
 
 class PassageDrawer extends StatefulWidget {
   const PassageDrawer({
@@ -63,29 +66,42 @@ class _PassageDrawerState extends State<PassageDrawer> {
       // Resolve relative path if needed
       if (widget.passagePath!.startsWith('./') &&
           widget.parentFilePath != null) {
-        final parentDir = File(widget.parentFilePath!).parent.path;
-        fullPath = '$parentDir/${widget.passagePath!.substring(2)}';
+        final parentDir = p.dirname(widget.parentFilePath!);
+        fullPath = p.join(parentDir, widget.passagePath!.substring(2));
       }
 
-      final file = File(fullPath);
-      if (await file.exists()) {
-        final jsonString = await file.readAsString();
-        final jsonMap = json.decode(jsonString) as Map<String, dynamic>;
-        setState(() {
-          _passageData = PassageData.fromJson(jsonMap);
-          _isLoading = false;
-        });
+      String jsonString;
+      if (kIsWeb) {
+        // On Web, load from assets (rootBundle)
+        // Ensure path doesn't start with / or ./ for rootBundle if it's absolute from assets
+        // But here fullPath is constructed. If parentFilePath was 'assets/...', fullPath is 'assets/...'
+        jsonString = await rootBundle.loadString(fullPath);
       } else {
+        // On Mobile, load from File System
+        final file = File(fullPath);
+        if (await file.exists()) {
+          jsonString = await file.readAsString();
+        } else {
+          setState(() {
+            _error = 'Passage file not found';
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
+      final jsonMap = json.decode(jsonString) as Map<String, dynamic>;
+      setState(() {
+        _passageData = PassageData.fromJson(jsonMap);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _error = 'Passage file not found';
+          _error = 'Failed to load passage: $e';
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load passage: $e';
-        _isLoading = false;
-      });
     }
   }
 
@@ -132,84 +148,87 @@ class _PassageDrawerState extends State<PassageDrawer> {
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                // Handle
-                Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  width: 48,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(3),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 48,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                ),
 
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          SvgPicture.asset(
-                            'assets/icons/pilcrow.svg',
-                            width: 18,
-                            height: 18,
-                            colorFilter: ColorFilter.mode(
-                              appColors.primary,
-                              BlendMode.srcIn,
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            SvgPicture.asset(
+                              'assets/icons/pilcrow.svg',
+                              width: 18,
+                              height: 18,
+                              colorFilter: ColorFilter.mode(
+                                appColors.primary,
+                                BlendMode.srcIn,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 200),
-                            child: Text(
-                              'Passage',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: appColors.textPrimary,
-                                  ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 8),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 200),
+                              child: Text(
+                                'Passage',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: appColors.textPrimary,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      InkWell(
-                        onTap: widget.onClose,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: SvgPicture.asset(
-                            'assets/icons/x.svg',
-                            width: 20,
-                            height: 20,
-                            colorFilter: ColorFilter.mode(
-                              appColors.textSecondary,
-                              BlendMode.srcIn,
+                          ],
+                        ),
+                        InkWell(
+                          onTap: widget.onClose,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: SvgPicture.asset(
+                              'assets/icons/x.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                appColors.textSecondary,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                Divider(
-                  color: appColors.border.withValues(alpha: 0.5),
-                  height: 1,
-                ),
+                  Divider(
+                    color: appColors.border.withValues(alpha: 0.5),
+                    height: 1,
+                  ),
 
-                // Content
-                Expanded(
-                  child: _buildContent(appColors),
-                ),
-              ],
+                  // Content
+                  Expanded(
+                    child: _buildContent(appColors),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -278,53 +297,44 @@ class _PassageDrawerState extends State<PassageDrawer> {
       final segment = _passageData!.segments[i];
       final isActive = _activeSegmentIndex == i;
 
-      // 1. Content TextSpan
+      // Unifying content and translation into a single TextSpan block per segment?
+      // Actually, TranscriptDrawer creates a TextSpan for original and one for translation within a single parent.
+      // But PassageDrawer renders segments consecutively. We can just add them to the list.
+
       spans.add(
         TextSpan(
-          text: _parseHtmlContent(segment.content), // Basic parsing
-          style: isActive
-              ? TextStyle(
-                  backgroundColor: appColors.primary.withValues(alpha: 0.2),
-                )
-              : null,
-          recognizer: TapGestureRecognizer()
-            ..onTap = () {
-              setState(() {
-                _activeSegmentIndex = isActive ? null : i;
-              });
-            },
-          onEnter: (_) {
-            // Hover effect not easily done with TextSpan on mobile, but could use MouseRegion if needed
-          },
-        ),
-      );
-
-      // 2. Translation WidgetSpan (if active)
-      if (isActive) {
-        spans.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              decoration: BoxDecoration(
-                color: appColors.cardBackground, // Secondary background
-                border: Border.all(color: appColors.border),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                _parseHtmlContent(segment.translate),
+          children: [
+            // Original Text
+            TextSpan(
+              text: _parseHtmlContent(segment.content), // Basic parsing
+              style: isActive
+                  ? TextStyle(
+                      backgroundColor: appColors.primary.withValues(alpha: 0.2),
+                    )
+                  : null,
+              recognizer: TapGestureRecognizer()
+                ..onTap = () {
+                  setState(() {
+                    _activeSegmentIndex = isActive ? null : i;
+                  });
+                },
+            ),
+            // Translation Text (Inline)
+            if (isActive)
+              TextSpan(
+                text:
+                    ' ${_parseHtmlContent(segment.translate)}', // Space prefix
                 style: TextStyle(
                   color: appColors.textSecondary,
                   fontStyle: FontStyle.italic,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
+                  backgroundColor: Colors.grey.withValues(alpha: 0.2),
                 ),
               ),
-            ),
-          ),
-        );
-      }
+          ],
+        ),
+      );
     }
 
     return spans;
