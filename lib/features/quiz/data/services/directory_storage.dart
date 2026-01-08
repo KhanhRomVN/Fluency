@@ -37,25 +37,21 @@ class DirectoryEntry {
 
 class Phonetic {
   final String text;
-  final String? audio;
   final String? tag;
 
   const Phonetic({
     required this.text,
-    this.audio,
     this.tag,
   });
 
   Map<String, dynamic> toJson() => {
         'text': text,
-        if (audio != null) 'audio': audio,
         if (tag != null) 'tag': tag,
       };
 
   factory Phonetic.fromJson(Map<String, dynamic> json) {
     return Phonetic(
       text: json['text'] as String,
-      audio: json['audio'] as String?,
       tag: json['tag'] as String?,
     );
   }
@@ -177,63 +173,48 @@ class DirectoryStorage {
     final existing = getEntry(word);
     if (existing != null) return existing;
 
+    // 1. Try Primary API (FreeDict with translations)
     try {
-      dynamic data;
-      bool usedFallback = false;
+      final response = await http.get(
+        Uri.parse(
+          'https://freedictionaryapi.com/api/v1/entries/en/$word?translations=true',
+        ),
+      );
 
-      // Try primary API
-      try {
-        final response = await http.get(
-          Uri.parse(
-            'https://freedictionaryapi.com/api/v1/entries/en/$word?translations=true',
-          ),
-        );
-
-        if (response.statusCode == 200) {
-          data = jsonDecode(response.body);
-
-          // Check quality
-          final entries = (data['entries'] as List?) ?? [];
-          final isBad = entries.isEmpty ||
-              ((entries[0] as Map?)?['senses'] as List?)?.isEmpty == true;
-
-          if (isBad) {
-            data = null;
-          }
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // Attempt parse immediately
+        final parsedEntry = _parseEntry(data, word, false);
+        if (parsedEntry != null) {
+          saveEntry(parsedEntry);
+          return parsedEntry;
         }
-      } catch (e) {
-        data = null;
       }
-
-      // Try fallback API if data is missing
-      if (data == null) {
-        try {
-          final fallbackRes = await http.get(
-            Uri.parse(
-              'https://api.dictionaryapi.dev/api/v2/entries/en/$word',
-            ),
-          );
-
-          if (fallbackRes.statusCode == 200) {
-            final fallbackData = jsonDecode(fallbackRes.body);
-            if (fallbackData is List && fallbackData.isNotEmpty) {
-              data = fallbackData;
-              usedFallback = true;
-            }
-          }
-        } catch (e) {}
-      }
-
-      if (data == null) return null;
-
-      final parsedEntry = _parseEntry(data, word, usedFallback);
-      if (parsedEntry != null) {
-        saveEntry(parsedEntry);
-      }
-      return parsedEntry;
-    } catch (error) {
-      return null;
+    } catch (e) {
+      debugPrint('Primary API failed for $word: $e');
     }
+
+    // 2. Try Fallback API (DictionaryAPI - no translations but robust)
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://api.dictionaryapi.dev/api/v2/entries/en/$word',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final parsedEntry = _parseEntry(data, word, true);
+        if (parsedEntry != null) {
+          saveEntry(parsedEntry);
+          return parsedEntry;
+        }
+      }
+    } catch (e) {
+      debugPrint('Fallback API failed for $word: $e');
+    }
+
+    return null;
   }
 
   DirectoryEntry? _parseEntry(
@@ -269,7 +250,6 @@ class DirectoryStorage {
               phonetics.add(
                 Phonetic(
                   text: text,
-                  audio: p['audio'] as String?,
                   tag: (p['audio'] as String?)?.contains('-uk') == true
                       ? 'UK'
                       : null,

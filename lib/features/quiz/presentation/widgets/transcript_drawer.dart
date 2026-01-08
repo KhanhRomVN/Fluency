@@ -17,6 +17,7 @@ class TranscriptDrawer extends StatefulWidget {
     this.transcriptPath,
     this.audioPath,
     this.audioPlayer,
+    this.onWordLongPress,
   });
 
   final bool isOpen;
@@ -24,6 +25,7 @@ class TranscriptDrawer extends StatefulWidget {
   final String? transcriptPath;
   final String? audioPath;
   final AudioPlayer? audioPlayer;
+  final void Function(String)? onWordLongPress;
 
   @override
   State<TranscriptDrawer> createState() => _TranscriptDrawerState();
@@ -464,38 +466,125 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
   InlineSpan _buildDialogueSpan(
       Dialogue dialogue, AppColorsExtension appColors) {
     final isActive = _activeDialogueId == dialogue.id;
+    final parsedText = _parseHtmlContent(dialogue.original);
+
+    // Parse text into words and create spans with gestures
+    List<InlineSpan> spans = [];
+    // Split by whitespace but keep the whitespace in the result
+    final pattern = RegExp(r'(\s+)');
+    final matches = pattern.allMatches(parsedText);
+
+    int lastIndex = 0;
+    for (final match in matches) {
+      // Add the word before the whitespace
+      if (match.start > lastIndex) {
+        final word = parsedText.substring(lastIndex, match.start);
+        spans.add(_createWordSpan(word, isActive, appColors, dialogue));
+      }
+
+      // Add the whitespace
+      spans.add(TextSpan(text: match.group(0)));
+      lastIndex = match.end;
+    }
+
+    // Add remaining text after last whitespace
+    if (lastIndex < parsedText.length) {
+      final word = parsedText.substring(lastIndex);
+      spans.add(_createWordSpan(word, isActive, appColors, dialogue));
+    }
+
+    // Add translation if active
+    if (isActive) {
+      spans.add(
+        TextSpan(
+          text: ' ${_parseHtmlContent(dialogue.translation)}',
+          style: TextStyle(
+            color: appColors.textSecondary,
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+            fontWeight: FontWeight.w500,
+            backgroundColor: Colors.grey.withValues(alpha: 0.2),
+          ),
+        ),
+      );
+    }
+
+    return TextSpan(children: spans);
+  }
+
+  // Create a TextSpan for a single word with gesture recognizers
+  TextSpan _createWordSpan(
+    String word,
+    bool isActive,
+    AppColorsExtension appColors,
+    Dialogue dialogue,
+  ) {
+    // Clean word for dictionary lookup (remove punctuation)
+    final cleanWord = word.replaceAll(RegExp(r'[^\w\s-]'), '').toLowerCase();
+
+    // Create a multi-gesture recognizer that handles both tap and long-press
+    final gestureRecognizer = _createGestureRecognizer(
+      onTap: () {
+        setState(() {
+          _activeDialogueId =
+              _activeDialogueId == dialogue.id ? null : dialogue.id;
+        });
+      },
+      onLongPress: cleanWord.isNotEmpty && widget.onWordLongPress != null
+          ? () => widget.onWordLongPress!(cleanWord)
+          : null,
+    );
 
     return TextSpan(
-      children: [
-        // Original text
-        TextSpan(
-          text: _parseHtmlContent(dialogue.original),
-          style: TextStyle(
-            backgroundColor:
-                isActive ? appColors.primary.withValues(alpha: 0.2) : null,
-          ),
-          recognizer: TapGestureRecognizer()
-            ..onTap = () {
-              setState(() {
-                _activeDialogueId = isActive ? null : dialogue.id;
-              });
-            },
-        ),
-        // Translation (inline)
-        if (isActive)
-          TextSpan(
-            text:
-                ' ${_parseHtmlContent(dialogue.translation)}', // Add space prefix
-            style: TextStyle(
-              color: appColors.textSecondary,
-              fontSize: 14,
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w500,
-              backgroundColor: Colors.grey.withValues(alpha: 0.2),
-            ),
-          ),
-      ],
+      text: word,
+      style: TextStyle(
+        backgroundColor:
+            isActive ? appColors.primary.withValues(alpha: 0.2) : null,
+      ),
+      recognizer: gestureRecognizer,
     );
+  }
+
+  // Create a custom gesture recognizer that handles both tap and long-press
+  GestureRecognizer _createGestureRecognizer({
+    required VoidCallback onTap,
+    VoidCallback? onLongPress,
+  }) {
+    if (onLongPress != null) {
+      // Use a combination approach: TapGestureRecognizer with custom handling
+      final recognizer = TapGestureRecognizer();
+
+      // Track long-press timing
+      bool isLongPress = false;
+      Timer? longPressTimer;
+
+      recognizer.onTapDown = ((_) {
+        isLongPress = false;
+        longPressTimer = Timer(const Duration(milliseconds: 500), () {
+          isLongPress = true;
+          onLongPress();
+        });
+      });
+
+      recognizer.onTapUp = ((_) {
+        longPressTimer?.cancel();
+      });
+
+      recognizer.onTapCancel = () {
+        longPressTimer?.cancel();
+      };
+
+      recognizer.onTap = () {
+        if (!isLongPress) {
+          onTap();
+        }
+      };
+
+      return recognizer;
+    } else {
+      // Only tap
+      return TapGestureRecognizer()..onTap = onTap;
+    }
   }
 
   // HTML parser - handle styles inline without line breaks

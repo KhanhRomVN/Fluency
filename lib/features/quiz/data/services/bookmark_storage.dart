@@ -1,0 +1,65 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:universal_io/io.dart';
+
+class BookmarkStorage {
+  static final BookmarkStorage _instance = BookmarkStorage._internal();
+  factory BookmarkStorage() => _instance;
+  BookmarkStorage._internal();
+
+  final List<String> _bookmarks = [];
+  bool _initialized = false;
+
+  Future<void> init() async {
+    if (_initialized) return;
+    try {
+      final file = await _getFile();
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final List<dynamic> json = jsonDecode(content) as List<dynamic>;
+        _bookmarks.clear();
+        _bookmarks.addAll(json.map((e) => e.toString()));
+      }
+    } catch (e) {
+      debugPrint('Error loading bookmarks: $e');
+    }
+    _initialized = true;
+  }
+
+  Future<File> _getFile() async {
+    final directory = await getApplicationDocumentsDirectory();
+    return File('${directory.path}/bookmarks.json');
+  }
+
+  Future<void> _save() async {
+    try {
+      final file = await _getFile();
+      await file.writeAsString(jsonEncode(_bookmarks));
+    } catch (e) {
+      debugPrint('Error saving bookmarks: $e');
+    }
+  }
+
+  bool isBookmarked(String word) {
+    return _bookmarks.contains(word.toLowerCase());
+  }
+
+  Future<void> toggle(String word) async {
+    if (!_initialized) await init();
+
+    final lowerWord = word.toLowerCase();
+    if (_bookmarks.contains(lowerWord)) {
+      _bookmarks.remove(lowerWord);
+    } else {
+      _bookmarks.add(lowerWord);
+    }
+    await _save();
+  }
+
+  List<String> getBookmarks() {
+    return List.unmodifiable(_bookmarks);
+  }
+}
+
+final bookmarkStorage = BookmarkStorage();

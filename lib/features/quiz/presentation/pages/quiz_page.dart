@@ -350,6 +350,7 @@ class _QuizPageState extends State<QuizPage> {
             transcriptPath: activeQuiz?.transcript,
             audioPath: audioPath,
             audioPlayer: _audioPlayer,
+            onWordLongPress: _onWordLongPress,
           ),
         // Directory Drawer
         DirectoryDrawer(

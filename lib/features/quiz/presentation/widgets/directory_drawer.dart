@@ -2,7 +2,8 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/quiz/data/services/directory_storage.dart'
     hide debugPrint;
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fluency/features/quiz/data/services/bookmark_storage.dart';
 
 class DirectoryDrawer extends StatefulWidget {
   const DirectoryDrawer({
@@ -24,19 +25,19 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
   DirectoryEntry? _entry;
   bool _loading = false;
   String? _error;
+  bool _isBookmarked = false;
   Map<String, dynamic> _stats = {'count': 0, 'size': '0 B'};
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
+    bookmarkStorage.init();
     _loadStats();
     directoryStorage.subscribe(_loadStats);
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -74,15 +75,19 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
             ? 'Could not find definition for "${widget.word}"'
             : null;
         _loading = false;
+        _isBookmarked = bookmarkStorage.isBookmarked(widget.word!);
       });
     }
   }
 
-  Future<void> _playAudio(String url) async {
-    try {
-      await _audioPlayer.play(UrlSource(url));
-    } catch (e) {
-      debugPrint('Error playing audio: $e');
+  Future<void> _toggleBookmark() async {
+    if (widget.word == null) return;
+
+    await bookmarkStorage.toggle(widget.word!);
+    if (mounted) {
+      setState(() {
+        _isBookmarked = bookmarkStorage.isBookmarked(widget.word!);
+      });
     }
   }
 
@@ -105,117 +110,144 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
         // Drawer
         Align(
           alignment: Alignment.bottomCenter,
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            decoration: BoxDecoration(
-              color: appColors.background,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(24),
-              ),
-            ),
-            child: Column(
-              children: [
-                // Handle
-                Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  width: 48,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: BoxDecoration(
+                color: appColors.background,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
                 ),
+              ),
+              child: Column(
+                children: [
+                  // Handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 48,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
 
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.book_outlined,
-                            color: appColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Dictionary',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: appColors.textPrimary,
-                                ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 16, 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.book_outlined,
+                              color: appColors.primary,
+                              size: 20,
                             ),
-                            decoration: BoxDecoration(
-                              color: appColors.cardBackground,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Cached: ${_stats['count']} | ${_stats['size']}',
+                            const SizedBox(width: 8),
+                            Text(
+                              'Dictionary',
                               style: Theme.of(context)
                                   .textTheme
-                                  .bodySmall
+                                  .titleMedium
                                   ?.copyWith(
-                                    color: appColors.textSecondary,
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.textPrimary,
+                                    fontSize: 18,
                                   ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: widget.onClose,
-                            icon: Icon(
-                              Icons.close,
-                              color: appColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                Divider(color: appColors.border.withValues(alpha: 0.5)),
-
-                // Content
-                Expanded(
-                  child: _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _error != null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.error_outline,
-                                      color: Colors.red, size: 48),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    _error!,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(color: Colors.red),
-                                  ),
-                                ],
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                            )
-                          : _entry != null
-                              ? _buildEntryContent(_entry!)
-                              : const SizedBox.shrink(),
-                ),
-              ],
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: appColors.border
+                                        .withValues(alpha: 0.5)),
+                              ),
+                              child: Text(
+                                'Cached: ${_stats['count']} | ${_stats['size']}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: appColors.textSecondary,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (widget.word != null) ...[
+                              InkWell(
+                                onTap: _toggleBookmark,
+                                borderRadius: BorderRadius.circular(20),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: SvgPicture.asset(
+                                    _isBookmarked
+                                        ? 'assets/icons/bookmark_check.svg'
+                                        : 'assets/icons/bookmark.svg',
+                                    width: 20,
+                                    height: 20,
+                                    colorFilter: ColorFilter.mode(
+                                      appColors.primary,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            IconButton(
+                              onPressed: widget.onClose,
+                              icon: Icon(
+                                Icons.close,
+                                color: appColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Divider(color: appColors.border.withValues(alpha: 0.5)),
+
+                  // Content
+                  Expanded(
+                    child: _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _error != null
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.error_outline,
+                                        color: Colors.red, size: 48),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      _error!,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : _entry != null
+                                ? _buildEntryContent(_entry!)
+                                : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -260,38 +292,6 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
               ),
             ],
           ),
-
-          // Phonetics
-          if (entry.phonetics.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: entry.phonetics.map((p) {
-                return Chip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        p.tag != null ? '${p.text} (${p.tag})' : p.text,
-                        style: const TextStyle(fontFamily: 'monospace'),
-                      ),
-                      if (p.audio != null && p.audio!.isNotEmpty) ...[
-                        const SizedBox(width: 4),
-                        InkWell(
-                          onTap: () => _playAudio(p.audio!),
-                          child: Icon(
-                            Icons.volume_up_rounded,
-                            size: 16,
-                            color: appColors.primary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
 
           const SizedBox(height: 16),
 
