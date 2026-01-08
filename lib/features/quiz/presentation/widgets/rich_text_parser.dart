@@ -1,4 +1,5 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,7 +10,8 @@ class RichTextParser {
     BuildContext context,
     String content, {
     bool isQuestion = false,
-    Widget? Function(String id)? onGapFound, // Callback to return gap widget
+    Widget? Function(String id)? onGapFound,
+    void Function(String word)? onWordLongPress, // Callback for dictionary
   }) {
     final List<Widget> widgets = [];
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -39,6 +41,7 @@ class RichTextParser {
             fontSize,
             appColors,
             context,
+            onWordLongPress: onWordLongPress,
           );
         }
       }
@@ -93,6 +96,7 @@ class RichTextParser {
           fontSize,
           appColors,
           context,
+          onWordLongPress: onWordLongPress,
         );
       }
     }
@@ -107,35 +111,74 @@ class RichTextParser {
     bool isCenter,
     double? fontSize,
     AppColorsExtension appColors,
-    BuildContext context,
-  ) {
-    // If text is purely whitespace/newlines that we want to ignore?
-    // user input might have \n chars.
+    BuildContext context, {
+    void Function(String word)? onWordLongPress,
+  }) {
+    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: appColors.textPrimary,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          fontSize: fontSize,
+          height: 1.5,
+        );
 
-    final widget = Text(
-      text,
-      textAlign: isCenter ? TextAlign.center : TextAlign.start,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: appColors.textPrimary,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontSize: fontSize,
-            height: 1.5,
-          ),
-    );
-
-    if (isCenter) {
-      // Force full width to center effectively in a Wrap if it's alone,
-      // or just trust TextAlign if it spans.
-      // Wrap doesn't respect TextAlign of children unless they fill width.
-      widgets.add(
-        SizedBox(
-          width: double.infinity,
-          child: widget,
-        ),
+    // If no interaction needed or centered text (usually titles), just render text
+    if (onWordLongPress == null || isCenter) {
+      final widget = Text(
+        text,
+        textAlign: isCenter ? TextAlign.center : TextAlign.start,
+        style: style,
       );
-    } else {
-      widgets.add(widget);
+
+      if (isCenter) {
+        widgets.add(
+          SizedBox(
+            width: double.infinity,
+            child: widget,
+          ),
+        );
+      } else {
+        widgets.add(widget);
+      }
+      return;
     }
+
+    // Split by space but keep delimiters or handle carefully
+    // Simple approach: split by space, wrapped in Wrap/RichText is tricky
+    // Better approach: Use RichText with TextSpans for each word
+
+    // We are adding to a list of widgets that will likely be in a Wrap.
+    // If we return a single RichText, it might not wrap correctly with previous siblings if they are separate widgets?
+    // RichTextParser.buildRichText returns List<Widget>.
+
+    // Let's split the text into words using regex to keep punctuation separate or part of word?
+    // Users interact with "words". Punctuation shouldn't be long-pressed usually.
+
+    // Regex to match words and non-words
+    final RegExp tokenRegex = RegExp(r"(\w+)|([^\w\s]+)|(\s+)");
+    final List<InlineSpan> spans = [];
+
+    for (final match in tokenRegex.allMatches(text)) {
+      final token = match.group(0)!;
+      final isWord = match.group(1) != null;
+
+      if (isWord) {
+        spans.add(
+          WidgetSpan(
+            child: GestureDetector(
+              onLongPress: () => onWordLongPress(token),
+              child: Text(
+                token,
+                style: style,
+              ),
+            ),
+          ),
+        );
+      } else {
+        spans.add(TextSpan(text: token, style: style));
+      }
+    }
+
+    widgets.add(Text.rich(TextSpan(children: spans)));
   }
 
   static void _addNewline(List<Widget> widgets) {
@@ -150,6 +193,7 @@ class RichTextParser {
     String content, {
     bool isQuestion = false,
     Widget? Function(String id)? onGapFound,
+    void Function(String word)? onWordLongPress,
   }) {
     final List<InlineSpan> spans = [];
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -165,21 +209,43 @@ class RichTextParser {
     bool isBold = false;
     double? fontSize;
 
+    void addTextSpan(String text) {
+      final style = TextStyle(
+        fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        fontSize: fontSize,
+        color: appColors.textPrimary,
+      );
+
+      if (onWordLongPress == null) {
+        spans.add(TextSpan(text: text, style: style));
+      } else {
+        final RegExp tokenRegex = RegExp(r"(\w+)|([^\w\s]+)|(\s+)");
+        for (final match in tokenRegex.allMatches(text)) {
+          final token = match.group(0)!;
+          final isWord = match.group(1) != null;
+
+          if (isWord) {
+            spans.add(
+              TextSpan(
+                text: token,
+                style: style,
+                recognizer: LongPressGestureRecognizer()
+                  ..onLongPress = () => onWordLongPress(token),
+              ),
+            );
+          } else {
+            spans.add(TextSpan(text: token, style: style));
+          }
+        }
+      }
+    }
+
     final matches = combinedRegex.allMatches(content);
     for (final match in matches) {
       if (match.start > lastIndex) {
         final text = content.substring(lastIndex, match.start);
         if (text.isNotEmpty) {
-          spans.add(
-            TextSpan(
-              text: text,
-              style: TextStyle(
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                fontSize: fontSize,
-                color: appColors.textPrimary,
-              ),
-            ),
-          );
+          addTextSpan(text);
         }
       }
 
@@ -221,16 +287,7 @@ class RichTextParser {
     if (lastIndex < content.length) {
       final text = content.substring(lastIndex);
       if (text.isNotEmpty) {
-        spans.add(
-          TextSpan(
-            text: text,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              fontSize: fontSize,
-              color: appColors.textPrimary,
-            ),
-          ),
-        );
+        addTextSpan(text);
       }
     }
 

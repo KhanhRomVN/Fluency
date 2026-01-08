@@ -251,6 +251,10 @@ class _SpeakingState extends State<Speaking> {
                   ),
                   const SizedBox(width: 8),
 
+                  if (widget.quiz.audio != null &&
+                      widget.quiz.audio!.isNotEmpty)
+                    const SizedBox(height: 120),
+
                   // Submit or Next Button
                   if (!_isCurrentSubmitted && _currentAnswer.trim().isNotEmpty)
                     ElevatedButton.icon(

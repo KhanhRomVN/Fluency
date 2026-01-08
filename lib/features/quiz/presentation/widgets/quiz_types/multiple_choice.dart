@@ -8,12 +8,14 @@ class MultipleChoice extends StatefulWidget {
     required this.quiz,
     this.onCheck,
     this.onShowExplain,
+    this.onWordLongPress,
     super.key,
   });
 
   final Quiz quiz;
   final VoidCallback? onCheck;
   final void Function(String explanation)? onShowExplain;
+  final void Function(String word)? onWordLongPress;
 
   @override
   State<MultipleChoice> createState() => _MultipleChoiceState();
@@ -114,6 +116,9 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                     ...questions.map((question) {
                       return _buildQuestionItem(context, question, appColors);
                     }),
+                    if (widget.quiz.audio != null &&
+                        widget.quiz.audio!.isNotEmpty)
+                      const SizedBox(height: 120),
                   ],
                 ),
               ),
@@ -327,7 +332,11 @@ class _MultipleChoiceState extends State<MultipleChoice> {
   Widget _buildRichText(BuildContext context, String content) {
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.start,
-      children: RichTextParser.buildRichText(context, content),
+      children: RichTextParser.buildRichText(
+        context,
+        content,
+        onWordLongPress: widget.onWordLongPress,
+      ),
     );
   }
 

@@ -12,6 +12,7 @@ import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dar
 import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
+import 'package:fluency/features/quiz/presentation/widgets/directory_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -31,6 +32,8 @@ class _QuizPageState extends State<QuizPage> {
   bool _showTutorialDrawer = false;
   bool _showTranscriptDrawer = false;
   bool _showExplainDrawer = false;
+  bool _showDirectoryDrawer = false;
+  String? _selectedWord;
   String _currentExplanation = '';
   late AudioPlayer _audioPlayer;
 
@@ -60,6 +63,13 @@ class _QuizPageState extends State<QuizPage> {
           .read<QuizStateProvider>()
           .markQuizCompleted(lesson.id, activeQuiz.id);
     }
+  }
+
+  void _onWordLongPress(String word) {
+    setState(() {
+      _selectedWord = word;
+      _showDirectoryDrawer = true;
+    });
   }
 
   @override
@@ -341,6 +351,16 @@ class _QuizPageState extends State<QuizPage> {
             audioPath: audioPath,
             audioPlayer: _audioPlayer,
           ),
+        // Directory Drawer
+        DirectoryDrawer(
+          isOpen: _showDirectoryDrawer,
+          onClose: () {
+            setState(() {
+              _showDirectoryDrawer = false;
+            });
+          },
+          word: _selectedWord,
+        ),
       ],
     );
   }
@@ -361,6 +381,7 @@ class _QuizPageState extends State<QuizPage> {
               _showExplainDrawer = true;
             });
           },
+          onWordLongPress: _onWordLongPress,
         );
       case 'matching-dropdown':
         return MatchingDropdown(
@@ -373,6 +394,7 @@ class _QuizPageState extends State<QuizPage> {
               _showExplainDrawer = true;
             });
           },
+          onWordLongPress: _onWordLongPress,
         );
       case 'gap-fill':
       default:
@@ -388,12 +410,14 @@ class _QuizPageState extends State<QuizPage> {
               _showExplainDrawer = true;
             });
           },
+          hasAudio: quiz.audio != null && quiz.audio!.isNotEmpty,
+          onWordLongPress: _onWordLongPress,
         );
     }
   }
 
   void _showQuizDrawer(BuildContext context) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

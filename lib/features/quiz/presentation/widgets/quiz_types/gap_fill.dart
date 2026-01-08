@@ -1,6 +1,5 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +12,8 @@ class GapFill extends StatefulWidget {
     this.instruction,
     this.onCheck,
     this.onShowExplain,
+    this.hasAudio = false,
+    this.onWordLongPress,
     super.key,
   });
 
@@ -22,6 +23,8 @@ class GapFill extends StatefulWidget {
   final String? instruction;
   final VoidCallback? onCheck;
   final void Function(String explanation)? onShowExplain;
+  final bool hasAudio;
+  final void Function(String word)? onWordLongPress;
 
   @override
   State<GapFill> createState() => _GapFillState();
@@ -109,6 +112,15 @@ class _GapFillState extends State<GapFill> {
                                 context,
                                 widget.instruction!,
                               ),
+                              // Note: Text.rich doesn't easily support granular gestures on spans unless implemented in buildTextSpans
+                              // RichTextParser.buildTextSpans DOES NOT currently accept onWordLongPress in my implementation plan update for it?
+                              // Actually I updated buildRichText to accept it.
+                              // I need to check if I updated buildTextSpans too.
+                              // I checked RichTextParser content earlier, I only updated buildRichText and _addText.
+                              // I need to update buildTextSpans AND _addText.
+                              // Wait, I updated _addText which is used by buildRichText.
+                              // buildTextSpans returns InlineSpans. I need to update buildTextSpans to support it too if I want it here.
+                              // For now, let's stick to updating _buildContent which uses _buildRichText -> buildRichText.
                             ),
                           ),
                         ),
@@ -135,6 +147,7 @@ class _GapFillState extends State<GapFill> {
                           },
                         ),
                       ),
+                      if (widget.hasAudio) const SizedBox(height: 120),
                     ],
                   ),
                 ),
@@ -196,6 +209,7 @@ class _GapFillState extends State<GapFill> {
       content,
       isQuestion: isQuestion,
       onGapFound: (id) => _createGapWidget(id, appColors, context),
+      onWordLongPress: widget.onWordLongPress,
     );
   }
 

@@ -10,12 +10,14 @@ class MatchingDropdown extends StatefulWidget {
     required this.isChecked,
     required this.onCheck,
     this.onShowExplain,
+    this.onWordLongPress,
   });
 
   final Quiz quiz;
   final bool isChecked;
   final VoidCallback onCheck;
   final void Function(String explanation)? onShowExplain;
+  final void Function(String word)? onWordLongPress;
 
   @override
   State<MatchingDropdown> createState() => _MatchingDropdownState();
@@ -94,6 +96,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                     children: RichTextParser.buildRichText(
                       context,
                       widget.quiz.instruction,
+                      onWordLongPress: widget.onWordLongPress,
                     ),
                   ),
                 ),
@@ -104,6 +107,8 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
               ...matchings.map((matching) {
                 return _buildMatchingRow(context, matching, appColors);
               }),
+              if (widget.quiz.audio != null && widget.quiz.audio!.isNotEmpty)
+                const SizedBox(height: 120),
             ],
           ),
         ),
@@ -207,8 +212,11 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
             ),
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.start,
-              children:
-                  RichTextParser.buildRichText(context, matching.question),
+              children: RichTextParser.buildRichText(
+                context,
+                matching.question,
+                onWordLongPress: widget.onWordLongPress,
+              ),
             ),
           ),
           const SizedBox(height: 12),

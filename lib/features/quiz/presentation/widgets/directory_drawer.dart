@@ -1,6 +1,8 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
-import 'package:fluency/features/quiz/data/services/directory_storage.dart';
+import 'package:fluency/features/quiz/data/services/directory_storage.dart'
+    hide debugPrint;
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class DirectoryDrawer extends StatefulWidget {
   const DirectoryDrawer({
@@ -23,6 +25,7 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
   bool _loading = false;
   String? _error;
   Map<String, dynamic> _stats = {'count': 0, 'size': '0 B'};
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -33,6 +36,7 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
 
   @override
   void dispose() {
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -71,6 +75,14 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
             : null;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _playAudio(String url) async {
+    try {
+      await _audioPlayer.play(UrlSource(url));
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
     }
   }
 
@@ -256,9 +268,25 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
               spacing: 8,
               children: entry.phonetics.map((p) {
                 return Chip(
-                  label: Text(
-                    p.tag != null ? '${p.text} (${p.tag})' : p.text,
-                    style: const TextStyle(fontFamily: 'monospace'),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        p.tag != null ? '${p.text} (${p.tag})' : p.text,
+                        style: const TextStyle(fontFamily: 'monospace'),
+                      ),
+                      if (p.audio != null && p.audio!.isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () => _playAudio(p.audio!),
+                          child: Icon(
+                            Icons.volume_up_rounded,
+                            size: 16,
+                            color: appColors.primary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 );
               }).toList(),

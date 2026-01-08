@@ -188,6 +188,8 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
               ),
             ),
           ),
+        if (widget.quiz.audio != null && widget.quiz.audio!.isNotEmpty)
+          const SizedBox(height: 120),
       ],
     );
   }

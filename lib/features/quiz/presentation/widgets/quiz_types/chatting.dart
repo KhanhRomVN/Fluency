@@ -87,6 +87,8 @@ class Chatting extends StatelessWidget {
             ),
           );
         }),
+        if (quiz.audio != null && quiz.audio!.isNotEmpty)
+          const SizedBox(height: 120),
       ],
     );
   }
