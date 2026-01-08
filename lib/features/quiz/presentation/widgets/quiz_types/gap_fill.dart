@@ -9,6 +9,8 @@ class GapFill extends StatefulWidget {
   const GapFill({
     required this.question,
     required this.answers,
+    this.title,
+    this.instruction,
     this.onCheck,
     this.onShowExplain,
     super.key,
@@ -16,6 +18,8 @@ class GapFill extends StatefulWidget {
 
   final String question;
   final List<QuizAnswer> answers;
+  final String? title;
+  final String? instruction;
   final VoidCallback? onCheck;
   final void Function(String explanation)? onShowExplain;
 
@@ -88,12 +92,54 @@ class _GapFillState extends State<GapFill> {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title
+                      if (widget.title != null && widget.title!.isNotEmpty) ...[
+                        Text(
+                          widget.title!,
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.textPrimary,
+                                    fontSize: 20,
+                                  ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
 
-                    runSpacing: 4, // Reduced from 8
-                    children: _buildContent(context),
+                      // Instruction
+                      if (widget.instruction != null &&
+                          widget.instruction!.isNotEmpty) ...[
+                        Theme(
+                          data: Theme.of(context).copyWith(
+                            textTheme: Theme.of(context).textTheme.copyWith(
+                                  bodyMedium: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(fontSize: 16),
+                                ),
+                          ),
+                          child: Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.start,
+                            children: RichTextParser.buildRichText(
+                              context,
+                              widget.instruction!,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 4,
+
+                        runSpacing: 4, // Reduced from 8
+                        children: _buildContent(context),
+                      ),
+                    ],
                   ),
                 ),
               ),

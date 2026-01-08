@@ -1,5 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
 
 class SentenceBuilder extends StatefulWidget {
@@ -67,13 +68,37 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Title
+              if (widget.quiz.title.isNotEmpty) ...[
+                Text(
+                  widget.quiz.title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                        fontSize: 20,
+                      ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               // Instruction
               if (widget.quiz.instruction.isNotEmpty) ...[
-                Text(
-                  widget.quiz.instruction,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: appColors.textPrimary,
-                      ),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    textTheme: Theme.of(context).textTheme.copyWith(
+                          bodyMedium: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(fontSize: 16),
+                        ),
+                  ),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    children: RichTextParser.buildRichText(
+                      context,
+                      widget.quiz.instruction,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],

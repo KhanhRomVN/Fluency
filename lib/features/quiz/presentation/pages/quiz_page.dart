@@ -6,6 +6,7 @@ import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_dropdown.dart';
 import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
@@ -361,11 +362,25 @@ class _QuizPageState extends State<QuizPage> {
             });
           },
         );
+      case 'matching-dropdown':
+        return MatchingDropdown(
+          quiz: quiz,
+          isChecked: _isQuizChecked,
+          onCheck: _onQuizChecked,
+          onShowExplain: (explanation) {
+            setState(() {
+              _currentExplanation = explanation;
+              _showExplainDrawer = true;
+            });
+          },
+        );
       case 'gap-fill':
       default:
         return GapFill(
           question: question,
           answers: quiz.answers,
+          title: quiz.title,
+          instruction: quiz.instruction,
           onCheck: _onQuizChecked,
           onShowExplain: (explanation) {
             setState(() {
