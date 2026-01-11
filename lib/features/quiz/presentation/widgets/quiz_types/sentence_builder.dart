@@ -122,10 +122,18 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
               if (_selectedWords.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: TextButton.icon(
-                    onPressed: _clearAll,
-                    icon: const Icon(Icons.clear_all),
-                    label: const Text('Clear All'),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: _clearAll,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reset'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        // Ensure no background color by default for TextButton, but we can be explicit if needed.
+                        // TextButton default is transparent background.
+                      ),
+                    ),
                   ),
                 ),
 

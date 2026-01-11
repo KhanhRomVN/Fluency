@@ -1,5 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 class MainPage extends StatelessWidget {
@@ -58,9 +59,48 @@ class MainPage extends StatelessWidget {
             ),
             label: 'Center',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.category),
-            label: 'Extras',
+          BottomNavigationBarItem(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                SvgPicture.asset(
+                  'assets/icons/archive.svg',
+                  width: 24,
+                  height: 24,
+                  colorFilter: ColorFilter.mode(
+                    navigationShell.currentIndex == 3
+                        ? Theme.of(context).primaryColor
+                        : Theme.of(context).unselectedWidgetColor,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                Positioned(
+                  right: -8,
+                  top: -5,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: const Text(
+                      '0', // TODO: Bind to actual collection count
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            label: 'Collection',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.settings),

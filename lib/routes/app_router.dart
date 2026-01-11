@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/route_constants.dart';
+import '../../features/collection/presentation/pages/collection_page.dart';
 import '../../features/course/domain/entities/course.dart';
 import '../../features/course/presentation/pages/course_detail_page.dart';
 import '../../features/course/presentation/pages/course_list_page.dart';
@@ -85,14 +86,13 @@ class AppRouter {
               ),
             ],
           ),
-          // Temp Branch (No page yet)
+          // Collection Branch
           StatefulShellBranch(
             navigatorKey: _shellNavigatorTempKey,
             routes: [
               GoRoute(
-                path: '/temp',
-                builder: (context, state) =>
-                    const Scaffold(body: Center(child: Text('Temp Page'))),
+                path: RouteConstants.collection,
+                builder: (context, state) => const CollectionPage(),
               ),
             ],
           ),

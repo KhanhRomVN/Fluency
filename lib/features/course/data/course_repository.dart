@@ -53,11 +53,6 @@ class CourseRepository {
       final mockCourses = await mockService.getMockCourses();
       courses.addAll(mockCourses);
 
-      // Load lesson data from JSON files for each mock course
-      for (var i = 0; i < courses.length; i++) {
-        courses[i] = await _loadLessonsForMockCourse(courses[i]);
-      }
-
       return courses;
     }
 
@@ -75,44 +70,6 @@ class CourseRepository {
     await _loadCoursesFromJson(courses);
 
     return courses;
-  }
-
-  /// Load lesson data from JSON files for mock courses on web
-  Future<Course> _loadLessonsForMockCourse(Course course) async {
-    try {
-      final basePath = 'lib/core/mock/Cambridge_IELTS_18';
-      final List<Lesson> loadedLessons = [];
-
-      // Try to load lesson JSON files
-      for (int i = 1; i <= 4; i++) {
-        try {
-          final lessonPath = '$basePath/Cambridge_IELTS_18_Lesson$i.json';
-          final lessonString = await rootBundle.loadString(lessonPath);
-          final lessonJson = json.decode(lessonString) as Map<String, dynamic>;
-          final lesson = Lesson.fromJson(lessonJson);
-          loadedLessons.add(lesson);
-        } catch (e) {
-          print('Could not load lesson $i: $e');
-        }
-      }
-
-      if (loadedLessons.isNotEmpty) {
-        // Sort by lesson number
-        loadedLessons.sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber));
-
-        // Resolve paths for web
-        final resolvedLessons = loadedLessons.map((lesson) {
-          return _resolveLessonPaths(lesson, '$basePath/');
-        }).toList();
-
-        return course.copyWith(lessons: resolvedLessons);
-      }
-
-      return course;
-    } catch (e) {
-      print('Error loading lessons for mock course: $e');
-      return course;
-    }
   }
 
   /// Load courses from ZIP files in assets
