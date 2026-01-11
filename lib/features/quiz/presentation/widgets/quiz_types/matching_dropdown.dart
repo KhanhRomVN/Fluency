@@ -86,18 +86,16 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
             children: [
               // Instruction
               if (widget.quiz.instruction.isNotEmpty) ...[
-                DefaultTextStyle(
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 16), // Increased font size
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
-                    children: RichTextParser.buildRichText(
-                      context,
-                      widget.quiz.instruction,
-                      onWordLongPress: widget.onWordLongPress,
-                    ),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.start,
+                  children: RichTextParser.buildRichText(
+                    context,
+                    widget.quiz.instruction,
+                    onWordLongPress: widget.onWordLongPress,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium!
+                        .copyWith(fontSize: 16),
                   ),
                 ),
                 Divider(height: 32, color: appColors.border),
@@ -201,22 +199,16 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Question Text
-          Theme(
-            data: Theme.of(context).copyWith(
-              textTheme: Theme.of(context).textTheme.copyWith(
-                    bodyMedium: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontSize: 16), // Increased font size
-                  ),
-            ),
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.start,
-              children: RichTextParser.buildRichText(
-                context,
-                matching.question,
-                onWordLongPress: widget.onWordLongPress,
-              ),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.start,
+            children: RichTextParser.buildRichText(
+              context,
+              matching.question,
+              onWordLongPress: widget.onWordLongPress,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium!
+                  .copyWith(fontSize: 16),
             ),
           ),
           const SizedBox(height: 12),

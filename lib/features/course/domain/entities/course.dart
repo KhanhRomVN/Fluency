@@ -151,6 +151,14 @@ class Quiz {
   final int? min; // Minimum word count for writing quizzes
   final String? example; // Example answer for writing/speaking
   final List<ChatMessage>? chats; // For chatting quizzes
+  final List<FlashcardItem>? flashcards; // For flashcard quizzes
+  final List<DictationItem>? dictations; // For dictation quizzes
+  final List<PronunciationItem>? pronunciations; // For pronunciation quizzes
+  final List<SpeechBuilderItem>? speechBuilders; // For speech builder quizzes
+  final List<ErrorCorrectionItem>?
+      errorCorrections; // For error correction quizzes
+  final List<SentenceTransformationItem>?
+      sentenceTransformations; // For sentence transformation quizzes
 
   const Quiz({
     required this.id,
@@ -171,6 +179,12 @@ class Quiz {
     this.min,
     this.example,
     this.chats,
+    this.flashcards,
+    this.dictations,
+    this.pronunciations,
+    this.speechBuilders,
+    this.errorCorrections,
+    this.sentenceTransformations,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
@@ -193,20 +207,95 @@ class Quiz {
       }
     }
 
+    final type = json['type'] as String? ?? '';
+
+    // Specialized parsing for mismatch definitions
+    var speechBuildersList = (json['speechBuilders'] as List?)
+        ?.map((e) => SpeechBuilderItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+    if (speechBuildersList == null &&
+        json['builders'] != null &&
+        type == 'speech-builder') {
+      speechBuildersList = (json['builders'] as List?)
+          ?.map((e) => SpeechBuilderItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    var sentenceTransformationsList = (json['sentenceTransformations'] as List?)
+        ?.map((e) =>
+            SentenceTransformationItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    if (sentenceTransformationsList == null &&
+        json['questions'] != null &&
+        type == 'sentence-transformation') {
+      sentenceTransformationsList = (json['questions'] as List?)
+          ?.map((e) =>
+              SentenceTransformationItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    // Parse questions - but skip for sentence-transformation as those use sentenceTransformations
+    List<QuizQuestion>? questionsList;
+    if (type != 'sentence-transformation') {
+      questionsList = (json['questions'] as List?)
+          ?.map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    // Map `builders` to `questions` for `builder` type if not already parsed
+    if ((questionsList == null || questionsList.isEmpty) &&
+        json['builders'] != null &&
+        type == 'builder') {
+      final builders = json['builders'] as List;
+      questionsList = builders.map((b) {
+        final bMap = b as Map<String, dynamic>;
+        final items =
+            (bMap['items'] as List?)?.map((e) => e.toString()).toList() ?? [];
+
+        List<String> validAnswers = [];
+        // Construct answer from correctOrder if available
+        if (bMap['correctOrder'] != null) {
+          final correctOrder =
+              (bMap['correctOrder'] as List).map((e) => e as int).toList();
+          final correctSentence = correctOrder.map((i) => items[i]).join(' ');
+          validAnswers.add(correctSentence);
+        }
+
+        return QuizQuestion(
+          id: bMap['id'] as String? ?? '',
+          question: bMap['hint'] as String? ?? '',
+          options: items,
+          answer: validAnswers.isNotEmpty ? validAnswers.first : '',
+          validAnswers: validAnswers,
+          explain: '',
+        );
+      }).toList();
+    }
+
+    // Parse pronunciations - fallback to 'drills' for pronunciation-drill type
+    var pronunciationsList = (json['pronunciations'] as List?)
+        ?.map((e) => PronunciationItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+    if (pronunciationsList == null &&
+        json['drills'] != null &&
+        (type == 'pronunciation-drill' || type == 'pronunciation')) {
+      pronunciationsList = (json['drills'] as List?)
+          ?.map((e) => PronunciationItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
     return Quiz(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
-      type: json['type'] as String? ?? '',
+      type: type,
       instruction: json['instruction'] as String? ?? '',
       quizNumber: json['quizNumber']?.toString() ?? '',
       question: json['question'] as String? ?? '',
       audio: json['audio'] as String?,
       transcript: json['transcript'] as String?,
       passage: json['passage'] as String?,
-      questions: (json['questions'] as List?)
-              ?.map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      questions: questionsList ?? const [],
       answers: quizAnswers,
       answersString: stringAnswers,
       options: (json['options'] as List?)?.map((e) => e as String).toList(),
@@ -219,6 +308,18 @@ class Quiz {
       chats: (json['chats'] as List?)
           ?.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
           .toList(),
+      flashcards: (json['flashcards'] as List?)
+          ?.map((e) => FlashcardItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      dictations: (json['dictations'] as List?)
+          ?.map((e) => DictationItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      pronunciations: pronunciationsList,
+      speechBuilders: speechBuildersList,
+      errorCorrections: (json['errorCorrections'] as List?)
+          ?.map((e) => ErrorCorrectionItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      sentenceTransformations: sentenceTransformationsList,
     );
   }
 }
@@ -364,18 +465,234 @@ class ChatMessage {
   final String id;
   final String role; // 'bot' | 'user'
   final String content;
+  final String? name;
+  final String? time;
+  final String? ipa;
+  final String? explain;
+  final String? question; // Used as content in some legacy structures?
 
   const ChatMessage({
     required this.id,
     required this.role,
     required this.content,
+    this.name,
+    this.time,
+    this.ipa,
+    this.explain,
+    this.question,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
       id: json['id'] as String? ?? '',
       role: json['role'] as String? ?? '',
-      content: json['content'] as String? ?? '',
+      content: json['content'] as String? ?? json['question'] as String? ?? '',
+      name: json['name'] as String?,
+      time: json['time'] as String?,
+      ipa: json['ipa'] as String?,
+      explain: json['explain'] as String?,
+      question: json['question'] as String?,
+    );
+  }
+}
+
+class FlashcardItem {
+  final String id;
+  final String front;
+  final String? frontAudio;
+  final String? image;
+  final dynamic back; // String or Map (definition, example, etc.)
+  final String? backAudio;
+
+  const FlashcardItem({
+    required this.id,
+    required this.front,
+    this.frontAudio,
+    this.image,
+    required this.back,
+    this.backAudio,
+  });
+
+  factory FlashcardItem.fromJson(Map<String, dynamic> json) {
+    return FlashcardItem(
+      id: json['id'] as String? ?? '',
+      front: json['front'] as String? ?? '',
+      frontAudio: json['frontAudio'] as String?,
+      image: json['image'] as String?,
+      back: json['back'], // Can be String or Map
+      backAudio: json['backAudio'] as String?,
+    );
+  }
+}
+
+class DictationItem {
+  final String id;
+  final String? audio;
+  final String? text; // Logic uses correct text but UI calls it text?
+  final String? transcript; // Usually the correct answer
+  final String? translate;
+  final String? ipa;
+
+  const DictationItem({
+    required this.id,
+    this.audio,
+    this.text,
+    this.transcript,
+    this.translate,
+    this.ipa,
+  });
+
+  factory DictationItem.fromJson(Map<String, dynamic> json) {
+    return DictationItem(
+      id: json['id'] as String? ?? '',
+      audio: json['audio'] as String?,
+      text: json['text'] as String?, // Sometimes used as question text?
+      transcript: json['transcript'] as String?,
+      translate: json['translate'] as String?,
+      ipa: json['ipa'] as String?,
+    );
+  }
+}
+
+class PronunciationItem {
+  final String id;
+  final String text;
+  final String? ipa;
+  final String? translate;
+  final String? hiddenWord; // For FillInTheBlankPronunciation?
+
+  const PronunciationItem({
+    required this.id,
+    required this.text,
+    this.ipa,
+    this.translate,
+    this.hiddenWord,
+  });
+
+  factory PronunciationItem.fromJson(Map<String, dynamic> json) {
+    return PronunciationItem(
+      id: json['id'] as String? ?? '',
+      text: json['text'] as String? ?? '',
+      ipa: json['ipa'] as String?,
+      translate: json['translate'] as String?,
+      hiddenWord: json['hiddenWord'] as String?,
+    );
+  }
+}
+
+class SpeechBuilderItem {
+  final String id;
+  final String? question; // Scrambled sentence?
+  final List<String>? items; // For legacy scrambled words
+  final String? hint;
+  final String? translate;
+  // Answers usually defined in `quiz.answers` or `item.answers`?
+  // TSX: `item.answers?.find(...)`
+  final List<QuizAnswer>? answers;
+
+  const SpeechBuilderItem({
+    required this.id,
+    this.question,
+    this.items,
+    this.hint,
+    this.translate,
+    this.answers,
+  });
+
+  factory SpeechBuilderItem.fromJson(Map<String, dynamic> json) {
+    return SpeechBuilderItem(
+      id: json['id'] as String? ?? '',
+      question: json['question'] as String?,
+      items: (json['items'] as List?)?.map((e) => e.toString()).toList(),
+      hint: json['hint'] as String?,
+      translate: json['translate'] as String?,
+      answers: (json['answers'] as List?)
+          ?.map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class ErrorCorrectionItem {
+  final String id;
+  final String original;
+  final List<CorrectionError> errors;
+  final String? explain;
+
+  const ErrorCorrectionItem({
+    required this.id,
+    required this.original,
+    required this.errors,
+    this.explain,
+  });
+
+  factory ErrorCorrectionItem.fromJson(Map<String, dynamic> json) {
+    return ErrorCorrectionItem(
+      id: json['id'] as String? ?? '',
+      original: json['original'] as String? ?? '',
+      errors: (json['errors'] as List?)
+              ?.map((e) => CorrectionError.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      explain: json['explain'] as String?,
+    );
+  }
+}
+
+class CorrectionError {
+  final String id;
+  final int index; // Token index
+  final List<String> correct;
+
+  const CorrectionError({
+    required this.id,
+    required this.index,
+    required this.correct,
+  });
+
+  factory CorrectionError.fromJson(Map<String, dynamic> json) {
+    return CorrectionError(
+      id: json['id'] as String? ?? '',
+      index: json['index'] as int? ?? 0,
+      correct: (json['correct'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
+    );
+  }
+}
+
+class SentenceTransformationItem {
+  final String id;
+  final String? original;
+  final String? question; // Template with </gap> tags for input
+  final String? require; // The instruction/requirement
+  final List<String> answer; // List of acceptable answers
+  final String? explain;
+
+  const SentenceTransformationItem({
+    required this.id,
+    this.original,
+    this.question,
+    this.require,
+    required this.answer,
+    this.explain,
+  });
+
+  factory SentenceTransformationItem.fromJson(Map<String, dynamic> json) {
+    // Answer can be String or List inside json['answer']
+    List<String> parsedAnswer = [];
+    if (json['answer'] is List) {
+      parsedAnswer = (json['answer'] as List).map((e) => e.toString()).toList();
+    } else if (json['answer'] is String) {
+      parsedAnswer = [json['answer'] as String];
+    }
+
+    return SentenceTransformationItem(
+      id: json['id'] as String? ?? '',
+      original: json['original'] as String?,
+      question: json['question'] as String?,
+      require: json['require'] as String?,
+      answer: parsedAnswer,
+      explain: json['explain'] as String?,
     );
   }
 }

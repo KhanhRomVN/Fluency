@@ -7,6 +7,16 @@ import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_dropdown.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/builder.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/chatting_speech.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/error_correction.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/flashcard.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/pronunciation_drill.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/sentence_transformation.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speaking_essay.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speech_builder.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/writing_essay.dart';
 import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
@@ -395,6 +405,70 @@ class _QuizPageState extends State<QuizPage> {
               _showExplainDrawer = true;
             });
           },
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'builder':
+        return QuizBuilder(
+          quiz: quiz,
+          onCheck: _onQuizChecked,
+          onShowExplain: (explanation) {
+            setState(() {
+              _currentExplanation = explanation;
+              _showExplainDrawer = true;
+            });
+          },
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'chatting-speech':
+        return ChattingSpeech(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'dictation':
+        return Dictation(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'error-correction':
+        return ErrorCorrection(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'flashcard':
+        return Flashcard(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'pronunciation':
+      case 'pronunciation-drill':
+        return PronunciationDrill(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'sentence-transformation':
+        return SentenceTransformation(
+          quiz: quiz,
+          onShowExplain: (explanation) {
+            setState(() {
+              _currentExplanation = explanation;
+              _showExplainDrawer = true;
+            });
+          },
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'speaking-essay':
+        return SpeakingEssay(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'speech-builder':
+        return SpeechBuilder(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'writing-essay':
+        return WritingEssay(
+          quiz: quiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'gap-fill':

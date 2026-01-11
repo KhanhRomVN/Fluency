@@ -12,6 +12,7 @@ class RichTextParser {
     bool isQuestion = false,
     Widget? Function(String id)? onGapFound,
     void Function(String word)? onWordLongPress, // Callback for dictionary
+    TextStyle? style,
   }) {
     final List<Widget> widgets = [];
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -42,6 +43,7 @@ class RichTextParser {
             appColors,
             context,
             onWordLongPress: onWordLongPress,
+            textStyle: style,
           );
         }
       }
@@ -97,6 +99,7 @@ class RichTextParser {
           appColors,
           context,
           onWordLongPress: onWordLongPress,
+          textStyle: style,
         );
       }
     }
@@ -113,13 +116,15 @@ class RichTextParser {
     AppColorsExtension appColors,
     BuildContext context, {
     void Function(String word)? onWordLongPress,
+    TextStyle? textStyle,
   }) {
-    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: appColors.textPrimary,
-          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-          fontSize: fontSize,
-          height: 1.5,
-        );
+    final style =
+        (textStyle ?? Theme.of(context).textTheme.bodyMedium)?.copyWith(
+      color: appColors.textPrimary,
+      fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+      fontSize: fontSize,
+      height: 1.5,
+    );
 
     // If no interaction needed or centered text (usually titles), just render text
     if (onWordLongPress == null || isCenter) {

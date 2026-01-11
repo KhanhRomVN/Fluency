@@ -83,6 +83,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
           'No questions available.',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: appColors.textPrimary,
+                fontSize: 16,
               ),
         ),
       );
@@ -103,12 +104,13 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                   children: [
                     // Instruction
                     if (widget.quiz.instruction.isNotEmpty) ...[
-                      DefaultTextStyle(
+                      _buildRichText(
+                        context,
+                        widget.quiz.instruction,
                         style: Theme.of(context)
                             .textTheme
                             .bodyMedium!
                             .copyWith(fontSize: 16),
-                        child: _buildRichText(context, widget.quiz.instruction),
                       ),
                       Divider(height: 32, color: appColors.border),
                     ],
@@ -146,7 +148,10 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                     ),
                     child: const Text(
                       'Check answers',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -271,14 +276,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                             : (isSelected
                                 ? const Icon(Icons.check,
                                     size: 16, color: Colors.white)
-                                : Text(
-                                    optionKey,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: appColors.textSecondary,
-                                      fontSize: 12,
-                                    ),
-                                  )),
+                                : null),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -317,6 +315,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                       style: TextStyle(
                         color: appColors.primary,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                         decoration: TextDecoration.underline,
                       ),
                     ),
@@ -329,13 +328,15 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     );
   }
 
-  Widget _buildRichText(BuildContext context, String content) {
+  Widget _buildRichText(BuildContext context, String content,
+      {TextStyle? style}) {
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.start,
       children: RichTextParser.buildRichText(
         context,
         content,
         onWordLongPress: widget.onWordLongPress,
+        style: style,
       ),
     );
   }
