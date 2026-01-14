@@ -2,7 +2,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class ExplainDrawer extends StatelessWidget {
+class ExplainDrawer extends StatefulWidget {
   const ExplainDrawer({
     super.key,
     required this.isOpen,
@@ -13,6 +13,54 @@ class ExplainDrawer extends StatelessWidget {
   final bool isOpen;
   final VoidCallback onClose;
   final String explanation;
+
+  @override
+  State<ExplainDrawer> createState() => _ExplainDrawerState();
+}
+
+class _ExplainDrawerState extends State<ExplainDrawer>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 300));
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    if (widget.isOpen) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ExplainDrawer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isOpen != oldWidget.isOpen) {
+      if (widget.isOpen) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   // Parse HTML-like content to TextSpans for inline rendering
   List<TextSpan> _parseContentToTextSpans(
@@ -79,98 +127,143 @@ class ExplainDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isOpen) return const SizedBox.shrink();
+    // Only build if open or animating, otherwise hide completely
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        if (_controller.value == 0 && !widget.isOpen) {
+          return const SizedBox.shrink();
+        }
 
-    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    final content =
-        explanation.trim().isEmpty ? 'No explanation available.' : explanation;
+        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+        final content = widget.explanation.trim().isEmpty
+            ? 'No explanation available.'
+            : widget.explanation;
 
-    return Stack(
-      children: [
-        // Backdrop
-        GestureDetector(
-          onTap: onClose,
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.5),
-          ),
-        ),
-
-        // Drawer
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.70,
-              decoration: BoxDecoration(
-                color: appColors.background,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
+        return Stack(
+          children: [
+            // Backdrop with Fade
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: GestureDetector(
+                onTap: widget.onClose,
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.5),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 40,
-                    offset: const Offset(0, -10),
-                  ),
-                ],
               ),
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    width: 48,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: appColors.border.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
+            ),
 
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            SvgPicture.asset(
-                              'assets/icons/badge_info.svg',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                appColors.primary,
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Explanation',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: appColors.textPrimary,
-                                    fontSize: 18,
-                                  ),
-                            ),
-                          ],
+            // Drawer with Slide
+            SlideTransition(
+              position: _slideAnimation,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.70,
+                    decoration: BoxDecoration(
+                      color: appColors.background,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 40,
+                          offset: const Offset(0, -10),
                         ),
-                        InkWell(
-                          onTap: onClose,
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            child: SvgPicture.asset(
-                              'icons/x.svg',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                appColors.textSecondary,
-                                BlendMode.srcIn,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Handle
+                        Container(
+                          margin: const EdgeInsets.only(top: 12, bottom: 8),
+                          width: 48,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: appColors.border.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+
+                        // Header
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  SvgPicture.asset(
+                                    'assets/icons/badge_info.svg',
+                                    width: 20,
+                                    height: 20,
+                                    colorFilter: ColorFilter.mode(
+                                      appColors.primary,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Explanation',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: appColors.textPrimary,
+                                          fontSize: 18,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              InkWell(
+                                onTap: widget.onClose,
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  child: SvgPicture.asset(
+                                    'icons/x.svg',
+                                    width: 20,
+                                    height: 20,
+                                    colorFilter: ColorFilter.mode(
+                                      appColors.textSecondary,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Divider(
+                          color: appColors.border.withValues(alpha: 0.5),
+                          height: 1,
+                        ),
+
+                        // Content
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(24),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: RichText(
+                                textAlign: TextAlign.start,
+                                text: TextSpan(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        color: appColors.textPrimary,
+                                        height: 1.6,
+                                        fontSize: 16,
+                                      ),
+                                  children: _parseContentToTextSpans(
+                                      context, content),
+                                ),
                               ),
                             ),
                           ),
@@ -178,40 +271,12 @@ class ExplainDrawer extends StatelessWidget {
                       ],
                     ),
                   ),
-
-                  Divider(
-                    color: appColors.border.withValues(alpha: 0.5),
-                    height: 1,
-                  ),
-
-                  // Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: RichText(
-                          textAlign: TextAlign.start,
-                          text: TextSpan(
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      color: appColors.textPrimary,
-                                      height: 1.6,
-                                      fontSize: 16,
-                                    ),
-                            children:
-                                _parseContentToTextSpans(context, content),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

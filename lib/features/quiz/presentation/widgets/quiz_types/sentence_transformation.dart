@@ -1,6 +1,7 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class SentenceTransformation extends StatefulWidget {
@@ -9,11 +10,13 @@ class SentenceTransformation extends StatefulWidget {
     required this.quiz,
     this.onShowExplain,
     this.onWordLongPress,
+    this.onNext,
   });
 
   final Quiz quiz;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
+  final VoidCallback? onNext;
 
   @override
   State<SentenceTransformation> createState() => _SentenceTransformationState();
@@ -118,6 +121,8 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
       setState(() {
         _currentIndex++;
       });
+    } else {
+      widget.onNext?.call();
     }
   }
 
@@ -125,6 +130,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final items = widget.quiz.sentenceTransformations ?? [];
+    final borderColor = Colors.grey.withOpacity(0.5);
 
     if (items.isEmpty) {
       return Center(
@@ -138,133 +144,185 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     final currentItem = _currentItem!;
     final currentState = _currentState;
 
-    return Column(
+    return Stack(
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Instruction
-                if (widget.quiz.instruction.isNotEmpty) ...[
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
-                    children: RichTextParser.buildRichText(
-                      context,
-                      widget.quiz.instruction,
-                      onWordLongPress: widget.onWordLongPress,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium!
-                          .copyWith(fontSize: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Instruction
+            if (widget.quiz.instruction.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: DefaultTextStyle(
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium!
+                      .copyWith(fontSize: 16),
+                  child: Text.rich(
+                    TextSpan(
+                      children: RichTextParser.buildTextSpans(
+                        context,
+                        widget.quiz.instruction,
+                        onWordLongPress: widget.onWordLongPress,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
+              ),
 
-                // Requirement text (in secondary color)
-                if (currentItem.require != null &&
-                    currentItem.require!.isNotEmpty) ...[
-                  Text(
-                    _stripHtml(currentItem.require!),
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: appColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Original Sentence (bordered container)
-                Container(
+            // Dashed Border Card
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  height: double.infinity,
                   decoration: BoxDecoration(
-                    border: Border.all(color: appColors.border),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
-                    children: RichTextParser.buildRichText(
-                      context,
-                      currentItem.original ?? '',
-                      onWordLongPress: widget.onWordLongPress,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: appColors.textPrimary,
-                        height: 1.5,
-                      ),
+                  child: CustomPaint(
+                    painter: _DashedBorderPainter(
+                      color: borderColor,
+                      strokeWidth: 2,
+                      gap: 4,
+                      borderRadius: 12,
+                    ),
+                    child: ListView(
+                      padding: const EdgeInsets.all(24),
+                      children: [
+                        // Requirement text
+                        if (currentItem.require != null &&
+                            currentItem.require!.isNotEmpty) ...[
+                          DefaultTextStyle(
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: appColors.textSecondary,
+                            ),
+                            child: Text.rich(TextSpan(
+                                children: RichTextParser.buildTextSpans(
+                                    context, currentItem.require!,
+                                    onWordLongPress: widget.onWordLongPress))),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Original Sentence (bordered container)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: appColors.border),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DefaultTextStyle(
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: appColors.textPrimary,
+                              height: 1.5,
+                            ),
+                            child: Text.rich(
+                              TextSpan(
+                                children: RichTextParser.buildTextSpans(
+                                  context,
+                                  currentItem.original ?? '',
+                                  onWordLongPress: widget.onWordLongPress,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Gap-fill Input Area
+                        _buildGapFillArea(
+                            context, currentItem, currentState, appColors),
+
+                        // Result Display
+                        if (currentState.isChecked) ...[
+                          const SizedBox(height: 24),
+                          _buildResultDisplay(
+                              context, currentItem, currentState, appColors),
+                        ],
+
+                        // Spacing for floating buttons
+                        const SizedBox(height: 80),
+                      ],
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Gap-fill Input Area (inline inputs) - uses question field
-                _buildGapFillArea(
-                    context, currentItem, currentState, appColors),
-
-                // Result Display
-                if (currentState.isChecked) ...[
-                  const SizedBox(height: 24),
-                  _buildResultDisplay(
-                      context, currentItem, currentState, appColors),
-                ],
-              ],
+              ),
             ),
-          ),
+          ],
         ),
 
-        // Bottom Actions
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: appColors.border.withValues(alpha: 0.5)),
-            ),
-          ),
+        // Floating Action Buttons
+        Positioned(
+          bottom: 24,
+          right: 24,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (!currentState.isChecked)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _checkAnswer,
-                    icon: const Icon(Icons.check, size: 20),
-                    label: const Text('Check'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+              if (!currentState.isChecked && _isInputComplete(currentItem))
+                ElevatedButton.icon(
+                  onPressed: _checkAnswer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: appColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    elevation: 4,
                   ),
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text("Check",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-              if (currentState.isChecked && _currentIndex < items.length - 1)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _goToNext,
-                    icon: const Text('Next'),
-                    label: const Icon(Icons.chevron_right, size: 20),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+              if (currentState.isChecked)
+                ElevatedButton.icon(
+                  onPressed: _goToNext,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: appColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    elevation: 4,
                   ),
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: Text(
+                      _currentIndex < items.length - 1
+                          ? "Next question"
+                          : "Finish",
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
             ],
           ),
         ),
       ],
     );
+  }
+
+  bool _isInputComplete(SentenceTransformationItem item) {
+    final question = item.question ?? '';
+    final requiredIds = _getRequiredGapIds(question);
+    final inputs = _currentState.gapInputs;
+
+    return requiredIds.every((id) => (inputs[id] ?? '').trim().isNotEmpty);
+  }
+
+  Set<String> _getRequiredGapIds(String question) {
+    final matches = RegExp(r'</gap[^>]*>').allMatches(question);
+    int index = 0;
+    return matches.map((m) {
+      index++;
+      return _extractGapId(m.group(0) ?? '', index);
+    }).toSet();
   }
 
   Widget _buildGapFillArea(
@@ -342,10 +400,10 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   ) {
     if (state.isCorrect == true) {
       return Row(
-        children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 20),
-          const SizedBox(width: 8),
-          const Text(
+        children: const [
+          Icon(Icons.check_circle, color: Colors.green, size: 20),
+          SizedBox(width: 8),
+          Text(
             'Correct!',
             style: TextStyle(
               color: Colors.green,
@@ -365,7 +423,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.withValues(alpha: 0.1),
+            color: Colors.green.withOpacity(0.1),
             border: Border.all(color: Colors.green),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -393,7 +451,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.2),
+                          color: Colors.green.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -429,27 +487,22 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
         // Explain button
         if (item.explain != null && item.explain!.isNotEmpty) ...[
           const SizedBox(height: 12),
-          InkWell(
-            onTap: () {
-              widget.onShowExplain?.call(item.explain!);
-            },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.info_outline, size: 16, color: appColors.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'Explain',
+          Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  widget.onShowExplain?.call(item.explain!);
+                },
+                icon: Icon(Icons.info_outline,
+                    size: 16, color: appColors.primary),
+                label: Text(
+                  'Explain Answer',
                   style: TextStyle(
                     color: appColors.primary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    decoration: TextDecoration.underline,
                   ),
                 ),
-              ],
-            ),
-          ),
+              ))
         ],
       ],
     );
@@ -492,7 +545,7 @@ class _GapInputField extends StatelessWidget {
         textColor = Colors.red;
       }
     } else {
-      borderColor = appColors.primary.withValues(alpha: 0.5);
+      borderColor = appColors.primary.withOpacity(0.5);
       textColor = appColors.textPrimary;
     }
 
@@ -551,5 +604,58 @@ class _CardState {
       isCorrect: isCorrect ?? this.isCorrect,
       isChecked: isChecked ?? this.isChecked,
     );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
+
+  _DashedBorderPainter({
+    required this.color,
+    this.strokeWidth = 1,
+    this.gap = 5,
+    this.borderRadius = 0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final Path path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Radius.circular(borderRadius),
+      ));
+
+    final Path dashedPath = _dashPath(path, width: 8, space: gap);
+    canvas.drawPath(dashedPath, paint);
+  }
+
+  Path _dashPath(Path source, {required double width, required double space}) {
+    final Path dest = Path();
+    for (final ui.PathMetric metric in source.computeMetrics()) {
+      double distance = 0.0;
+      while (distance < metric.length) {
+        final double len = (distance + width < metric.length)
+            ? width
+            : metric.length - distance;
+        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
+        distance += width + space;
+      }
+    }
+    return dest;
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.gap != gap;
   }
 }

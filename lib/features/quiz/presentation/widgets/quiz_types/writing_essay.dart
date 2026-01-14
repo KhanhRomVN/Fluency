@@ -57,105 +57,162 @@ class _WritingEssayState extends State<WritingEssay> {
     final minWords = widget.quiz.min ?? 0;
     final isEnoughWords = _wordCount >= minWords;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (widget.quiz.instruction.isNotEmpty) ...[
-          RichTextParser.buildRichText(
-            context,
-            widget.quiz.instruction,
-            onWordLongPress: widget.onWordLongPress,
-            style:
-                Theme.of(context).textTheme.bodyMedium!.copyWith(fontSize: 16),
-          ).first,
-          const SizedBox(height: 24),
-        ],
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: appColors.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.quiz.question.isNotEmpty)
-                Text(
-                  widget.quiz.question,
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary),
-                ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _controller,
-                enabled: !_submitted,
-                maxLines: 10,
-                style: TextStyle(fontSize: 16, color: appColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Type your essay here...',
-                  filled: true,
-                  fillColor: appColors.inputBackground,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Main Content
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Words: $_wordCount${minWords > 0 ? ' / $minWords' : ''}',
-                    style: TextStyle(
-                      color: (minWords > 0 && !isEnoughWords)
-                          ? Colors.red
-                          : appColors.textSecondary,
-                      fontWeight: (minWords > 0 && !isEnoughWords)
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                  // Question Display
+                  if (widget.quiz.question.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: RichTextParser.buildRichText(
+                          context,
+                          widget.quiz.question,
+                          onWordLongPress: widget.onWordLongPress,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.normal,
+                            color: appColors.textPrimary,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Expanded Input Card
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: appColors.border),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            )
+                          ]),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              enabled: !_submitted,
+                              expands: true,
+                              maxLines: null,
+                              minLines: null,
+                              textAlignVertical: TextAlignVertical.top,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: appColors.textPrimary,
+                                height: 1.5,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Type your essay here...',
+                                hintStyle: TextStyle(
+                                    color: appColors.textSecondary
+                                        .withOpacity(0.7)),
+                                filled: true,
+                                fillColor: Colors.transparent,
+                                contentPadding: EdgeInsets.zero,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Word Count
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Words: $_wordCount${minWords > 0 ? ' / $minWords' : ''}',
+                                style: TextStyle(
+                                  color: appColors.textSecondary,
+                                  fontWeight: (minWords > 0 && !isEnoughWords)
+                                      ? FontWeight.normal
+                                      : FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+
+                  // Spacer for bottom controls
+                  const SizedBox(height: 100),
                 ],
               ),
-              const SizedBox(height: 24),
-              if (!_submitted)
-                ElevatedButton(
-                  onPressed: (minWords > 0 && !isEnoughWords) ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: appColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Submit',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                )
-              else ...[
-                if (_score != null)
-                  Text(
-                    'Score: $_score%',
-                    style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green),
-                    textAlign: TextAlign.center,
-                  ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Submitted successfully!',
-                  style: TextStyle(
-                      color: Colors.green, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ]
-            ],
+            ),
           ),
-        ),
-      ],
+
+          // Bottom Controls
+          Positioned(
+            bottom: 24,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!_submitted && (minWords == 0 || isEnoughWords))
+                  ElevatedButton.icon(
+                    onPressed: _submit,
+                    icon: const Icon(Icons.check_circle, size: 20),
+                    label: const Text('Submit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: appColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  )
+                else if (_submitted)
+                  // Finished State / Next
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Finish logic
+                    },
+                    icon: const Icon(Icons.check_circle),
+                    label: const Text('Finish'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: appColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                  )
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

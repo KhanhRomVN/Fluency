@@ -4,12 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill_typing.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_dropdown.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/builder.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/chatting_speech.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation_audio.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/error_correction.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/flashcard.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/pronunciation_drill.dart';
@@ -127,36 +127,33 @@ class _QuizPageState extends State<QuizPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Left: Back button
-                      InkWell(
-                        onTap: () {
-                          Navigator.of(context).pop();
-                        },
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6.0),
-                          child: SvgPicture.asset(
-                            'icons/chevron_left.svg',
-                            width: 20,
-                            height: 20,
-                            colorFilter: ColorFilter.mode(
-                              appColors.textPrimary,
-                              BlendMode.srcIn,
+                      // Left: Back button + Quiz Badge
+                      Row(
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: SvgPicture.asset(
+                                'icons/chevron_left.svg',
+                                width: 20,
+                                height: 20,
+                                colorFilter: ColorFilter.mode(
+                                  appColors.textPrimary,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          _buildQuizTypeBadge(quizType, context),
+                        ],
                       ),
 
-                      // Center: Quiz label
-                      Text(
-                        'Quiz',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: appColors.textPrimary,
-                            ),
-                      ),
-
-                      // Right: Icon row
+                      // Right: Icon row and Progress Badge
                       Row(
                         children: [
                           // Passage icon (if available)
@@ -199,7 +196,9 @@ class _QuizPageState extends State<QuizPage> {
                                   width: 18,
                                   height: 18,
                                   colorFilter: ColorFilter.mode(
-                                    appColors.primary,
+                                    _showTutorialDrawer
+                                        ? appColors.primary
+                                        : appColors.textPrimary,
                                     BlendMode.srcIn,
                                   ),
                                 ),
@@ -229,16 +228,17 @@ class _QuizPageState extends State<QuizPage> {
                               ),
                             ),
 
+                          const SizedBox(width: 4),
+
                           // Question counter badge
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                            margin: const EdgeInsets.only(right: 4),
                             decoration: BoxDecoration(
                               color: appColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '${_activeQuizIndex + 1}/${lesson.quizzes.length}',
@@ -248,30 +248,12 @@ class _QuizPageState extends State<QuizPage> {
                                   ?.copyWith(
                                     color: appColors.primary,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 10,
+                                    fontSize: 12,
                                   ),
                             ),
                           ),
 
-                          // Info icon
-                          InkWell(
-                            onTap: () {
-                              // TODO: Show info/help
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6.0),
-                              child: SvgPicture.asset(
-                                'icons/info.svg',
-                                width: 18,
-                                height: 18,
-                                colorFilter: ColorFilter.mode(
-                                  appColors.textPrimary,
-                                  BlendMode.srcIn,
-                                ),
-                              ),
-                            ),
-                          ),
+                          const SizedBox(width: 4),
 
                           // Menu icon
                           InkWell(
@@ -425,7 +407,7 @@ class _QuizPageState extends State<QuizPage> {
           onWordLongPress: _onWordLongPress,
         );
       case 'dictation':
-        return Dictation(
+        return DictationAudio(
           quiz: quiz,
           onWordLongPress: _onWordLongPress,
         );
@@ -473,7 +455,7 @@ class _QuizPageState extends State<QuizPage> {
         );
       case 'gap-fill':
       default:
-        return GapFill(
+        return GapFillTyping(
           question: question,
           answers: quiz.answers,
           title: quiz.title,
@@ -487,6 +469,15 @@ class _QuizPageState extends State<QuizPage> {
           },
           hasAudio: quiz.audio != null && quiz.audio!.isNotEmpty,
           onWordLongPress: _onWordLongPress,
+          onNext: () {
+            // Handle next question logic if needed, or if this is the last one.
+            // For now, _onQuizChecked handles marking it complete.
+            // If we want to move to the next quiz automatically, we'd need a callback for that,
+            // but QuizPage handles navigation mainly via drawer or manual back.
+            // However, `GapFillTyping` might call `onNext` to signal it's done-done.
+            // Let's just check the quiz for now.
+            _onQuizChecked();
+          },
         );
     }
   }
@@ -508,6 +499,81 @@ class _QuizPageState extends State<QuizPage> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildQuizTypeBadge(String type, BuildContext context) {
+    String label;
+    Color color;
+
+    switch (type) {
+      case 'multiple-choice':
+        label = 'Multiple Choice';
+        color = Colors.blue;
+        break;
+      case 'gap-fill':
+        label = 'Gap Fill';
+        color = Colors.green;
+        break;
+      case 'gap-fill-typing':
+        label = 'Gap Fill';
+        color = Colors.green;
+        break;
+      case 'gap-fill-dropdown':
+        label = 'Gap Fill';
+        color = Colors.lightGreen;
+        break;
+      case 'matching-dropdown':
+        label = 'Matching';
+        color = Colors.purple;
+        break;
+      case 'writing-essay':
+        label = 'Writing';
+        color = Colors.orange;
+        break;
+      case 'speaking-essay':
+        label = 'Speaking';
+        color = Colors.pink;
+        break;
+      case 'chatting-speech':
+        label = 'Chatting';
+        color = Colors.cyan;
+        break;
+      case 'pronunciation-drill':
+        label = 'Pronunciation';
+        color = Colors.teal;
+        break;
+      case 'dictation':
+        label = 'Dictation';
+        color = Colors.indigo;
+        break;
+      case 'builder':
+        label = 'Builder';
+        color = Colors.amber;
+        break;
+      case 'sentence-transformation':
+        label = 'Transformation';
+        color = Colors.deepOrange;
+        break;
+      default:
+        label = 'Quiz';
+        color = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }
