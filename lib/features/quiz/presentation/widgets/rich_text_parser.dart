@@ -13,6 +13,7 @@ class RichTextParser {
     Widget? Function(String id)? onGapFound,
     void Function(String word)? onWordLongPress, // Callback for dictionary
     TextStyle? style,
+    TextAlign textAlign = TextAlign.start,
   }) {
     final List<Widget> widgets = [];
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -44,6 +45,7 @@ class RichTextParser {
             context,
             onWordLongPress: onWordLongPress,
             textStyle: style,
+            textAlign: textAlign,
           );
         }
       }
@@ -100,6 +102,7 @@ class RichTextParser {
           context,
           onWordLongPress: onWordLongPress,
           textStyle: style,
+          textAlign: textAlign,
         );
       }
     }
@@ -117,6 +120,7 @@ class RichTextParser {
     BuildContext context, {
     void Function(String word)? onWordLongPress,
     TextStyle? textStyle,
+    TextAlign textAlign = TextAlign.start,
   }) {
     final style =
         (textStyle ?? Theme.of(context).textTheme.bodyMedium)?.copyWith(
@@ -130,11 +134,11 @@ class RichTextParser {
     if (onWordLongPress == null || isCenter) {
       final widget = Text(
         text,
-        textAlign: isCenter ? TextAlign.center : TextAlign.start,
+        textAlign: isCenter ? TextAlign.center : textAlign,
         style: style,
       );
 
-      if (isCenter) {
+      if (isCenter || textAlign == TextAlign.center) {
         widgets.add(
           SizedBox(
             width: double.infinity,
@@ -183,7 +187,7 @@ class RichTextParser {
       }
     }
 
-    widgets.add(Text.rich(TextSpan(children: spans)));
+    widgets.add(Text.rich(TextSpan(children: spans), textAlign: textAlign));
   }
 
   static void _addNewline(List<Widget> widgets) {

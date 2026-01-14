@@ -407,6 +407,7 @@ class _QuizPageState extends State<QuizPage> {
           onWordLongPress: _onWordLongPress,
         );
       case 'dictation':
+      case 'dictation-audio':
         return DictationAudio(
           quiz: quiz,
           onWordLongPress: _onWordLongPress,
@@ -544,8 +545,9 @@ class _QuizPageState extends State<QuizPage> {
         color = Colors.teal;
         break;
       case 'dictation':
-        label = 'Dictation';
-        color = Colors.indigo;
+      case 'dictation-audio':
+        label = 'Dictation Audio';
+        color = Colors.pink;
         break;
       case 'builder':
         label = 'Builder';

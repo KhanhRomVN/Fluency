@@ -532,6 +532,8 @@ class DictationItem {
   final String? transcript; // Usually the correct answer
   final String? translate;
   final String? ipa;
+  final int? score;
+  final double? speed;
 
   const DictationItem({
     required this.id,
@@ -540,6 +542,8 @@ class DictationItem {
     this.transcript,
     this.translate,
     this.ipa,
+    this.score,
+    this.speed,
   });
 
   factory DictationItem.fromJson(Map<String, dynamic> json) {
@@ -550,6 +554,8 @@ class DictationItem {
       transcript: json['transcript'] as String?,
       translate: json['translate'] as String?,
       ipa: json['ipa'] as String?,
+      score: json['score'] as int?,
+      speed: (json['speed'] as num?)?.toDouble(),
     );
   }
 }
