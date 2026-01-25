@@ -1,13 +1,12 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class SentenceTransformation extends StatefulWidget {
   const SentenceTransformation({
-    super.key,
     required this.quiz,
+    super.key,
     this.onShowExplain,
     this.onWordLongPress,
     this.onNext,
@@ -41,7 +40,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   }
 
   void _handleInputChange(String itemId, String gapId, String value) {
-    if (_cardStates[itemId]?.isChecked == true) return;
+    if (_cardStates[itemId]?.isChecked ?? false) return;
 
     setState(() {
       final current = _cardStates[itemId] ?? _CardState();
@@ -58,8 +57,8 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     final inputs = _currentState.gapInputs;
 
     // Build the user's sentence by replacing gaps with inputs
-    String questionText = item.question ?? '';
-    String userSentence = _buildUserSentence(questionText, inputs);
+    final questionText = item.question ?? '';
+    final userSentence = _buildUserSentence(questionText, inputs);
     final normalizedUser = _stripHtml(userSentence)
         .toLowerCase()
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -81,9 +80,9 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
 
   String _buildUserSentence(String template, Map<String, String> inputs) {
     // Replace </gap> or </gap id='xxx'> with corresponding input values
-    int gapCount = 0;
+    var gapCount = 0;
     return template.replaceAllMapped(
-      RegExp(r'</gap[^>]*>'),
+      RegExp('</gap[^>]*>'),
       (match) {
         gapCount++;
         final gapId = _extractGapId(match.group(0) ?? '', gapCount);
@@ -112,7 +111,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   }
 
   String _stripHtml(String html) {
-    return html.replaceAll(RegExp(r'<[^>]*>'), '');
+    return html.replaceAll(RegExp('<[^>]*>'), '');
   }
 
   void _goToNext() {
@@ -130,7 +129,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final items = widget.quiz.sentenceTransformations ?? [];
-    final borderColor = Colors.grey.withOpacity(0.5);
+    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     if (items.isEmpty) {
       return Center(
@@ -200,10 +199,15 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                               fontSize: 16,
                               color: appColors.textSecondary,
                             ),
-                            child: Text.rich(TextSpan(
+                            child: Text.rich(
+                              TextSpan(
                                 children: RichTextParser.buildTextSpans(
-                                    context, currentItem.require!,
-                                    onWordLongPress: widget.onWordLongPress))),
+                                  context,
+                                  currentItem.require!,
+                                  onWordLongPress: widget.onWordLongPress,
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 16),
                         ],
@@ -238,13 +242,21 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
 
                         // Gap-fill Input Area
                         _buildGapFillArea(
-                            context, currentItem, currentState, appColors),
+                          context,
+                          currentItem,
+                          currentState,
+                          appColors,
+                        ),
 
                         // Result Display
                         if (currentState.isChecked) ...[
                           const SizedBox(height: 24),
                           _buildResultDisplay(
-                              context, currentItem, currentState, appColors),
+                            context,
+                            currentItem,
+                            currentState,
+                            appColors,
+                          ),
                         ],
 
                         // Spacing for floating buttons
@@ -260,8 +272,8 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
 
         // Floating Action Buttons
         Positioned(
-          bottom: 24,
-          right: 24,
+          bottom: 28,
+          right: 36,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -273,14 +285,19 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                     backgroundColor: appColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 4,
                   ),
                   icon: const Icon(Icons.check, size: 18),
-                  label: const Text("Check",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'Check',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               if (currentState.isChecked)
                 ElevatedButton.icon(
@@ -289,17 +306,19 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                     backgroundColor: appColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 4,
                   ),
                   icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: Text(
-                      _currentIndex < items.length - 1
-                          ? "Next question"
-                          : "Finish",
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'Next question',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
             ],
           ),
@@ -317,8 +336,8 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   }
 
   Set<String> _getRequiredGapIds(String question) {
-    final matches = RegExp(r'</gap[^>]*>').allMatches(question);
-    int index = 0;
+    final matches = RegExp('</gap[^>]*>').allMatches(question);
+    var index = 0;
     return matches.map((m) {
       index++;
       return _extractGapId(m.group(0) ?? '', index);
@@ -339,24 +358,26 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     }
 
     // Split by </gap...> tags and create inline widgets
-    final gapPattern = RegExp(r'</gap[^>]*>');
+    final gapPattern = RegExp('</gap[^>]*>');
     final parts = questionText.split(gapPattern);
     final matches = gapPattern.allMatches(questionText).toList();
 
-    List<InlineSpan> spans = [];
-    int gapIndex = 0;
+    final spans = <InlineSpan>[];
+    var gapIndex = 0;
 
-    for (int i = 0; i < parts.length; i++) {
+    for (var i = 0; i < parts.length; i++) {
       // Add text part (strip HTML tags)
       final textPart = _stripHtml(parts[i]).trim();
       if (textPart.isNotEmpty) {
-        spans.add(TextSpan(
-          text: '$textPart ',
-          style: TextStyle(
-            fontSize: 16,
-            color: appColors.textPrimary,
+        spans.add(
+          TextSpan(
+            text: '$textPart ',
+            style: TextStyle(
+              fontSize: 16,
+              color: appColors.textPrimary,
+            ),
           ),
-        ));
+        );
       }
 
       // Add gap input if there's a match after this part
@@ -365,20 +386,22 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
         gapIndex++;
         final gapId = _extractGapId(match.group(0) ?? '', gapIndex);
 
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.baseline,
-          baseline: TextBaseline.alphabetic,
-          child: _GapInputField(
-            gapId: gapId,
-            value: state.gapInputs[gapId] ?? '',
-            isChecked: state.isChecked,
-            isCorrect: state.isCorrect,
-            onChanged: (value) => _handleInputChange(item.id, gapId, value),
-            appColors: appColors,
-          ),
-        ));
-
-        spans.add(const TextSpan(text: ' '));
+        spans
+          ..add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: _GapInputField(
+                gapId: gapId,
+                value: state.gapInputs[gapId] ?? '',
+                isChecked: state.isChecked,
+                isCorrect: state.isCorrect,
+                onChanged: (value) => _handleInputChange(item.id, gapId, value),
+                appColors: appColors,
+              ),
+            ),
+          )
+          ..add(const TextSpan(text: ' '));
       }
     }
 
@@ -398,9 +421,9 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     _CardState state,
     AppColorsExtension appColors,
   ) {
-    if (state.isCorrect == true) {
-      return Row(
-        children: const [
+    if (state.isCorrect ?? false) {
+      return const Row(
+        children: [
           Icon(Icons.check_circle, color: Colors.green, size: 20),
           SizedBox(width: 8),
           Text(
@@ -423,7 +446,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
+            color: Colors.green.withValues(alpha: 0.1),
             border: Border.all(color: Colors.green),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -451,7 +474,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                         width: 20,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.2),
+                          color: Colors.green.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -488,21 +511,25 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
         if (item.explain != null && item.explain!.isNotEmpty) ...[
           const SizedBox(height: 12),
           Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  widget.onShowExplain?.call(item.explain!);
-                },
-                icon: Icon(Icons.info_outline,
-                    size: 16, color: appColors.primary),
-                label: Text(
-                  'Explain Answer',
-                  style: TextStyle(
-                    color: appColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                widget.onShowExplain?.call(item.explain!);
+              },
+              icon: Icon(
+                Icons.info_outline,
+                size: 16,
+                color: appColors.primary,
+              ),
+              label: Text(
+                'Explain Answer',
+                style: TextStyle(
+                  color: appColors.primary,
+                  fontWeight: FontWeight.bold,
                 ),
-              ))
+              ),
+            ),
+          ),
         ],
       ],
     );
@@ -537,7 +564,7 @@ class _GapInputField extends StatelessWidget {
     Color textColor;
 
     if (isChecked) {
-      if (isCorrect == true) {
+      if (isCorrect ?? false) {
         borderColor = Colors.green;
         textColor = Colors.green;
       } else {
@@ -545,7 +572,7 @@ class _GapInputField extends StatelessWidget {
         textColor = Colors.red;
       }
     } else {
-      borderColor = appColors.primary.withOpacity(0.5);
+      borderColor = appColors.primary.withValues(alpha: 0.5);
       textColor = appColors.textPrimary;
     }
 
@@ -584,15 +611,14 @@ class _GapInputField extends StatelessWidget {
 }
 
 class _CardState {
-  final Map<String, String> gapInputs;
-  final bool? isCorrect;
-  final bool isChecked;
-
   _CardState({
     this.gapInputs = const {},
     this.isCorrect,
     this.isChecked = false,
   });
+  final Map<String, String> gapInputs;
+  final bool? isCorrect;
+  final bool isChecked;
 
   _CardState copyWith({
     Map<String, String>? gapInputs,
@@ -608,41 +634,42 @@ class _CardState {
 }
 
 class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
   _DashedBorderPainter({
     required this.color,
     this.strokeWidth = 1,
     this.gap = 5,
     this.borderRadius = 0,
   });
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final Path path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(borderRadius),
+        ),
+      );
 
-    final Path dashedPath = _dashPath(path, width: 8, space: gap);
+    final dashedPath = _dashPath(path, width: 8, space: gap);
     canvas.drawPath(dashedPath, paint);
   }
 
   Path _dashPath(Path source, {required double width, required double space}) {
-    final Path dest = Path();
-    for (final ui.PathMetric metric in source.computeMetrics()) {
-      double distance = 0.0;
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double distance = 0;
       while (distance < metric.length) {
-        final double len = (distance + width < metric.length)
+        final len = (distance + width < metric.length)
             ? width
             : metric.length - distance;
         dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);

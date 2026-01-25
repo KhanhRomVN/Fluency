@@ -32,6 +32,8 @@ class SettingPage extends StatelessWidget {
           );
         }
 
+        if (!context.mounted) return;
+
         await Provider.of<CourseProvider>(context, listen: false)
             .importCourse(path);
 
@@ -65,7 +67,7 @@ class SettingPage extends StatelessWidget {
         );
       }
 
-      // TODO: Implement actual data export
+      // TODO(user): Implement actual data export
       await Future<void>.delayed(const Duration(seconds: 1));
 
       if (context.mounted) {

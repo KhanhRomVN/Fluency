@@ -55,7 +55,7 @@ class _ReminderPageState extends State<ReminderPage> {
                   Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -95,7 +95,7 @@ class _ReminderPageState extends State<ReminderPage> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.7),
+                                  .withValues(alpha: 0.7),
                             ),
                       ),
                     ],
@@ -112,7 +112,10 @@ class _ReminderPageState extends State<ReminderPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                color: Theme.of(context)
+                    .colorScheme
+                    .outline
+                    .withValues(alpha: 0.2),
               ),
             ),
             child: SwitchListTile(
@@ -133,7 +136,7 @@ class _ReminderPageState extends State<ReminderPage> {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.6),
+                        .withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -156,7 +159,10 @@ class _ReminderPageState extends State<ReminderPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outline
+                      .withValues(alpha: 0.2),
                 ),
               ),
               child: ListTile(
@@ -168,8 +174,8 @@ class _ReminderPageState extends State<ReminderPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.orange.withOpacity(0.2),
-                        Colors.orange.withOpacity(0.1),
+                        Colors.orange.withValues(alpha: 0.2),
+                        Colors.orange.withValues(alpha: 0.1),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -219,7 +225,10 @@ class _ReminderPageState extends State<ReminderPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outline
+                      .withValues(alpha: 0.2),
                 ),
               ),
               child: Padding(
@@ -234,8 +243,8 @@ class _ReminderPageState extends State<ReminderPage> {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                Colors.blue.withOpacity(0.2),
-                                Colors.blue.withOpacity(0.1),
+                                Colors.blue.withValues(alpha: 0.2),
+                                Colors.blue.withValues(alpha: 0.1),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(10),
@@ -293,7 +302,7 @@ class _ReminderPageState extends State<ReminderPage> {
           FilledButton.icon(
             onPressed: _reminderEnabled && _selectedDays.isNotEmpty
                 ? () {
-                    // TODO: Save reminder settings
+                    // TODO(user): Save reminder settings
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Row(
@@ -333,17 +342,16 @@ class _ReminderPageState extends State<ReminderPage> {
 }
 
 class _DayChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final bool enabled;
-  final ValueChanged<bool>? onSelected;
-
   const _DayChip({
     required this.label,
     required this.selected,
     required this.enabled,
     this.onSelected,
   });
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final ValueChanged<bool>? onSelected;
 
   @override
   Widget build(BuildContext context) {

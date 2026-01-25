@@ -1,6 +1,6 @@
+import 'package:fluency/core/constants/route_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/route_constants.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -16,8 +16,8 @@ class _SplashPageState extends State<SplashPage> {
     _navigateToDashboard();
   }
 
-  void _navigateToDashboard() async {
-    await Future.delayed(const Duration(seconds: 2));
+  Future<void> _navigateToDashboard() async {
+    await Future<void>.delayed(const Duration(seconds: 2));
     if (mounted) {
       // Use pushReplacement or go to prevent going back to splash
       GoRouter.of(context).go(RouteConstants.dashboard);
@@ -28,8 +28,10 @@ class _SplashPageState extends State<SplashPage> {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: Text('Splash Screen',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        child: Text(
+          'Splash Screen',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

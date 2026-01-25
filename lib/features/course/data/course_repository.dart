@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:convert';
 // import 'dart:io'; // Removed to support web
 
 import 'package:fluency/core/mock/mock_course_service.dart';
-import 'package:fluency/features/course/data/services/zip_course_loader.dart';
 import 'package:fluency/features/course/data/services/zip_course_loader.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:flutter/foundation.dart';
@@ -19,13 +17,13 @@ class CourseRepository {
   Future<void> importCourse(String path) async {
     try {
       final file = File(path);
-      if (!await file.exists()) {
+      if (!file.existsSync()) {
         throw Exception('File not found: $path');
       }
 
       final appDocDir = await getApplicationDocumentsDirectory();
       final importDir = Directory('${appDocDir.path}/imported_courses');
-      if (!await importDir.exists()) {
+      if (!importDir.existsSync()) {
         await importDir.create(recursive: true);
       }
 
@@ -33,19 +31,19 @@ class CourseRepository {
       final newPath = '${importDir.path}/$fileName';
 
       await file.copy(newPath);
-      print('Copied imported course to $newPath');
+      debugPrint('Copied imported course to $newPath');
 
       // Optionally verify extraction immediately
       final importedFile = File(newPath);
       await _zipLoader.extractZipFileFromFile(importedFile);
     } catch (e) {
-      print('Error importing course: $e');
+      debugPrint('Error importing course: $e');
       rethrow;
     }
   }
 
   Future<List<Course>> getCourses() async {
-    final List<Course> courses = [];
+    final courses = <Course>[];
 
     // On web platform, use mock data from lib/core/mock
     if (kIsWeb) {
@@ -76,23 +74,23 @@ class CourseRepository {
   Future<void> _loadCoursesFromZip(List<Course> courses) async {
     try {
       final zipFiles = await _zipLoader.listZipFiles();
-      print('Found ${zipFiles.length} ZIP files');
+      debugPrint('Found ${zipFiles.length} ZIP files');
 
       for (final zipPath in zipFiles) {
         try {
-          print('Processing ZIP: $zipPath');
+          debugPrint('Processing ZIP: $zipPath');
 
           // Extract ZIP file
           final extractedDir = await _zipLoader.extractZipFile(zipPath);
           if (extractedDir == null) {
-            print('Failed to extract $zipPath');
+            debugPrint('Failed to extract $zipPath');
             continue;
           }
 
           // Load course JSON
           final courseJson = await _zipLoader.loadCourseJson(extractedDir);
           if (courseJson == null) {
-            print('No course JSON found in $zipPath');
+            debugPrint('No course JSON found in $zipPath');
             continue;
           }
 
@@ -101,27 +99,25 @@ class CourseRepository {
           // Load lessons
           final lessonJsons = await _zipLoader.loadLessonJsons(extractedDir);
           if (lessonJsons.isNotEmpty) {
-            final lessons =
-                lessonJsons.map((json) => Lesson.fromJson(json)).toList();
+            final lessons = lessonJsons.map(Lesson.fromJson).toList();
 
-            // Combine with existing lessons and sort
-            final allLessons = [...course.lessons, ...lessons];
-            allLessons.sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber));
-
-            course = course.copyWith(lessons: allLessons);
+            course = course.copyWith(
+              lessons: [...course.lessons, ...lessons]
+                ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+            );
           }
 
           // Resolve paths using extracted directory
           course = _resolvePathsFromZip(course, extractedDir);
 
           courses.add(course);
-          print('Successfully loaded course: ${course.title}');
+          debugPrint('Successfully loaded course: ${course.title}');
         } catch (e) {
-          print('Error loading course from ZIP $zipPath: $e');
+          debugPrint('Error loading course from ZIP $zipPath: $e');
         }
       }
     } catch (e) {
-      print('Error loading courses from ZIP: $e');
+      debugPrint('Error loading courses from ZIP: $e');
     }
   }
 
@@ -129,23 +125,23 @@ class CourseRepository {
   Future<void> _loadCoursesFromLocalZips(List<Course> courses) async {
     try {
       final zipFiles = await _zipLoader.listImportedZipFiles();
-      print('Found ${zipFiles.length} imported ZIP files');
+      debugPrint('Found ${zipFiles.length} imported ZIP files');
 
       for (final zipFile in zipFiles) {
         try {
-          print('Processing imported ZIP: ${zipFile.path}');
+          debugPrint('Processing imported ZIP: ${zipFile.path}');
 
           // Extract ZIP file
           final extractedDir = await _zipLoader.extractZipFileFromFile(zipFile);
           if (extractedDir == null) {
-            print('Failed to extract imported ZIP ${zipFile.path}');
+            debugPrint('Failed to extract imported ZIP ${zipFile.path}');
             continue;
           }
 
           // Load course JSON
           final courseJson = await _zipLoader.loadCourseJson(extractedDir);
           if (courseJson == null) {
-            print('No course JSON found in imported ZIP ${zipFile.path}');
+            debugPrint('No course JSON found in imported ZIP ${zipFile.path}');
             continue;
           }
 
@@ -153,33 +149,33 @@ class CourseRepository {
 
           // Check for duplication
           if (courses.any((c) => c.title == course.title)) {
-            print('Skipping duplicate imported course: ${course.title}');
+            debugPrint('Skipping duplicate imported course: ${course.title}');
             continue;
           }
 
           // Load lessons
           final lessonJsons = await _zipLoader.loadLessonJsons(extractedDir);
           if (lessonJsons.isNotEmpty) {
-            final lessons =
-                lessonJsons.map((json) => Lesson.fromJson(json)).toList();
-
-            final allLessons = [...course.lessons, ...lessons];
-            allLessons.sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber));
-
-            course = course.copyWith(lessons: allLessons);
+            final lessons = lessonJsons.map(Lesson.fromJson).toList();
+            course = course.copyWith(
+              lessons: [...course.lessons, ...lessons]
+                ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+            );
           }
 
           // Resolve paths using extracted directory
           course = _resolvePathsFromZip(course, extractedDir);
 
           courses.insert(0, course); // Add imported courses to the top
-          print('Successfully loaded imported course: ${course.title}');
+          debugPrint('Successfully loaded imported course: ${course.title}');
         } catch (e) {
-          print('Error loading course from imported ZIP ${zipFile.path}: $e');
+          debugPrint(
+            'Error loading course from imported ZIP ${zipFile.path}: $e',
+          );
         }
       }
     } catch (e) {
-      print('Error loading courses from imported ZIPs: $e');
+      debugPrint('Error loading courses from imported ZIPs: $e');
     }
   }
 
@@ -188,21 +184,23 @@ class CourseRepository {
     try {
       // 1. Load AssetManifest to see all available files
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      final Map<String, dynamic> manifestMap =
-          json.decode(manifestContent) as Map<String, dynamic>;
+      final manifestMap = json.decode(manifestContent) as Map<String, dynamic>;
 
       // 2. Filter for files in our courses directory (exclude ZIPs)
       final courseFiles = manifestMap.keys
-          .where((key) =>
-              key.startsWith(_coursesAssetPath) &&
-              key.endsWith('.json') &&
-              !key.endsWith('_Lesson.json') && // Skip lesson files for now
-              !key.contains(
-                  '/audio/')) // Exclude audio folder if scanning deeply
+          .where(
+            (key) =>
+                key.startsWith(_coursesAssetPath) &&
+                key.endsWith('.json') &&
+                !key.endsWith('_Lesson.json') && // Skip lesson files for now
+                !key.contains(
+                  '/audio/',
+                ),
+          ) // Exclude audio folder if scanning deeply
           .toList();
 
       // 3. Group files by their parent directory
-      final Map<String, List<String>> folderToFiles = {};
+      final folderToFiles = <String, List<String>>{};
       for (final filePath in courseFiles) {
         // e.g. lib/features/course/assets/courses/Cambridge_IELTS_18/Cambridge_IELTS_18_Course.json
         // Parent: lib/features/course/assets/courses/Cambridge_IELTS_18
@@ -216,7 +214,7 @@ class CourseRepository {
         // Check if this course was already loaded from ZIP
         final folderName = folder.split('/').last;
         if (courses.any((c) => c.id.contains(folderName))) {
-          print('Skipping $folder - already loaded from ZIP');
+          debugPrint('Skipping $folder - already loaded from ZIP');
           continue;
         }
 
@@ -226,7 +224,7 @@ class CourseRepository {
         // Convention: A file ending in '_Course.json' OR just matching the folder name.
         // E.g. Cambridge_IELTS_18_Course.json
         String? mainCourseFile;
-        final List<String> lessonFiles = [];
+        final lessonFiles = <String>[];
 
         for (final f in files) {
           final filename = f.split('/').last;
@@ -253,7 +251,7 @@ class CourseRepository {
           var course = Course.fromJson(courseJson);
 
           // Parse Lessons and add to Course
-          final List<Lesson> loadedLessons = [];
+          final loadedLessons = <Lesson>[];
 
           // Sort lesson files to ensure order if they have numbering in filename
           lessonFiles.sort();
@@ -264,44 +262,42 @@ class CourseRepository {
               final lJson = json.decode(lStr) as Map<String, dynamic>;
               loadedLessons.add(Lesson.fromJson(lJson));
             } catch (e) {
-              print('Error loading lesson $elf: $e');
+              debugPrint('Error loading lesson $elf: $e');
             }
           }
 
           // If we loaded separate lesson files, use them.
           if (loadedLessons.isNotEmpty) {
-            // If course already has lessons, we append dynamic ones
-            final allLessons = [...course.lessons, ...loadedLessons];
-            // Sort by lessonNumber if possible
-            allLessons.sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber));
-
-            course = course.copyWith(lessons: allLessons);
+            course = course.copyWith(
+              lessons: [...course.lessons, ...loadedLessons]
+                ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+            );
           }
 
           // Resolve paths
-          final String basePath = '$folder/';
+          final basePath = '$folder/';
           course = _resolvePaths(course, basePath);
 
           courses.add(course);
         } catch (e) {
-          print('Error loading course from $folder: $e');
+          debugPrint('Error loading course from $folder: $e');
         }
       }
     } catch (e) {
-      print('Error scanning asset manifest: $e');
+      debugPrint('Error scanning asset manifest: $e');
     }
   }
 
   /// Resolve paths for courses loaded from extracted ZIP
   Course _resolvePathsFromZip(Course course, Directory extractedDir) {
     // For ZIP-based courses, paths should be absolute file paths
-    String imageUrl = course.imageUrl;
+    var imageUrl = course.imageUrl;
     if (imageUrl.startsWith('./')) {
       imageUrl = _zipLoader.resolveFilePath(extractedDir, imageUrl);
     }
 
     // Resolve lessons
-    final List<Lesson> resolvedLessons = course.lessons.map((lesson) {
+    final resolvedLessons = course.lessons.map((lesson) {
       return _resolveLessonPathsFromZip(lesson, extractedDir);
     }).toList();
 
@@ -312,7 +308,7 @@ class CourseRepository {
   }
 
   Lesson _resolveLessonPathsFromZip(Lesson lesson, Directory extractedDir) {
-    final List<Quiz> resolvedQuizzes = lesson.quizzes.map((quiz) {
+    final resolvedQuizzes = lesson.quizzes.map((quiz) {
       return _resolveQuizPathsFromZip(quiz, extractedDir);
     }).toList();
 
@@ -327,17 +323,17 @@ class CourseRepository {
   }
 
   Quiz _resolveQuizPathsFromZip(Quiz quiz, Directory extractedDir) {
-    String? audio = quiz.audio;
+    var audio = quiz.audio;
     if (audio != null && audio.startsWith('./')) {
       audio = _zipLoader.resolveFilePath(extractedDir, audio);
     }
 
-    String? transcript = quiz.transcript;
+    var transcript = quiz.transcript;
     if (transcript != null && transcript.startsWith('./')) {
       transcript = _zipLoader.resolveFilePath(extractedDir, transcript);
     }
 
-    String? passage = quiz.passage;
+    var passage = quiz.passage;
     if (passage != null && passage.startsWith('./')) {
       passage = _zipLoader.resolveFilePath(extractedDir, passage);
     }
@@ -365,13 +361,13 @@ class CourseRepository {
 
   Course _resolvePaths(Course course, String basePath) {
     // Resolve course image URL if it's relative
-    String imageUrl = course.imageUrl;
+    var imageUrl = course.imageUrl;
     if (imageUrl.startsWith('./')) {
       imageUrl = imageUrl.replaceFirst('./', basePath);
     }
 
     // Resolve lessons
-    final List<Lesson> resolvedLessons = course.lessons.map((lesson) {
+    final resolvedLessons = course.lessons.map((lesson) {
       return _resolveLessonPaths(lesson, basePath);
     }).toList();
 
@@ -382,7 +378,7 @@ class CourseRepository {
   }
 
   Lesson _resolveLessonPaths(Lesson lesson, String basePath) {
-    final List<Quiz> resolvedQuizzes = lesson.quizzes.map((quiz) {
+    final resolvedQuizzes = lesson.quizzes.map((quiz) {
       return _resolveQuizPaths(quiz, basePath);
     }).toList();
 
@@ -397,17 +393,17 @@ class CourseRepository {
   }
 
   Quiz _resolveQuizPaths(Quiz quiz, String basePath) {
-    String? audio = quiz.audio;
+    var audio = quiz.audio;
     if (audio != null && audio.startsWith('./')) {
       audio = audio.replaceFirst('./', basePath);
     }
 
-    String? transcript = quiz.transcript;
+    var transcript = quiz.transcript;
     if (transcript != null && transcript.startsWith('./')) {
       transcript = transcript.replaceFirst('./', basePath);
     }
 
-    String? passage = quiz.passage;
+    var passage = quiz.passage;
     if (passage != null && passage.startsWith('./')) {
       passage = passage.replaceFirst('./', basePath);
     }

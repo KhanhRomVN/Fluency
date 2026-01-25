@@ -67,7 +67,7 @@ class _AboutPageState extends State<AboutPage> {
                         color: Theme.of(context)
                             .colorScheme
                             .primary
-                            .withOpacity(0.4),
+                            .withValues(alpha: 0.4),
                         blurRadius: 30,
                         offset: const Offset(0, 15),
                         spreadRadius: -5,
@@ -96,7 +96,7 @@ class _AboutPageState extends State<AboutPage> {
                     color: Theme.of(context)
                         .colorScheme
                         .primaryContainer
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -118,7 +118,10 @@ class _AboutPageState extends State<AboutPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                color: Theme.of(context)
+                    .colorScheme
+                    .outline
+                    .withValues(alpha: 0.2),
               ),
             ),
             child: Padding(
@@ -133,8 +136,8 @@ class _AboutPageState extends State<AboutPage> {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.blue.withOpacity(0.2),
-                              Colors.blue.withOpacity(0.1),
+                              Colors.blue.withValues(alpha: 0.2),
+                              Colors.blue.withValues(alpha: 0.1),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(10),
@@ -164,7 +167,7 @@ class _AboutPageState extends State<AboutPage> {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.8),
+                          .withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -179,7 +182,10 @@ class _AboutPageState extends State<AboutPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                color: Theme.of(context)
+                    .colorScheme
+                    .outline
+                    .withValues(alpha: 0.2),
               ),
             ),
             child: Padding(
@@ -194,8 +200,8 @@ class _AboutPageState extends State<AboutPage> {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.purple.withOpacity(0.2),
-                              Colors.purple.withOpacity(0.1),
+                              Colors.purple.withValues(alpha: 0.2),
+                              Colors.purple.withValues(alpha: 0.1),
                             ],
                           ),
                           borderRadius: BorderRadius.circular(10),
@@ -242,7 +248,10 @@ class _AboutPageState extends State<AboutPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
               side: BorderSide(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                color: Theme.of(context)
+                    .colorScheme
+                    .outline
+                    .withValues(alpha: 0.2),
               ),
             ),
             child: ListTile(
@@ -254,8 +263,8 @@ class _AboutPageState extends State<AboutPage> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.orange.withOpacity(0.2),
-                      Colors.orange.withOpacity(0.1),
+                      Colors.orange.withValues(alpha: 0.2),
+                      Colors.orange.withValues(alpha: 0.1),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -292,7 +301,7 @@ class _AboutPageState extends State<AboutPage> {
               children: [
                 Icon(
                   Icons.favorite,
-                  color: Colors.red.withOpacity(0.7),
+                  color: Colors.red.withValues(alpha: 0.7),
                   size: 20,
                 ),
                 const SizedBox(height: 8),
@@ -302,7 +311,7 @@ class _AboutPageState extends State<AboutPage> {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                         fontWeight: FontWeight.w500,
                       ),
                 ),
@@ -312,7 +321,7 @@ class _AboutPageState extends State<AboutPage> {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.4),
+                            .withValues(alpha: 0.4),
                         fontSize: 12,
                       ),
                 ),
@@ -327,17 +336,16 @@ class _AboutPageState extends State<AboutPage> {
 }
 
 class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-
   const _InfoRow({
     required this.icon,
     required this.iconColor,
     required this.label,
     required this.value,
   });
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
@@ -348,8 +356,8 @@ class _InfoRow extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                iconColor.withOpacity(0.2),
-                iconColor.withOpacity(0.1),
+                iconColor.withValues(alpha: 0.2),
+                iconColor.withValues(alpha: 0.1),
               ],
             ),
             borderRadius: BorderRadius.circular(10),
@@ -369,8 +377,10 @@ class _InfoRow extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 2),

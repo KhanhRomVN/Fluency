@@ -41,7 +41,6 @@ class CourseCard extends StatelessWidget {
               child: CourseImage(
                 imageUrl: course.imageUrl,
                 width: 90,
-                fit: BoxFit.cover,
               ),
             ),
             // Course Info

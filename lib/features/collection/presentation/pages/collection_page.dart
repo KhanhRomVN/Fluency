@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 import 'package:fluency/features/collection/domain/entities/collection_item.dart';
@@ -5,7 +7,6 @@ import 'package:fluency/features/collection/domain/repositories/collection_repos
 import 'package:fluency/features/collection/presentation/widgets/collection_item_card.dart';
 import 'package:fluency/features/quiz/presentation/widgets/directory_drawer.dart';
 import 'package:flutter/material.dart';
-import 'dart:async';
 
 class CollectionPage extends StatefulWidget {
   const CollectionPage({super.key});
@@ -45,8 +46,9 @@ class _CollectionPageState extends State<CollectionPage> {
 
   @override
   void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
+    _searchController
+      ..removeListener(_onSearchChanged)
+      ..dispose();
     _debounceTimer?.cancel();
     super.dispose();
   }
@@ -70,16 +72,14 @@ class _CollectionPageState extends State<CollectionPage> {
 
   void _onSearchChanged() {
     if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _applyFilters();
-    });
+    _debounceTimer = Timer(const Duration(milliseconds: 500), _applyFilters);
   }
 
   void _applyFilters() {
     final query = _searchController.text.trim().toLowerCase();
 
     // 1. Filter by Level
-    List<CollectionItem> temp = _allItems;
+    var temp = _allItems;
     if (_selectedFilterLevel != null) {
       temp = temp.where((item) {
         final level = item.masteryLevel;
@@ -198,13 +198,20 @@ class _CollectionPageState extends State<CollectionPage> {
                         TextField(
                           controller: _searchController,
                           style: TextStyle(
-                              color: appColors.textPrimary, fontSize: 14),
+                            color: appColors.textPrimary,
+                            fontSize: 14,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'Search collection...',
                             hintStyle: TextStyle(
-                                color: appColors.textSecondary, fontSize: 14),
-                            prefixIcon: Icon(Icons.search,
-                                color: appColors.primary, size: 20),
+                              color: appColors.textSecondary,
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: appColors.primary,
+                              size: 20,
+                            ),
                             filled: true,
                             fillColor: appColors.inputBackground,
                             isDense: true,
@@ -215,10 +222,14 @@ class _CollectionPageState extends State<CollectionPage> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                               borderSide: BorderSide(
-                                  color: appColors.primary, width: 1.5),
+                                color: appColors.primary,
+                                width: 1.5,
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                           ),
                         ),
                       ],
@@ -227,7 +238,8 @@ class _CollectionPageState extends State<CollectionPage> {
                 ),
                 if (!_isLoading && _error == null)
                   SliverToBoxAdapter(
-                      child: _buildAnalysisAndFilters(appColors)),
+                    child: _buildAnalysisAndFilters(appColors),
+                  ),
                 _buildContent(appColors),
               ],
             ),
@@ -244,23 +256,24 @@ class _CollectionPageState extends State<CollectionPage> {
 
   Widget _buildAnalysisAndFilters(AppColorsExtension appColors) {
     // Calculate stats
-    int level1Count = 0;
-    int level2Count = 0;
-    int level3Count = 0;
+    var level1Count = 0;
+    var level2Count = 0;
+    var level3Count = 0;
 
-    for (var item in _allItems) {
-      if (item.masteryLevel <= 1)
+    for (final item in _allItems) {
+      if (item.masteryLevel <= 1) {
         level1Count++;
-      else if (item.masteryLevel == 2)
+      } else if (item.masteryLevel == 2) {
         level2Count++;
-      else
+      } else {
         level3Count++;
+      }
     }
 
     final total = _allItems.length;
-    final double level1Pct = total == 0 ? 0 : level1Count / total;
-    final double level2Pct = total == 0 ? 0 : level2Count / total;
-    final double level3Pct = total == 0 ? 0 : level3Count / total;
+    final level1Pct = total == 0 ? 0 : level1Count / total;
+    final level2Pct = total == 0 ? 0 : level2Count / total;
+    final level3Pct = total == 0 ? 0 : level3Count / total;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -274,14 +287,17 @@ class _CollectionPageState extends State<CollectionPage> {
               child: Row(
                 children: [
                   Expanded(
-                      flex: (level1Pct * 100).toInt(),
-                      child: Container(color: Colors.redAccent)),
+                    flex: (level1Pct * 100).toInt(),
+                    child: Container(color: Colors.redAccent),
+                  ),
                   Expanded(
-                      flex: (level2Pct * 100).toInt(),
-                      child: Container(color: Colors.orangeAccent)),
+                    flex: (level2Pct * 100).toInt(),
+                    child: Container(color: Colors.orangeAccent),
+                  ),
                   Expanded(
-                      flex: (level3Pct * 100).toInt(),
-                      child: Container(color: Colors.green)),
+                    flex: (level3Pct * 100).toInt(),
+                    child: Container(color: Colors.green),
+                  ),
                 ],
               ),
             ),
@@ -304,7 +320,7 @@ class _CollectionPageState extends State<CollectionPage> {
             width: double.infinity,
             child: InkWell(
               onTap: () {
-                // TODO: Show quiz type selection dropdown
+                // TODO(khanhromvn): Show quiz type selection dropdown
               },
               borderRadius: BorderRadius.circular(12),
               child: Container(
@@ -314,7 +330,7 @@ class _CollectionPageState extends State<CollectionPage> {
                   color: appColors.cardBackground,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: appColors.border ?? Colors.grey.withOpacity(0.3),
+                    color: appColors.border,
                   ),
                 ),
                 child: Row(
@@ -343,7 +359,11 @@ class _CollectionPageState extends State<CollectionPage> {
   }
 
   Widget _buildFilterButton(
-      String label, int level, Color color, AppColorsExtension appColors) {
+    String label,
+    int level,
+    Color color,
+    AppColorsExtension appColors,
+  ) {
     final isSelected = _selectedFilterLevel == level;
     return Expanded(
       child: InkWell(
@@ -352,13 +372,12 @@ class _CollectionPageState extends State<CollectionPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color:
-                isSelected ? color.withOpacity(0.1) : appColors.cardBackground,
+            color: isSelected
+                ? color.withValues(alpha: 0.1)
+                : appColors.cardBackground,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected
-                  ? color
-                  : appColors.border ?? Colors.grey.withOpacity(0.3),
+              color: isSelected ? color : appColors.border,
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -389,10 +408,12 @@ class _CollectionPageState extends State<CollectionPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Error: $_error',
-                  style: TextStyle(color: appColors.textSecondary)),
+              Text(
+                'Error: $_error',
+                style: TextStyle(color: appColors.textSecondary),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(onPressed: _loadItems, child: const Text('Retry')),
             ],
@@ -410,8 +431,10 @@ class _CollectionPageState extends State<CollectionPage> {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text('Searching online...',
-                    style: TextStyle(color: appColors.textSecondary)),
+                Text(
+                  'Searching online...',
+                  style: TextStyle(color: appColors.textSecondary),
+                ),
               ],
             ),
           ),
@@ -426,8 +449,9 @@ class _CollectionPageState extends State<CollectionPage> {
               child: Text(
                 'Found online:',
                 style: TextStyle(
-                    color: appColors.textSecondary,
-                    fontWeight: FontWeight.bold),
+                  color: appColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             CollectionItemCard(
@@ -455,8 +479,11 @@ class _CollectionPageState extends State<CollectionPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.archive_outlined,
-                  size: 64, color: appColors.textSecondary.withOpacity(0.5)),
+              Icon(
+                Icons.archive_outlined,
+                size: 64,
+                color: appColors.textSecondary.withValues(alpha: 0.5),
+              ),
               const SizedBox(height: 16),
               Text(
                 'Your collection is empty',

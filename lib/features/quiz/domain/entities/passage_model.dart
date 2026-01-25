@@ -1,7 +1,4 @@
 class PassageSegment {
-  final String content;
-  final String translate;
-
   const PassageSegment({
     required this.content,
     required this.translate,
@@ -13,6 +10,8 @@ class PassageSegment {
       translate: json['translate'] as String? ?? '',
     );
   }
+  final String content;
+  final String translate;
 
   Map<String, dynamic> toJson() {
     return {
@@ -23,10 +22,6 @@ class PassageSegment {
 }
 
 class PassageData {
-  final String tid;
-  final String title;
-  final List<PassageSegment> segments;
-
   const PassageData({
     required this.tid,
     required this.title,
@@ -42,6 +37,9 @@ class PassageData {
           .toList(),
     );
   }
+  final String tid;
+  final String title;
+  final List<PassageSegment> segments;
 
   Map<String, dynamic> toJson() {
     return {

@@ -5,10 +5,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class HintDrawer extends StatelessWidget {
   const HintDrawer({
-    super.key,
     required this.isOpen,
     required this.onClose,
     required this.hintContent,
+    super.key,
   });
 
   final bool isOpen;

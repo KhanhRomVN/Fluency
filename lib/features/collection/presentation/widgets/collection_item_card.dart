@@ -3,14 +3,13 @@ import 'package:fluency/features/collection/domain/entities/collection_item.dart
 import 'package:flutter/material.dart';
 
 class CollectionItemCard extends StatelessWidget {
-  final CollectionItem item;
-  final VoidCallback? onTap;
-
   const CollectionItemCard({
     required this.item,
     this.onTap,
     super.key,
   });
+  final CollectionItem item;
+  final VoidCallback? onTap;
 
   Color _getMasteryColor(int level, AppColorsExtension? appColors) {
     if (level <= 1) return Colors.redAccent;
@@ -30,7 +29,7 @@ class CollectionItemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -46,8 +45,8 @@ class CollectionItemCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            splashColor: appColors?.primary.withOpacity(0.1),
-            highlightColor: appColors?.primary.withOpacity(0.05),
+            splashColor: appColors?.primary.withValues(alpha: 0.1),
+            highlightColor: appColors?.primary.withValues(alpha: 0.05),
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -61,12 +60,13 @@ class CollectionItemCard extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Text(
                                 item.word,
@@ -80,7 +80,9 @@ class CollectionItemCard extends StatelessWidget {
                               // Definition Count Badge
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: appColors?.inputBackground,
                                   borderRadius: BorderRadius.circular(12),
@@ -106,7 +108,8 @@ class CollectionItemCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: appColors?.textPrimary?.withOpacity(0.8),
+                              color:
+                                  appColors?.textPrimary.withValues(alpha: 0.8),
                               height: 1.4,
                               fontSize: 12,
                             ),

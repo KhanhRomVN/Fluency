@@ -1,11 +1,7 @@
+import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:flutter/material.dart';
 
-import 'app_colors_extension.dart';
-
 class ThemeModel {
-  final String name;
-  final AppColorsExtension colors;
-
   ThemeModel({required this.name, required this.colors});
 
   factory ThemeModel.fromJson(Map<String, dynamic> json) {
@@ -82,4 +78,6 @@ class ThemeModel {
       ),
     );
   }
+  final String name;
+  final AppColorsExtension colors;
 }

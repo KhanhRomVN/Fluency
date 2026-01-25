@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 
 class ChattingSpeech extends StatefulWidget {
   const ChattingSpeech({
-    super.key,
     required this.quiz,
+    super.key,
     this.onWordLongPress,
   });
 
@@ -20,22 +20,22 @@ class ChattingSpeech extends StatefulWidget {
 }
 
 class _ScoreData {
-  final int score;
-  final String transcript;
-  final List<_WordFeedback> feedback;
-
   _ScoreData({
     required this.score,
     required this.transcript,
     required this.feedback,
   });
+  final int score;
+  final String transcript;
+  final List<_WordFeedback> feedback;
 }
 
 class _WordFeedback {
-  final String word;
-  final String status; // 'correct', 'incorrect', 'missing', 'extra'
+  // 'correct', 'incorrect', 'missing', 'extra'
 
   _WordFeedback(this.word, this.status);
+  final String word;
+  final String status;
 }
 
 class _ChattingSpeechState extends State<ChattingSpeech> {
@@ -72,9 +72,9 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
     }).toList();
 
     // Mock transcript (slightly different if low score)
-    String transcript = targetText;
+    var transcript = targetText;
     if (score < 80) {
-      transcript = "I think I said... $targetText";
+      transcript = 'I think I said... $targetText';
     }
 
     setState(() {
@@ -95,7 +95,7 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
 
   String _extractTranslate(String? text) {
     if (text == null) return '';
-    final RegExp exp = RegExp(r'translate="([^"]*)"');
+    final exp = RegExp('translate="([^"]*)"');
     final match = exp.firstMatch(text);
     return match?.group(1) ?? '';
   }
@@ -103,7 +103,7 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
   // Remove translation tags for clean text display
   String _cleanText(String? text) {
     if (text == null) return '';
-    return text.replaceAll(RegExp(r'translate="[^"]*"'), '').trim();
+    return text.replaceAll(RegExp('translate="[^"]*"'), '').trim();
   }
 
   @override
@@ -161,7 +161,10 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
   }
 
   Widget _buildBubble(
-      BuildContext context, ChatMessage chat, AppColorsExtension appColors) {
+    BuildContext context,
+    ChatMessage chat,
+    AppColorsExtension appColors,
+  ) {
     final isUser = chat.role.toLowerCase() == 'user' ||
         chat.role.toLowerCase() == 'student';
 
@@ -242,7 +245,8 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
                   : null,
               child: Container(
                 constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.8),
+                  maxWidth: MediaQuery.of(context).size.width * 0.8,
+                ),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -250,7 +254,8 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
                   border: isUser
                       ? Border.all(
                           color: appColors.primary.withValues(alpha: 0.3),
-                          width: 2)
+                          width: 2,
+                        )
                       : null, // Handled by painter
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(12),
@@ -291,7 +296,9 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
                           Container(
                             margin: const EdgeInsets.only(left: 4),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: appColors.buttonSecondBg, // secondary
                               borderRadius: BorderRadius.circular(4),
@@ -316,7 +323,9 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
                       Container(
                         margin: const EdgeInsets.only(top: 4),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: appColors.cardBackground
                               .withValues(alpha: 0.5), // muted/30
@@ -361,8 +370,8 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
                                   color: appColors
                                       .textSecondary, // muted-foreground
                                 ),
-                              )
-                            ]
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -376,7 +385,8 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
           if (scoreData != null && isUser)
             Container(
               constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.8),
+                maxWidth: MediaQuery.of(context).size.width * 0.8,
+              ),
               margin: const EdgeInsets.only(top: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -396,11 +406,10 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
               child: CustomPaint(
                 painter: _DashedBorderPainter(
                   color: appColors.border,
-                  strokeWidth: 1,
                   radius: 4,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(4.0),
+                  padding: const EdgeInsets.all(4),
                   child: Text(
                     '"${scoreData.transcript}"',
                     style: TextStyle(
@@ -450,18 +459,18 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
                 child: CustomPaint(
                   painter: _DashedBorderPainter(
                     color: appColors.border,
-                    strokeWidth: 1,
                     radius: 12,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(8),
                     child: RichTextParser.buildRichText(
                       context,
                       chat.explain!,
                       style: TextStyle(
-                          color: appColors.textSecondary,
-                          fontStyle: FontStyle.italic,
-                          fontSize: 14),
+                        color: appColors.textSecondary,
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                      ),
                       textAlign: TextAlign.center,
                     ).first,
                   ),
@@ -473,10 +482,11 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
     );
   }
 
-  Widget _buildActionButton(
-      {required IconData icon,
-      required VoidCallback onTap,
-      required AppColorsExtension appColors}) {
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required AppColorsExtension appColors,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -495,7 +505,9 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
   }
 
   Widget _buildFeedbackText(
-      List<_WordFeedback> feedback, AppColorsExtension appColors) {
+    List<_WordFeedback> feedback,
+    AppColorsExtension appColors,
+  ) {
     return RichText(
       text: TextSpan(
         children: feedback.map((item) {
@@ -528,10 +540,7 @@ class _ChattingSpeechState extends State<ChattingSpeech> {
 }
 
 class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double radius;
-  final bool bottomLeft; // If false, corner is sharp (Radius.zero)
+  // If false, corner is sharp (Radius.zero)
 
   _DashedBorderPainter({
     required this.color,
@@ -539,39 +548,47 @@ class _DashedBorderPainter extends CustomPainter {
     this.radius = 0,
     this.bottomLeft = true,
   });
+  final Color color;
+  final double strokeWidth;
+  final double radius;
+  final bool bottomLeft;
 
   @override
   void paint(Canvas canvas, Size size) {
-    var paint = Paint()
+    final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    var path = Path();
-    // Complex path with rounded corners excluding one if needed
-    // Simplified RRect for now, adjusting for specific corners is complex manual path
-
-    // Construct path manually
-    path.moveTo(radius, 0);
-    path.lineTo(size.width - radius, 0);
-    path.arcToPoint(Offset(size.width, radius),
-        radius: Radius.circular(radius));
-    path.lineTo(size.width, size.height - radius);
-    path.arcToPoint(Offset(size.width - radius, size.height),
-        radius: Radius.circular(radius));
+    final path = Path()
+      ..moveTo(radius, 0)
+      ..lineTo(size.width - radius, 0)
+      ..arcToPoint(
+        Offset(size.width, radius),
+        radius: Radius.circular(radius),
+      )
+      ..lineTo(size.width, size.height - radius)
+      ..arcToPoint(
+        Offset(size.width - radius, size.height),
+        radius: Radius.circular(radius),
+      );
 
     // Bottom Left
     if (bottomLeft) {
-      path.lineTo(radius, size.height);
-      path.arcToPoint(Offset(0, size.height - radius),
-          radius: Radius.circular(radius));
+      path
+        ..lineTo(radius, size.height)
+        ..arcToPoint(
+          Offset(0, size.height - radius),
+          radius: Radius.circular(radius),
+        );
     } else {
       path.lineTo(0, size.height);
       // Sharp corner
     }
 
-    path.lineTo(0, radius);
-    path.arcToPoint(Offset(radius, 0), radius: Radius.circular(radius));
+    path
+      ..lineTo(0, radius)
+      ..arcToPoint(Offset(radius, 0), radius: Radius.circular(radius));
 
     _drawDashedPath(canvas, path, paint);
   }
@@ -579,7 +596,7 @@ class _DashedBorderPainter extends CustomPainter {
   void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
     final dashArray = <double>[5, 5]; // 5px dash, 5px space
     final pathMetrics = path.computeMetrics();
-    for (var metric in pathMetrics) {
+    for (final metric in pathMetrics) {
       var distance = 0.0;
       var draw = true;
       while (distance < metric.length) {

@@ -1,14 +1,15 @@
+import 'dart:math' as math;
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 class Flashcard extends StatefulWidget {
   const Flashcard({
-    super.key,
     required this.quiz,
+    super.key,
     this.onWordLongPress,
   });
 
@@ -39,10 +40,12 @@ class _FlashcardState extends State<Flashcard>
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _animation = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    ));
+    _animation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
 
     // Reset flip when index changes logic is handled in _next/_prev
   }
@@ -95,13 +98,13 @@ class _FlashcardState extends State<Flashcard>
     }
   }
 
-  void _playAudio(String? path) async {
+  Future<void> _playAudio(String? path) async {
     if (path == null) return;
     try {
       await _audioPlayer.stop();
       await _audioPlayer.play(DeviceFileSource(path));
     } catch (e) {
-      debugPrint("Error playing flashcard audio: $e");
+      debugPrint('Error playing flashcard audio: $e');
     }
   }
 
@@ -146,7 +149,8 @@ class _FlashcardState extends State<Flashcard>
                               alignment: Alignment.center,
                               transform: Matrix4.identity()
                                 ..rotateY(
-                                    math.pi), // Correct mirroring for back
+                                  math.pi,
+                                ), // Correct mirroring for back
                               child:
                                   _buildBack(context, currentCard, appColors),
                             )
@@ -182,8 +186,9 @@ class _FlashcardState extends State<Flashcard>
               Text(
                 '${_currentIndex + 1} / ${cards.length}',
                 style: TextStyle(
-                    color: appColors.textSecondary,
-                    fontWeight: FontWeight.bold),
+                  color: appColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               IconButton(
                 onPressed: _currentIndex < cards.length - 1 ? _next : null,
@@ -203,7 +208,10 @@ class _FlashcardState extends State<Flashcard>
   }
 
   Widget _buildFront(
-      BuildContext context, FlashcardItem item, AppColorsExtension appColors) {
+    BuildContext context,
+    FlashcardItem item,
+    AppColorsExtension appColors,
+  ) {
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -225,7 +233,7 @@ class _FlashcardState extends State<Flashcard>
             color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
-          )
+          ),
         ],
       ),
       child: Stack(
@@ -258,9 +266,10 @@ class _FlashcardState extends State<Flashcard>
                         height: 150,
                         fit: BoxFit.contain,
                         errorBuilder: (ctx, err, stack) => const Icon(
-                            Icons.image_not_supported,
-                            size: 64,
-                            color: Colors.grey),
+                          Icons.image_not_supported,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   ),
@@ -304,15 +313,18 @@ class _FlashcardState extends State<Flashcard>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.rotate_right,
-                      size: 16,
-                      color: appColors.textSecondary.withValues(alpha: 0.6)),
+                  Icon(
+                    Icons.rotate_right,
+                    size: 16,
+                    color: appColors.textSecondary.withValues(alpha: 0.6),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Click to flip',
                     style: TextStyle(
-                        color: appColors.textSecondary.withValues(alpha: 0.6),
-                        fontSize: 14),
+                      color: appColors.textSecondary.withValues(alpha: 0.6),
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
@@ -324,7 +336,10 @@ class _FlashcardState extends State<Flashcard>
   }
 
   Widget _buildBack(
-      BuildContext context, FlashcardItem item, AppColorsExtension appColors) {
+    BuildContext context,
+    FlashcardItem item,
+    AppColorsExtension appColors,
+  ) {
     // Parse back content
     Widget backContent;
     if (item.back is String) {
@@ -354,59 +369,72 @@ class _FlashcardState extends State<Flashcard>
             ).first,
           if (example != null) ...[
             const SizedBox(height: 12),
-            Text('EXAMPLE',
-                style: TextStyle(
-                    fontSize: 10,
-                    color: appColors.textSecondary,
-                    fontWeight: FontWeight.bold)),
+            Text(
+              'EXAMPLE',
+              style: TextStyle(
+                fontSize: 10,
+                color: appColors.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             RichTextParser.buildRichText(
               context,
               example,
               style: TextStyle(
-                  fontSize: 16,
-                  color: appColors.textPrimary,
-                  fontStyle: FontStyle.italic),
+                fontSize: 16,
+                color: appColors.textPrimary,
+                fontStyle: FontStyle.italic,
+              ),
               onWordLongPress: widget.onWordLongPress,
             ).first,
           ],
           if (synonyms != null || antonyms != null) ...[
             const SizedBox(height: 12),
-            Wrap(spacing: 16, children: [
-              if (synonyms != null)
-                RichText(
-                  text: TextSpan(
-                    text: 'Syn: ',
-                    style: TextStyle(
+            Wrap(
+              spacing: 16,
+              children: [
+                if (synonyms != null)
+                  RichText(
+                    text: TextSpan(
+                      text: 'Syn: ',
+                      style: TextStyle(
                         color: appColors.textSecondary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 14),
-                    children: [
-                      TextSpan(
+                        fontSize: 14,
+                      ),
+                      children: [
+                        TextSpan(
                           text: synonyms,
                           style: TextStyle(
-                              color: appColors.textPrimary,
-                              fontWeight: FontWeight.normal))
-                    ],
+                            color: appColors.textPrimary,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              if (antonyms != null)
-                RichText(
-                  text: TextSpan(
-                    text: 'Ant: ',
-                    style: TextStyle(
+                if (antonyms != null)
+                  RichText(
+                    text: TextSpan(
+                      text: 'Ant: ',
+                      style: TextStyle(
                         color: appColors.textSecondary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 14),
-                    children: [
-                      TextSpan(
+                        fontSize: 14,
+                      ),
+                      children: [
+                        TextSpan(
                           text: antonyms,
                           style: TextStyle(
-                              color: appColors.textPrimary,
-                              fontWeight: FontWeight.normal))
-                    ],
+                            color: appColors.textPrimary,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            ])
+              ],
+            ),
           ],
         ],
       );
@@ -428,7 +456,7 @@ class _FlashcardState extends State<Flashcard>
             color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 10),
-          )
+          ),
         ],
       ),
       child: Stack(

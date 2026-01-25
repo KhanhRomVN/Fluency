@@ -11,9 +11,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class TranscriptDrawer extends StatefulWidget {
   const TranscriptDrawer({
-    super.key,
     required this.isOpen,
     required this.onClose,
+    super.key,
     this.transcriptPath,
     this.audioPath,
     this.audioPlayer,
@@ -84,9 +84,9 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
     if (_transcriptData == null) return;
 
     final currentSeconds = _currentTime.inSeconds;
-    int activeIndex = -1;
+    var activeIndex = -1;
 
-    for (int i = 0; i < _transcriptData!.transcript.length; i++) {
+    for (var i = 0; i < _transcriptData!.transcript.length; i++) {
       final segment = _transcriptData!.transcript[i];
       final start = segment.timestamps.startSeconds;
       final end = segment.timestamps.endSeconds;
@@ -291,7 +291,7 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
           padding: const EdgeInsets.all(24),
           child: Text(
             _error!,
-            style: TextStyle(color: Colors.red),
+            style: const TextStyle(color: Colors.red),
             textAlign: TextAlign.center,
           ),
         ),
@@ -336,7 +336,10 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
   }
 
   Widget _buildSegment(
-      TranscriptSegment segment, AppColorsExtension appColors, bool isActive) {
+    TranscriptSegment segment,
+    AppColorsExtension appColors,
+    bool isActive,
+  ) {
     return Container(
       key: isActive ? _activeSegmentKey : null,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -464,17 +467,19 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
   }
 
   InlineSpan _buildDialogueSpan(
-      Dialogue dialogue, AppColorsExtension appColors) {
+    Dialogue dialogue,
+    AppColorsExtension appColors,
+  ) {
     final isActive = _activeDialogueId == dialogue.id;
     final parsedText = _parseHtmlContent(dialogue.original);
 
     // Parse text into words and create spans with gestures
-    List<InlineSpan> spans = [];
+    final spans = <InlineSpan>[];
     // Split by whitespace but keep the whitespace in the result
     final pattern = RegExp(r'(\s+)');
     final matches = pattern.allMatches(parsedText);
 
-    int lastIndex = 0;
+    var lastIndex = 0;
     for (final match in matches) {
       // Add the word before the whitespace
       if (match.start > lastIndex) {
@@ -552,33 +557,29 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
   }) {
     if (onLongPress != null) {
       // Use a combination approach: TapGestureRecognizer with custom handling
-      final recognizer = TapGestureRecognizer();
-
       // Track long-press timing
-      bool isLongPress = false;
+      var isLongPress = false;
       Timer? longPressTimer;
 
-      recognizer.onTapDown = ((_) {
-        isLongPress = false;
-        longPressTimer = Timer(const Duration(milliseconds: 500), () {
-          isLongPress = true;
-          onLongPress();
-        });
-      });
-
-      recognizer.onTapUp = ((_) {
-        longPressTimer?.cancel();
-      });
-
-      recognizer.onTapCancel = () {
-        longPressTimer?.cancel();
-      };
-
-      recognizer.onTap = () {
-        if (!isLongPress) {
-          onTap();
+      final recognizer = TapGestureRecognizer()
+        ..onTapDown = (_) {
+          isLongPress = false;
+          longPressTimer = Timer(const Duration(milliseconds: 500), () {
+            isLongPress = true;
+            onLongPress();
+          });
         }
-      };
+        ..onTapUp = (_) {
+          longPressTimer?.cancel();
+        }
+        ..onTapCancel = () {
+          longPressTimer?.cancel();
+        }
+        ..onTap = () {
+          if (!isLongPress) {
+            onTap();
+          }
+        };
 
       return recognizer;
     } else {
@@ -590,9 +591,8 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
   // HTML parser - handle styles inline without line breaks
   String _parseHtmlContent(String content) {
     // Remove </n> tags and replace with space (inline)
-    String result = content.replaceAll(RegExp(r'</n\s*>'), ' ');
+    final result = content.replaceAll(RegExp(r'</n\s*>'), ' ');
     // Remove other HTML tags but keep text inline
-    result = result.replaceAll(RegExp(r'<[^>]*>'), '');
-    return result;
+    return result.replaceAll(RegExp('<[^>]*>'), '');
   }
 }

@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 
 class SentenceBuilder extends StatefulWidget {
   const SentenceBuilder({
-    super.key,
     required this.quiz,
     required this.isChecked,
     required this.onCheck,
+    super.key,
   });
 
   final Quiz quiz;
@@ -20,7 +20,7 @@ class SentenceBuilder extends StatefulWidget {
 }
 
 class _SentenceBuilderState extends State<SentenceBuilder> {
-  List<String> _selectedWords = [];
+  final List<String> _selectedWords = [];
   final List<String> _availableWords = [
     'The',
     'quick',
@@ -50,9 +50,7 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
 
   void _clearAll() {
     if (!widget.isChecked) {
-      setState(() {
-        _selectedWords.clear();
-      });
+      setState(_selectedWords.clear);
     }
   }
 
@@ -76,7 +74,6 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                       .bodyMedium!
                       .copyWith(fontSize: 16),
                   child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
                     children: RichTextParser.buildRichText(
                       context,
                       widget.quiz.instruction,
@@ -180,7 +177,8 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                 onPressed: widget.onCheck,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: appColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

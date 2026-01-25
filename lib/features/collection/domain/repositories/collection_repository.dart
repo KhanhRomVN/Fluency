@@ -1,4 +1,4 @@
-import '../entities/collection_item.dart';
+import 'package:fluency/features/collection/domain/entities/collection_item.dart';
 
 abstract class CollectionRepository {
   Future<List<CollectionItem>> getItems();

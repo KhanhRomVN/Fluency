@@ -2,13 +2,6 @@ import 'package:flutter/material.dart';
 
 /// Custom widget for beautiful setting tiles
 class SettingTile extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final Widget? trailing;
-
   const SettingTile({
     required this.icon,
     required this.iconColor,
@@ -18,6 +11,12 @@ class SettingTile extends StatelessWidget {
     this.trailing,
     super.key,
   });
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +35,8 @@ class SettingTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      iconColor.withOpacity(0.2),
-                      iconColor.withOpacity(0.1),
+                      iconColor.withValues(alpha: 0.2),
+                      iconColor.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -69,7 +68,7 @@ class SettingTile extends StatelessWidget {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(0.6),
+                                .withValues(alpha: 0.6),
                           ),
                     ),
                   ],
@@ -82,7 +81,7 @@ class SettingTile extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.3),
+                        .withValues(alpha: 0.3),
                   ),
             ],
           ),

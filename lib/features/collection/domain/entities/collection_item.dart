@@ -1,10 +1,5 @@
 class CollectionItem {
-  final String id;
-  final String word;
-  final String definition;
-  final int masteryLevel;
-  final DateTime savedAt;
-  final List<String> phonetics; // Adding phonetics for display
+  // Adding phonetics for display
 
   const CollectionItem({
     required this.id,
@@ -14,6 +9,26 @@ class CollectionItem {
     required this.savedAt,
     this.phonetics = const [],
   });
+
+  factory CollectionItem.fromJson(Map<String, dynamic> json) {
+    return CollectionItem(
+      id: json['id'] as String,
+      word: json['word'] as String,
+      definition: json['definition'] as String,
+      masteryLevel: json['masteryLevel'] as int,
+      savedAt: DateTime.parse(json['savedAt'] as String),
+      phonetics: (json['phonetics'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+    );
+  }
+  final String id;
+  final String word;
+  final String definition;
+  final int masteryLevel;
+  final DateTime savedAt;
+  final List<String> phonetics;
 
   CollectionItem copyWith({
     String? id,
@@ -42,19 +57,5 @@ class CollectionItem {
       'savedAt': savedAt.toIso8601String(),
       'phonetics': phonetics,
     };
-  }
-
-  factory CollectionItem.fromJson(Map<String, dynamic> json) {
-    return CollectionItem(
-      id: json['id'] as String,
-      word: json['word'] as String,
-      definition: json['definition'] as String,
-      masteryLevel: json['masteryLevel'] as int,
-      savedAt: DateTime.parse(json['savedAt'] as String),
-      phonetics: (json['phonetics'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-    );
   }
 }

@@ -1,13 +1,11 @@
+import 'package:fluency/core/l10n/app_localizations.dart';
+import 'package:fluency/core/themes/theme_provider.dart';
+import 'package:fluency/features/course/presentation/providers/course_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/routes/app_router.dart';
 import 'package:flutter/material.dart';
-import 'core/themes/app_theme.dart';
-import 'routes/app_router.dart';
-import 'package:provider/provider.dart';
-import 'features/course/presentation/providers/course_provider.dart';
-import 'core/themes/theme_provider.dart';
-import 'features/quiz/presentation/providers/quiz_state_provider.dart';
-
-import 'core/l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
 
 class Application extends StatelessWidget {
   const Application({super.key});

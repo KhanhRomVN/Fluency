@@ -1,11 +1,10 @@
 import 'dart:convert';
-import 'package:universal_io/io.dart';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:universal_io/io.dart';
 
 class ZipCourseLoader {
   static const String _coursesAssetPath = 'lib/features/course/assets/courses';
@@ -17,7 +16,7 @@ class ZipCourseLoader {
   Future<Directory> _getCacheDirectory() async {
     final tempDir = await getTemporaryDirectory();
     final cacheDir = Directory('${tempDir.path}/course_cache');
-    if (!await cacheDir.exists()) {
+    if (!cacheDir.existsSync()) {
       await cacheDir.create(recursive: true);
     }
     return cacheDir;
@@ -27,7 +26,7 @@ class ZipCourseLoader {
   Future<Directory> _getImportedCoursesDirectory() async {
     final appDocDir = await getApplicationDocumentsDirectory();
     final importDir = Directory('${appDocDir.path}/imported_courses');
-    if (!await importDir.exists()) {
+    if (!importDir.existsSync()) {
       await importDir.create(recursive: true);
     }
     return importDir;
@@ -37,23 +36,23 @@ class ZipCourseLoader {
   Future<List<String>> listZipFiles() async {
     // Skip ZIP loading on web platform (path_provider not supported)
     if (kIsWeb) {
-      print('ZIP loading not supported on web platform');
+      debugPrint('ZIP loading not supported on web platform');
       return [];
     }
 
     try {
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      final Map<String, dynamic> manifestMap =
-          json.decode(manifestContent) as Map<String, dynamic>;
+      final manifestMap = json.decode(manifestContent) as Map<String, dynamic>;
 
       final zipFiles = manifestMap.keys
-          .where((key) =>
-              key.startsWith(_coursesAssetPath) && key.endsWith('.zip'))
+          .where(
+            (key) => key.startsWith(_coursesAssetPath) && key.endsWith('.zip'),
+          )
           .toList();
 
       return zipFiles;
     } catch (e) {
-      print('Error listing ZIP files: $e');
+      debugPrint('Error listing ZIP files: $e');
       return [];
     }
   }
@@ -62,7 +61,7 @@ class ZipCourseLoader {
   Future<List<File>> listImportedZipFiles() async {
     try {
       final importDir = await _getImportedCoursesDirectory();
-      final List<File> zipFiles = [];
+      final zipFiles = <File>[];
       await for (final entity in importDir.list()) {
         if (entity is File && entity.path.endsWith('.zip')) {
           zipFiles.add(entity);
@@ -70,7 +69,7 @@ class ZipCourseLoader {
       }
       return zipFiles;
     } catch (e) {
-      print('Error listing imported ZIP files: $e');
+      debugPrint('Error listing imported ZIP files: $e');
       return [];
     }
   }
@@ -82,17 +81,17 @@ class ZipCourseLoader {
       final courseName = assetPath.split('/').last.replaceAll('.zip', '');
       if (_extractedCourses.containsKey(courseName)) {
         final cachedDir = _extractedCourses[courseName]!;
-        if (await cachedDir.exists()) {
-          print('Using cached extracted course: $courseName');
+        if (cachedDir.existsSync()) {
+          debugPrint('Using cached extracted course: $courseName');
           return cachedDir;
         }
       }
 
-      print('Extracting ZIP file: $assetPath');
+      debugPrint('Extracting ZIP file: $assetPath');
 
       // Load ZIP file from assets
-      final ByteData data = await rootBundle.load(assetPath);
-      final Uint8List bytes = data.buffer.asUint8List();
+      final data = await rootBundle.load(assetPath);
+      final bytes = data.buffer.asUint8List();
 
       // Decode ZIP archive
       final archive = ZipDecoder().decodeBytes(bytes);
@@ -102,7 +101,7 @@ class ZipCourseLoader {
       final extractDir = Directory('${cacheDir.path}/$courseName');
 
       // Remove old extraction if exists
-      if (await extractDir.exists()) {
+      if (extractDir.existsSync()) {
         await extractDir.delete(recursive: true);
       }
       await extractDir.create(recursive: true);
@@ -127,11 +126,11 @@ class ZipCourseLoader {
         }
       }
 
-      print('Successfully extracted $courseName to ${extractDir.path}');
+      debugPrint('Successfully extracted $courseName to ${extractDir.path}');
       _extractedCourses[courseName] = extractDir;
       return extractDir;
     } catch (e) {
-      print('Error extracting ZIP file $assetPath: $e');
+      debugPrint('Error extracting ZIP file $assetPath: $e');
       return null;
     }
   }
@@ -144,13 +143,13 @@ class ZipCourseLoader {
       // Check if already extracted
       if (_extractedCourses.containsKey(courseName)) {
         final cachedDir = _extractedCourses[courseName]!;
-        if (await cachedDir.exists()) {
-          print('Using cached extracted course: $courseName');
+        if (cachedDir.existsSync()) {
+          debugPrint('Using cached extracted course: $courseName');
           return cachedDir;
         }
       }
 
-      print('Extracting local ZIP file: ${zipFile.path}');
+      debugPrint('Extracting local ZIP file: ${zipFile.path}');
 
       final bytes = await zipFile.readAsBytes();
       final archive = ZipDecoder().decodeBytes(bytes);
@@ -158,7 +157,7 @@ class ZipCourseLoader {
       final cacheDir = await _getCacheDirectory();
       final extractDir = Directory('${cacheDir.path}/$courseName');
 
-      if (await extractDir.exists()) {
+      if (extractDir.existsSync()) {
         await extractDir.delete(recursive: true);
       }
       await extractDir.create(recursive: true);
@@ -176,12 +175,13 @@ class ZipCourseLoader {
         }
       }
 
-      print(
-          'Successfully extracted local ZIP $courseName to ${extractDir.path}');
+      debugPrint(
+        'Successfully extracted local ZIP $courseName to ${extractDir.path}',
+      );
       _extractedCourses[courseName] = extractDir;
       return extractDir;
     } catch (e) {
-      print('Error extracting local ZIP file ${zipFile.path}: $e');
+      debugPrint('Error extracting local ZIP file ${zipFile.path}: $e');
       return null;
     }
   }
@@ -213,24 +213,25 @@ class ZipCourseLoader {
       }
 
       if (courseJsonFile == null) {
-        print('No course JSON file found in ${extractedDir.path}');
+        debugPrint('No course JSON file found in ${extractedDir.path}');
         return null;
       }
 
       final jsonString = await courseJsonFile.readAsString();
       return json.decode(jsonString) as Map<String, dynamic>;
     } catch (e) {
-      print('Error loading course JSON: $e');
+      debugPrint('Error loading course JSON: $e');
       return null;
     }
   }
 
   /// Load lesson JSON files from extracted directory
   Future<List<Map<String, dynamic>>> loadLessonJsons(
-      Directory extractedDir) async {
+    Directory extractedDir,
+  ) async {
     try {
       final files = await extractedDir.list().toList();
-      final List<Map<String, dynamic>> lessons = [];
+      final lessons = <Map<String, dynamic>>[];
 
       for (final file in files) {
         if (file is File &&
@@ -241,7 +242,7 @@ class ZipCourseLoader {
             final lessonJson = json.decode(jsonString) as Map<String, dynamic>;
             lessons.add(lessonJson);
           } catch (e) {
-            print('Error loading lesson file ${file.path}: $e');
+            debugPrint('Error loading lesson file ${file.path}: $e');
           }
         }
       }
@@ -255,7 +256,7 @@ class ZipCourseLoader {
 
       return lessons;
     } catch (e) {
-      print('Error loading lesson JSONs: $e');
+      debugPrint('Error loading lesson JSONs: $e');
       return [];
     }
   }
@@ -273,14 +274,14 @@ class ZipCourseLoader {
   Future<void> clearCache() async {
     try {
       final cacheDir = await _getCacheDirectory();
-      if (await cacheDir.exists()) {
+      if (cacheDir.existsSync()) {
         await cacheDir.delete(recursive: true);
         await cacheDir.create();
       }
       _extractedCourses.clear();
-      print('Course cache cleared');
+      debugPrint('Course cache cleared');
     } catch (e) {
-      print('Error clearing cache: $e');
+      debugPrint('Error clearing cache: $e');
     }
   }
 
@@ -288,11 +289,11 @@ class ZipCourseLoader {
   Future<int> getCacheSize() async {
     try {
       final cacheDir = await _getCacheDirectory();
-      if (!await cacheDir.exists()) {
+      if (!cacheDir.existsSync()) {
         return 0;
       }
 
-      int totalSize = 0;
+      var totalSize = 0;
       await for (final entity in cacheDir.list(recursive: true)) {
         if (entity is File) {
           totalSize += await entity.length();
@@ -300,7 +301,7 @@ class ZipCourseLoader {
       }
       return totalSize;
     } catch (e) {
-      print('Error getting cache size: $e');
+      debugPrint('Error getting cache size: $e');
       return 0;
     }
   }

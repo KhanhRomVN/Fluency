@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 
 class Writing extends StatefulWidget {
   const Writing({
-    super.key,
     required this.quiz,
+    super.key,
   });
 
   final Quiz quiz;
@@ -63,7 +63,6 @@ class _WritingState extends State<Writing> {
                       .bodyMedium!
                       .copyWith(fontSize: 16),
                   child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
                     children: RichTextParser.buildRichText(
                       context,
                       widget.quiz.instruction,
@@ -193,17 +192,18 @@ class _WritingState extends State<Writing> {
                 onPressed: _handleSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: appColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.send, color: Colors.white, size: 18),
-                    const SizedBox(width: 8),
-                    const Text(
+                    Icon(Icons.send, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
                       'Submit',
                       style: TextStyle(
                         color: Colors.white,

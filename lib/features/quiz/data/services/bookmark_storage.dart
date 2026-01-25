@@ -4,9 +4,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 
 class BookmarkStorage {
-  static final BookmarkStorage _instance = BookmarkStorage._internal();
   factory BookmarkStorage() => _instance;
   BookmarkStorage._internal();
+  static final BookmarkStorage _instance = BookmarkStorage._internal();
 
   final List<String> _bookmarks = [];
   bool _initialized = false;
@@ -15,11 +15,12 @@ class BookmarkStorage {
     if (_initialized) return;
     try {
       final file = await _getFile();
-      if (await file.exists()) {
+      if (file.existsSync()) {
         final content = await file.readAsString();
-        final List<dynamic> json = jsonDecode(content) as List<dynamic>;
-        _bookmarks.clear();
-        _bookmarks.addAll(json.map((e) => e.toString()));
+        final json = jsonDecode(content) as List<dynamic>;
+        _bookmarks
+          ..clear()
+          ..addAll(json.map((e) => e.toString()));
       }
     } catch (e) {
       debugPrint('Error loading bookmarks: $e');

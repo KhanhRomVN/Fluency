@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 
 class Speaking extends StatefulWidget {
   const Speaking({
-    super.key,
     required this.quiz,
+    super.key,
+    this.onCheck,
+    this.onNext,
   });
 
   final Quiz quiz;
+  final VoidCallback? onCheck;
+  final VoidCallback? onNext;
 
   @override
   State<Speaking> createState() => _SpeakingState();
@@ -36,7 +40,7 @@ class _SpeakingState extends State<Speaking> {
               answer: '',
               validAnswers: const [],
               explain: '',
-            )
+            ),
           ];
   }
 
@@ -64,8 +68,6 @@ class _SpeakingState extends State<Speaking> {
     });
   }
 
-  void _handleFinish() {}
-
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -87,7 +89,6 @@ class _SpeakingState extends State<Speaking> {
                       .bodyMedium!
                       .copyWith(fontSize: 16),
                   child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
                     children: RichTextParser.buildRichText(
                       context,
                       widget.quiz.instruction,
@@ -178,8 +179,11 @@ class _SpeakingState extends State<Speaking> {
                 const SizedBox(height: 24),
                 Row(
                   children: [
-                    const Icon(Icons.check_circle,
-                        color: Colors.green, size: 18),
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Sample Answer',
@@ -214,7 +218,7 @@ class _SpeakingState extends State<Speaking> {
 
         // Floating Bottom Controls
         Positioned(
-          bottom: 24,
+          bottom: 28,
           left: 0,
           right: 0,
           child: Center(
@@ -265,8 +269,8 @@ class _SpeakingState extends State<Speaking> {
                         backgroundColor: appColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
+                          horizontal: 20,
+                          vertical: 10,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(32),
@@ -276,18 +280,23 @@ class _SpeakingState extends State<Speaking> {
 
                   if (_isCurrentSubmitted)
                     ElevatedButton.icon(
-                      onPressed: _hasNext ? _handleNext : _handleFinish,
+                      onPressed: _hasNext
+                          ? _handleNext
+                          : () {
+                              widget.onCheck?.call();
+                              widget.onNext?.call();
+                            },
                       icon: Icon(
                         _hasNext ? Icons.chevron_right : Icons.check_circle,
                         size: 20,
                       ),
-                      label: Text(_hasNext ? 'Next' : 'Finish'),
+                      label: Text(_hasNext ? 'Next' : 'Next question'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: appColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
+                          horizontal: 20,
+                          vertical: 10,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(32),

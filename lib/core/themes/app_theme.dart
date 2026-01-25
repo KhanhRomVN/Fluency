@@ -1,7 +1,7 @@
+import 'package:fluency/core/themes/dark_theme.dart';
+import 'package:fluency/core/themes/light_theme.dart';
+import 'package:fluency/core/themes/theme_model.dart';
 import 'package:flutter/material.dart';
-import 'light_theme.dart';
-import 'dark_theme.dart';
-import 'theme_model.dart';
 
 class AppTheme {
   static ThemeData get light => lightTheme;

@@ -1,16 +1,16 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 
 class QuizDrawer extends StatelessWidget {
   const QuizDrawer({
-    super.key,
     required this.lesson,
     required this.activeQuizIndex,
     required this.onQuizSelected,
+    super.key,
   });
 
   final Lesson lesson;
@@ -108,7 +108,7 @@ class QuizDrawer extends StatelessWidget {
 
           // Quiz List
           Expanded(
-            child: Container(
+            child: ColoredBox(
               color: appColors.inputBackground.withValues(alpha: 0.3),
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
@@ -120,8 +120,6 @@ class QuizDrawer extends StatelessWidget {
                   final isCompleted = context
                       .watch<QuizStateProvider>()
                       .isQuizCompleted(lesson.id, quiz.id);
-                  const isInProgress =
-                      false; // TODO: Implement in progress state if needed
 
                   return InkWell(
                     onTap: () {
@@ -254,38 +252,6 @@ class QuizDrawer extends StatelessWidget {
                                           ],
                                         ),
                                       ),
-                                    if (isInProgress)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber
-                                              .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.circle,
-                                              size: 8,
-                                              color: Colors.amber.shade600,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'In Progress',
-                                              style: TextStyle(
-                                                color: Colors.amber.shade600,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -311,20 +277,18 @@ class QuizDrawer extends StatelessWidget {
                                 // Time and score info
                                 Row(
                                   children: [
-                                    if (isCompleted || isInProgress) ...[
+                                    if (isCompleted) ...[
                                       Icon(
                                         Icons.access_time,
                                         size: 14,
-                                        color: isInProgress
-                                            ? Colors.amber.shade600
-                                            : appColors.textSecondary,
+                                        color: appColors.textSecondary,
                                       ),
                                       const SizedBox(width: 4),
-                                      Text(
-                                        isCompleted ? '12:30' : '05:45',
+                                      const Text(
+                                        '12:30',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: appColors.textSecondary,
+                                          color: Color(0xFF6B7280),
                                         ),
                                       ),
                                       const SizedBox(width: 16),
@@ -345,7 +309,7 @@ class QuizDrawer extends StatelessWidget {
                                         ),
                                       ),
                                     ],
-                                    if (!isCompleted && !isInProgress) ...[
+                                    if (!isCompleted) ...[
                                       Icon(
                                         Icons.help_outline,
                                         size: 14,

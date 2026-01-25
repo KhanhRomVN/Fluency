@@ -6,7 +6,7 @@ class Cn {
   /// Merges a list of BoxDecorations.
   /// Later decorations override earlier ones.
   static BoxDecoration mergeDecoration(List<BoxDecoration?> decorations) {
-    BoxDecoration merged = const BoxDecoration();
+    var merged = const BoxDecoration();
     for (final decoration in decorations) {
       if (decoration == null) continue;
       merged = merged.copyWith(
@@ -26,7 +26,7 @@ class Cn {
   /// Merges a list of TextStyles.
   /// Later styles override earlier ones.
   static TextStyle mergeTextStyle(List<TextStyle?> styles) {
-    TextStyle merged = const TextStyle();
+    var merged = const TextStyle();
     for (final style in styles) {
       if (style == null) continue;
       merged = merged.merge(style);

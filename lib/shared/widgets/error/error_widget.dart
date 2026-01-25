@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppErrorWidget extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
-
   const AppErrorWidget({
-    super.key,
     required this.message,
+    super.key,
     this.onRetry,
   });
+
+  final String message;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {

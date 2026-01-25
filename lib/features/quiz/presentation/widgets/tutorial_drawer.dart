@@ -4,10 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class TutorialDrawer extends StatelessWidget {
   const TutorialDrawer({
-    super.key,
     required this.isOpen,
     required this.onClose,
     required this.content,
+    super.key,
   });
 
   final bool isOpen;
@@ -16,33 +16,36 @@ class TutorialDrawer extends StatelessWidget {
 
   // Parse HTML-like content to TextSpans for inline rendering
   List<TextSpan> _parseContentToTextSpans(
-      BuildContext context, String content) {
-    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    final List<TextSpan> spans = [];
+    BuildContext context,
+    String content,
+  ) {
+    final spans = <TextSpan>[];
 
     // Remove line breaks first
-    String processedContent = content.replaceAll('</n>', ' ');
+    final processedContent = content.replaceAll('</n>', ' ');
 
     // Parse tags
     final tagRegex =
         RegExp(r"<p\s*(?:style='([^']*)')?>|</p>", caseSensitive: false);
-    int lastIndex = 0;
+    var lastIndex = 0;
 
-    bool isBold = false;
-    bool isItalic = false;
+    var isBold = false;
+    var isItalic = false;
 
     for (final match in tagRegex.allMatches(processedContent)) {
       // Add text before this tag
       if (match.start > lastIndex) {
         final text = processedContent.substring(lastIndex, match.start);
         if (text.isNotEmpty) {
-          spans.add(TextSpan(
-            text: text,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+          spans.add(
+            TextSpan(
+              text: text,
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+              ),
             ),
-          ));
+          );
         }
       }
 
@@ -65,13 +68,15 @@ class TutorialDrawer extends StatelessWidget {
     if (lastIndex < processedContent.length) {
       final text = processedContent.substring(lastIndex);
       if (text.isNotEmpty) {
-        spans.add(TextSpan(
-          text: text,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+        spans.add(
+          TextSpan(
+            text: text,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+            ),
           ),
-        ));
+        );
       }
     }
 
@@ -189,7 +194,6 @@ class TutorialDrawer extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: RichText(
-                          textAlign: TextAlign.start,
                           text: TextSpan(
                             style: Theme.of(context)
                                 .textTheme

@@ -1,13 +1,11 @@
 import 'package:fluency/core/constants/route_constants.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
-import 'package:fluency/features/course/data/course_repository.dart';
-import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/course/presentation/widgets/course_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 
 class CourseListPage extends StatefulWidget {
   const CourseListPage({super.key});
@@ -126,7 +124,8 @@ class _CourseListPageState extends State<CourseListPage> {
                                   Theme.of(context).scaffoldBackgroundColor,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(20)),
+                                  top: Radius.circular(20),
+                                ),
                               ),
                               builder: (context) {
                                 return SizedBox(

@@ -5,13 +5,17 @@ import 'package:flutter/material.dart';
 
 class SpeakingEssay extends StatefulWidget {
   const SpeakingEssay({
-    super.key,
     required this.quiz,
+    super.key,
     this.onWordLongPress,
+    this.onCheck,
+    this.onNext,
   });
 
   final Quiz quiz;
   final void Function(String word)? onWordLongPress;
+  final VoidCallback? onCheck;
+  final VoidCallback? onNext;
 
   @override
   State<SpeakingEssay> createState() => _SpeakingEssayState();
@@ -114,7 +118,11 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                  16, 16, 16, 120), // Bottom padding for floating controls
+                16,
+                16,
+                16,
+                120,
+              ), // Bottom padding for floating controls
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -139,16 +147,17 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: appColors.border),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            )
-                          ]),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: appColors.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
                       child: _isCurrentSubmitted
                           ? SingleChildScrollView(
                               child: Column(
@@ -170,15 +179,19 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                                     const SizedBox(height: 24),
                                     Row(
                                       children: [
-                                        const Icon(Icons.check_circle,
-                                            color: Colors.green, size: 20),
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
+                                          size: 20,
+                                        ),
                                         const SizedBox(width: 8),
                                         Text(
                                           'Sample Answer',
                                           style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: appColors.textPrimary),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: appColors.textPrimary,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -205,7 +218,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                                         ),
                                       ).first,
                                     ),
-                                  ]
+                                  ],
                                 ],
                               ),
                             )
@@ -213,11 +226,11 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                               controller:
                                   TextEditingController(text: _currentAnswer)
                                     ..selection = TextSelection.collapsed(
-                                        offset: _currentAnswer.length),
+                                      offset: _currentAnswer.length,
+                                    ),
                               onChanged: _handleTextChange,
                               expands: true,
                               maxLines: null,
-                              minLines: null,
                               textAlignVertical: TextAlignVertical.top,
                               style: TextStyle(
                                 fontSize: 16,
@@ -227,8 +240,9 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                               decoration: InputDecoration(
                                 hintText: 'Type your answer here...',
                                 hintStyle: TextStyle(
-                                    color: appColors.textSecondary
-                                        .withOpacity(0.7)),
+                                  color: appColors.textSecondary
+                                      .withValues(alpha: 0.7),
+                                ),
                                 filled: true,
                                 fillColor: Colors.transparent,
                                 contentPadding: EdgeInsets.zero,
@@ -246,7 +260,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
 
           // Bottom Controls
           Positioned(
-            bottom: 24,
+            bottom: 28,
             left: 0,
             right: 0,
             child: Row(
@@ -268,7 +282,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                               .withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
-                        )
+                        ),
                       ],
                     ),
                     child: Icon(
@@ -291,9 +305,13 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                       backgroundColor: appColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
@@ -305,13 +323,15 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                     onPressed: _hasNext
                         ? _handleNext
                         : () {
-                            // Finish logic
+                            widget.onCheck?.call();
+                            widget.onNext?.call();
                           },
                     icon: _hasNext
                         ? const Icon(
-                            Icons.arrow_forward) // Right arrow for next
+                            Icons.arrow_forward,
+                          ) // Right arrow for next
                         : const Icon(Icons.check_circle), // Check for finish
-                    label: Text(_hasNext ? 'Next' : 'Finish'),
+                    label: Text(_hasNext ? 'Next' : 'Next question'),
                     // Icon and Label swap in Flutter is manual, Directionality or just Swap children
                     // TSX: Next <ChevronRight>
                     iconAlignment: IconAlignment
@@ -320,9 +340,13 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                       backgroundColor: appColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),

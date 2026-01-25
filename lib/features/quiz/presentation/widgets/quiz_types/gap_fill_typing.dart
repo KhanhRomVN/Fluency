@@ -1,7 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'dart:ui' as ui;
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -60,7 +59,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
   void _parseGaps() {
     _controllers.clear(); // Clear old controllers if re-parsing
-    final regex = RegExp(r"</gap id='(.*?)'>");
+    final regex = RegExp("</gap id='(.*?)'>");
     final matches = regex.allMatches(widget.question);
     for (final match in matches) {
       final id = match.group(1);
@@ -92,7 +91,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    final borderColor = Colors.grey.withOpacity(0.5);
+    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     return Stack(
       children: [
@@ -154,9 +153,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
                                   ),
                             ),
                             child: Builder(
-                              builder: (context) {
-                                return _buildContent(context);
-                              },
+                              builder: _buildContent,
                             ),
                           ),
                           // Spacing at bottom for scrolling past floating button
@@ -173,8 +170,8 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
         // Floating Action Buttons
         Positioned(
-          bottom: 16,
-          right: 16,
+          bottom: 28, // 20 + 8px padding của card
+          right: 36, // 20 + 16px padding của card
           child: _buildActionButtons(appColors),
         ),
       ],
@@ -194,13 +191,15 @@ class _GapFillTypingState extends State<GapFillTyping> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4, // Shadow for floating effect
         ),
         icon: const Icon(Icons.check, size: 18),
-        label: const Text("Check answers",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Check answers',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
@@ -215,13 +214,15 @@ class _GapFillTypingState extends State<GapFillTyping> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4,
         ),
         icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text("Next question",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Next question',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
@@ -270,13 +271,11 @@ class _GapFillTypingState extends State<GapFillTyping> {
       (a) => a.id == id,
       orElse: () => const QuizAnswer(id: '', answer: [], explain: ''),
     );
-    final maxLength = answer.answer.isNotEmpty
-        ? answer.answer.map((e) => e.length).reduce((a, b) => a > b ? a : b)
-        : 20;
     final controller = _controllers[id]!;
     final userAnswer = controller.text;
     final isCorrect = answer.answer.any(
-        (ans) => userAnswer.toLowerCase().trim() == ans.toLowerCase().trim());
+      (ans) => userAnswer.toLowerCase().trim() == ans.toLowerCase().trim(),
+    );
 
     if (_isChecked) {
       Widget content;
@@ -346,7 +345,6 @@ class _GapFillTypingState extends State<GapFillTyping> {
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 4,
-                vertical: 0,
               ),
               hintText: '',
               enabledBorder: UnderlineInputBorder(
@@ -390,41 +388,42 @@ class _GapFillTypingState extends State<GapFillTyping> {
 // -----------------------------------------------------------------------------
 
 class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
   _DashedBorderPainter({
     required this.color,
     this.strokeWidth = 1,
     this.gap = 5,
     this.borderRadius = 0,
   });
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final Path path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(borderRadius),
+        ),
+      );
 
-    final Path dashedPath = _dashPath(path, width: 8, space: gap);
+    final dashedPath = _dashPath(path, width: 8, space: gap);
     canvas.drawPath(dashedPath, paint);
   }
 
   Path _dashPath(Path source, {required double width, required double space}) {
-    final Path dest = Path();
-    for (final ui.PathMetric metric in source.computeMetrics()) {
-      double distance = 0.0;
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double distance = 0;
       while (distance < metric.length) {
-        final double len = (distance + width < metric.length)
+        final len = (distance + width < metric.length)
             ? width
             : metric.length - distance;
         dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);

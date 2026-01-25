@@ -1,15 +1,14 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class MatchingDropdown extends StatefulWidget {
   const MatchingDropdown({
-    super.key,
     required this.quiz,
     required this.isChecked,
     required this.onCheck,
+    super.key,
     this.onShowExplain,
     this.onWordLongPress,
     this.onNext,
@@ -53,10 +52,12 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
     return widget.quiz.options!
         .asMap()
         .entries
-        .map((e) => MapEntry(
-              String.fromCharCode(65 + e.key), // A, B, C...
-              e.value,
-            ))
+        .map(
+          (e) => MapEntry(
+            String.fromCharCode(65 + e.key), // A, B, C...
+            e.value,
+          ),
+        )
         .toList();
   }
 
@@ -72,15 +73,17 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
   bool get _areAllAnswered {
     final matchings = widget.quiz.matchings ?? [];
     if (matchings.isEmpty) return true;
-    return matchings.every((m) =>
-        _selectedAnswers[m.id] != null && _selectedAnswers[m.id]!.isNotEmpty);
+    return matchings.every(
+      (m) =>
+          _selectedAnswers[m.id] != null && _selectedAnswers[m.id]!.isNotEmpty,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final matchings = widget.quiz.matchings ?? [];
-    final borderColor = Colors.grey.withOpacity(0.5);
+    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     return Stack(
       children: [
@@ -131,7 +134,10 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                       children: [
                         ...matchings.map((matching) {
                           return _buildMatchingRow(
-                              context, matching, appColors);
+                            context,
+                            matching,
+                            appColors,
+                          );
                         }),
                         // Provide space for floating buttons
                         const SizedBox(height: 80),
@@ -146,8 +152,8 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
 
         // Floating Action Buttons
         Positioned(
-          bottom: 16,
-          right: 16,
+          bottom: 28,
+          right: 36,
           child: _buildActionButtons(appColors),
         ),
       ],
@@ -161,13 +167,15 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4,
         ),
         icon: const Icon(Icons.check, size: 18),
-        label: const Text("Check answers",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Check answers',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
@@ -177,21 +185,26 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4,
         ),
         icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text("Next question",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Next question',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
     return const SizedBox.shrink();
   }
 
-  Widget _buildMatchingRow(BuildContext context, MatchingItem matching,
-      AppColorsExtension appColors) {
+  Widget _buildMatchingRow(
+    BuildContext context,
+    MatchingItem matching,
+    AppColorsExtension appColors,
+  ) {
     final selectedKey = _selectedAnswers[matching.id] ?? '';
     final correctKey = _getCorrectOptionKey(matching.answer);
     final isCorrect = widget.isChecked && selectedKey == correctKey;
@@ -206,19 +219,19 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
     if (widget.isChecked) {
       if (isCorrect) {
         borderColor = Colors.green;
-        backgroundColor = Colors.green.withOpacity(0.1);
+        backgroundColor = Colors.green.withValues(alpha: 0.1);
         textColor = Colors.green.shade700;
         iconColor = Colors.green;
       } else {
         borderColor = Colors.red;
-        backgroundColor = Colors.red.withOpacity(0.1);
+        backgroundColor = Colors.red.withValues(alpha: 0.1);
         textColor = Colors.red.shade700;
         iconColor = Colors.red;
       }
     } else {
       borderColor = selectedKey.isNotEmpty
           ? appColors.primary
-          : appColors.border.withOpacity(0.8);
+          : appColors.border.withValues(alpha: 0.8);
       backgroundColor = appColors.background;
       textColor = selectedKey.isNotEmpty
           ? appColors.textPrimary
@@ -325,6 +338,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
               ),
 
               // Info Icon (if correct and has explanation) - Inline
+              /* Hidden as per request
               if (widget.isChecked && isCorrect && matching.explain.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0),
@@ -340,13 +354,14 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                     tooltip: 'Show Explanation',
                   ),
                 ),
+              */
             ],
           ),
 
           // Correction Display (if wrong) - Below the dropdown
           if (isWrong)
             Padding(
-              padding: const EdgeInsets.only(top: 8.0),
+              padding: const EdgeInsets.only(top: 8),
               child: InkWell(
                 onTap: () {
                   if (matching.explain.isNotEmpty) {
@@ -357,7 +372,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Padding(
-                      padding: EdgeInsets.only(top: 2.0),
+                      padding: EdgeInsets.only(top: 2),
                       child: Icon(
                         Icons.error_outline_rounded,
                         color: Colors.red,
@@ -388,41 +403,42 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
 }
 
 class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
   _DashedBorderPainter({
     required this.color,
     this.strokeWidth = 1,
     this.gap = 5,
     this.borderRadius = 0,
   });
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final Path path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(borderRadius),
+        ),
+      );
 
-    final Path dashedPath = _dashPath(path, width: 8, space: gap);
+    final dashedPath = _dashPath(path, width: 8, space: gap);
     canvas.drawPath(dashedPath, paint);
   }
 
   Path _dashPath(Path source, {required double width, required double space}) {
-    final Path dest = Path();
-    for (final ui.PathMetric metric in source.computeMetrics()) {
-      double distance = 0.0;
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double distance = 0;
       while (distance < metric.length) {
-        final double len = (distance + width < metric.length)
+        final len = (distance + width < metric.length)
             ? width
             : metric.length - distance;
         dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);

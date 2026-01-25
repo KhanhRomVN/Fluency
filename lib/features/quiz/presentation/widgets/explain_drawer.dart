@@ -4,10 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class ExplainDrawer extends StatefulWidget {
   const ExplainDrawer({
-    super.key,
     required this.isOpen,
     required this.onClose,
     required this.explanation,
+    super.key,
   });
 
   final bool isOpen;
@@ -28,9 +28,11 @@ class _ExplainDrawerState extends State<ExplainDrawer>
   void initState() {
     super.initState();
     _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 300));
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
 
@@ -64,32 +66,36 @@ class _ExplainDrawerState extends State<ExplainDrawer>
 
   // Parse HTML-like content to TextSpans for inline rendering
   List<TextSpan> _parseContentToTextSpans(
-      BuildContext context, String content) {
-    final List<TextSpan> spans = [];
+    BuildContext context,
+    String content,
+  ) {
+    final spans = <TextSpan>[];
 
     // Remove line breaks first
-    String processedContent = content.replaceAll('</n>', ' ');
+    final processedContent = content.replaceAll('</n>', ' ');
 
     // Parse tags
     final tagRegex =
         RegExp(r"<p\s*(?:style='([^']*)')?>|</p>", caseSensitive: false);
-    int lastIndex = 0;
+    var lastIndex = 0;
 
-    bool isBold = false;
-    bool isItalic = false;
+    var isBold = false;
+    var isItalic = false;
 
     for (final match in tagRegex.allMatches(processedContent)) {
       // Add text before this tag
       if (match.start > lastIndex) {
         final text = processedContent.substring(lastIndex, match.start);
         if (text.isNotEmpty) {
-          spans.add(TextSpan(
-            text: text,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+          spans.add(
+            TextSpan(
+              text: text,
+              style: TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+              ),
             ),
-          ));
+          );
         }
       }
 
@@ -112,13 +118,15 @@ class _ExplainDrawerState extends State<ExplainDrawer>
     if (lastIndex < processedContent.length) {
       final text = processedContent.substring(lastIndex);
       if (text.isNotEmpty) {
-        spans.add(TextSpan(
-          text: text,
-          style: TextStyle(
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+        spans.add(
+          TextSpan(
+            text: text,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+            ),
           ),
-        ));
+        );
       }
     }
 
@@ -251,7 +259,6 @@ class _ExplainDrawerState extends State<ExplainDrawer>
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: RichText(
-                                textAlign: TextAlign.start,
                                 text: TextSpan(
                                   style: Theme.of(context)
                                       .textTheme
@@ -262,7 +269,9 @@ class _ExplainDrawerState extends State<ExplainDrawer>
                                         fontSize: 16,
                                       ),
                                   children: _parseContentToTextSpans(
-                                      context, content),
+                                    context,
+                                    content,
+                                  ),
                                 ),
                               ),
                             ),

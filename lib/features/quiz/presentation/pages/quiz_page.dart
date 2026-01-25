@@ -1,33 +1,34 @@
 import 'package:audioplayers/audioplayers.dart';
-import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/widgets/directory_drawer.dart';
+import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
+import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
+import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill_typing.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_dropdown.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/builder.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/chatting_speech.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation_audio.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/error_correction.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/flashcard.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill_typing.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_dropdown.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/pronunciation_drill.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/sentence_transformation.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speaking.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speaking_essay.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speech_builder.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/writing_essay.dart';
-import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
-import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart';
-import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
-import 'package:fluency/features/quiz/presentation/widgets/directory_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key, required this.lesson});
+  const QuizPage({required this.lesson, super.key});
 
   final Lesson lesson;
 
@@ -75,6 +76,34 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
+  void _onNextQuiz() {
+    setState(() {
+      _isQuizChecked = true;
+    });
+
+    final lesson = widget.lesson;
+    final activeQuiz =
+        lesson.quizzes.isNotEmpty ? lesson.quizzes[_activeQuizIndex] : null;
+
+    if (activeQuiz != null) {
+      context
+          .read<QuizStateProvider>()
+          .markQuizCompleted(lesson.id, activeQuiz.id);
+    }
+
+    if (_activeQuizIndex < widget.lesson.quizzes.length - 1) {
+      setState(() {
+        _activeQuizIndex++;
+        _isQuizChecked = false;
+      });
+    } else {
+      // Last quiz completed, maybe show summary or go back
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lesson completed!')),
+      );
+    }
+  }
+
   void _onWordLongPress(String word) {
     setState(() {
       _selectedWord = word;
@@ -96,10 +125,10 @@ class _QuizPageState extends State<QuizPage> {
         activeQuiz?.question ?? '<p>No quiz data available.</p>';
 
     // Audio path logic
-    final String? audioPath = activeQuiz?.audio;
+    final audioPath = activeQuiz?.audio;
     // Path is already resolved in CourseRepository if it was relative.
 
-    String audioFileName = 'Audio';
+    var audioFileName = 'Audio';
     if (audioPath != null) {
       audioFileName = audioPath.split('/').last;
     }
@@ -136,7 +165,7 @@ class _QuizPageState extends State<QuizPage> {
                             },
                             borderRadius: BorderRadius.circular(8),
                             child: Padding(
-                              padding: const EdgeInsets.all(6.0),
+                              padding: const EdgeInsets.all(6),
                               child: SvgPicture.asset(
                                 'icons/chevron_left.svg',
                                 width: 20,
@@ -166,7 +195,7 @@ class _QuizPageState extends State<QuizPage> {
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
-                                padding: const EdgeInsets.all(6.0),
+                                padding: const EdgeInsets.all(6),
                                 child: SvgPicture.asset(
                                   'icons/pilcrow.svg',
                                   width: 18,
@@ -190,7 +219,7 @@ class _QuizPageState extends State<QuizPage> {
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
-                                padding: const EdgeInsets.all(6.0),
+                                padding: const EdgeInsets.all(6),
                                 child: SvgPicture.asset(
                                   'icons/circle_dot_dashed.svg',
                                   width: 18,
@@ -215,7 +244,7 @@ class _QuizPageState extends State<QuizPage> {
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
-                                padding: const EdgeInsets.all(6.0),
+                                padding: const EdgeInsets.all(6),
                                 child: SvgPicture.asset(
                                   'icons/audio_lines.svg',
                                   width: 18,
@@ -262,7 +291,7 @@ class _QuizPageState extends State<QuizPage> {
                             },
                             borderRadius: BorderRadius.circular(8),
                             child: Padding(
-                              padding: const EdgeInsets.all(6.0),
+                              padding: const EdgeInsets.all(6),
                               child: SvgPicture.asset(
                                 'icons/align_end_vertical.svg',
                                 width: 18,
@@ -290,7 +319,8 @@ class _QuizPageState extends State<QuizPage> {
           bottomNavigationBar: audioPath != null
               ? MediaPlayer(
                   key: ValueKey(
-                      audioPath), // Rebuild player when audio source changes
+                    audioPath,
+                  ), // Rebuild player when audio source changes
                   audioPath: audioPath,
                   title: audioFileName, // Use audio filename
                   externalPlayer: _audioPlayer,
@@ -360,7 +390,7 @@ class _QuizPageState extends State<QuizPage> {
 
   Widget _buildQuizContent(String type, String question, Quiz? quiz) {
     if (quiz == null) {
-      return const Center(child: Text("No quiz available"));
+      return const Center(child: Text('No quiz available'));
     }
 
     switch (type) {
@@ -368,6 +398,7 @@ class _QuizPageState extends State<QuizPage> {
         return MultipleChoice(
           quiz: quiz,
           onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onShowExplain: (explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -381,6 +412,7 @@ class _QuizPageState extends State<QuizPage> {
           quiz: quiz,
           isChecked: _isQuizChecked,
           onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onShowExplain: (explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -393,6 +425,7 @@ class _QuizPageState extends State<QuizPage> {
         return QuizBuilder(
           quiz: quiz,
           onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onShowExplain: (explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -410,11 +443,15 @@ class _QuizPageState extends State<QuizPage> {
       case 'dictation-audio':
         return DictationAudio(
           quiz: quiz,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'error-correction':
         return ErrorCorrection(
           quiz: quiz,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'flashcard':
@@ -426,11 +463,20 @@ class _QuizPageState extends State<QuizPage> {
       case 'pronunciation-drill':
         return PronunciationDrill(
           quiz: quiz,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
+        );
+      case 'speaking':
+        return Speaking(
+          quiz: quiz,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
         );
       case 'sentence-transformation':
         return SentenceTransformation(
           quiz: quiz,
+          onNext: _onNextQuiz,
           onShowExplain: (explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -442,19 +488,24 @@ class _QuizPageState extends State<QuizPage> {
       case 'speaking-essay':
         return SpeakingEssay(
           quiz: quiz,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'speech-builder':
         return SpeechBuilder(
           quiz: quiz,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'writing-essay':
         return WritingEssay(
           quiz: quiz,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
         );
-      case 'gap-fill':
       default:
         return GapFillTyping(
           question: question,
@@ -462,6 +513,7 @@ class _QuizPageState extends State<QuizPage> {
           title: quiz.title,
           instruction: quiz.instruction,
           onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
           onShowExplain: (explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -470,15 +522,6 @@ class _QuizPageState extends State<QuizPage> {
           },
           hasAudio: quiz.audio != null && quiz.audio!.isNotEmpty,
           onWordLongPress: _onWordLongPress,
-          onNext: () {
-            // Handle next question logic if needed, or if this is the last one.
-            // For now, _onQuizChecked handles marking it complete.
-            // If we want to move to the next quiz automatically, we'd need a callback for that,
-            // but QuizPage handles navigation mainly via drawer or manual back.
-            // However, `GapFillTyping` might call `onNext` to signal it's done-done.
-            // Let's just check the quiz for now.
-            _onQuizChecked();
-          },
         );
     }
   }
@@ -511,52 +554,43 @@ class _QuizPageState extends State<QuizPage> {
       case 'multiple-choice':
         label = 'Multiple Choice';
         color = Colors.blue;
-        break;
       case 'gap-fill':
         label = 'Gap Fill';
         color = Colors.green;
-        break;
       case 'gap-fill-typing':
         label = 'Gap Fill';
         color = Colors.green;
-        break;
       case 'gap-fill-dropdown':
         label = 'Gap Fill';
         color = Colors.lightGreen;
-        break;
       case 'matching-dropdown':
         label = 'Matching';
         color = Colors.purple;
-        break;
       case 'writing-essay':
         label = 'Writing';
         color = Colors.orange;
-        break;
       case 'speaking-essay':
         label = 'Speaking';
         color = Colors.pink;
-        break;
       case 'chatting-speech':
         label = 'Chatting';
         color = Colors.cyan;
-        break;
       case 'pronunciation-drill':
         label = 'Pronunciation';
         color = Colors.teal;
-        break;
       case 'dictation':
       case 'dictation-audio':
         label = 'Dictation Audio';
         color = Colors.pink;
-        break;
       case 'builder':
         label = 'Builder';
         color = Colors.amber;
-        break;
       case 'sentence-transformation':
         label = 'Transformation';
         color = Colors.deepOrange;
-        break;
+      case 'error-correction':
+        label = 'Error Correction';
+        color = Colors.redAccent;
       default:
         label = 'Quiz';
         color = Colors.grey;
@@ -565,7 +599,7 @@ class _QuizPageState extends State<QuizPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

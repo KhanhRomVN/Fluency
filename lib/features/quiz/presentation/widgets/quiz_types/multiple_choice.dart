@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui' as ui;
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
@@ -10,6 +9,7 @@ class MultipleChoice extends StatefulWidget {
   const MultipleChoice({
     required this.quiz,
     this.onCheck,
+    this.onNext,
     this.onShowExplain,
     this.onWordLongPress,
     super.key,
@@ -17,6 +17,7 @@ class MultipleChoice extends StatefulWidget {
 
   final Quiz quiz;
   final VoidCallback? onCheck;
+  final VoidCallback? onNext;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
 
@@ -40,7 +41,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
 
   // Animation variables
   late AnimationController _animController;
-  double _dragOffset = 0.0;
+  double _dragOffset = 0;
   Animation<double>? _slideAnimation;
 
   @override
@@ -77,8 +78,8 @@ class _MultipleChoiceState extends State<MultipleChoice>
     final threshold = screenWidth * 0.25;
 
     // Check if we should change question
-    bool shouldChange = false;
-    int direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
+    var shouldChange = false;
+    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
 
     if (velocity < -1000 || _dragOffset < -threshold) {
       if (_currentQuestionIndex < widget.quiz.questions.length - 1) {
@@ -128,7 +129,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
   Widget build(BuildContext context) {
     // If no questions, show empty
     if (widget.quiz.questions.isEmpty) {
-      return const Center(child: Text("No questions available."));
+      return const Center(child: Text('No questions available.'));
     }
 
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -137,7 +138,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
     final isSubmitted = _submittedQuestions.contains(currentQuestion.id);
 
     // Calculate background border color for the card based on state
-    Color borderColor = Colors.grey.withOpacity(0.5);
+    var borderColor = Colors.grey.withValues(alpha: 0.5);
     if (isSubmitted) {
       final isCorrect = _questionCorrectness[currentQuestion.id] ?? false;
       borderColor = isCorrect ? appColors.primary : Colors.red;
@@ -212,7 +213,11 @@ class _MultipleChoiceState extends State<MultipleChoice>
                           children: [
                             // Card Header: Counter, Score, Progress
                             _buildCardHeader(
-                                context, appColors, questions, currentQuestion),
+                              context,
+                              appColors,
+                              questions,
+                              currentQuestion,
+                            ),
                             const Divider(height: 1),
 
                             // Card Content: Scrollable Question & Options
@@ -223,10 +228,11 @@ class _MultipleChoiceState extends State<MultipleChoice>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     _buildQuestionContent(
-                                        context,
-                                        currentQuestion,
-                                        appColors,
-                                        isSubmitted),
+                                      context,
+                                      currentQuestion,
+                                      appColors,
+                                      isSubmitted,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -238,10 +244,14 @@ class _MultipleChoiceState extends State<MultipleChoice>
                   ),
                   // Floating Action Buttons
                   Positioned(
-                    bottom: 16,
-                    right: 16,
+                    bottom: 20,
+                    right: 20,
                     child: _buildActionButtons(
-                        context, currentQuestion, appColors, isSubmitted),
+                      context,
+                      currentQuestion,
+                      appColors,
+                      isSubmitted,
+                    ),
                   ),
                 ],
               ),
@@ -275,7 +285,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
         children: [
           // Question Counter
           Text(
-            "${_currentQuestionIndex + 1} / ${questions.length}",
+            '${_currentQuestionIndex + 1} / ${questions.length}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -292,11 +302,11 @@ class _MultipleChoiceState extends State<MultipleChoice>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: appColors.primary.withOpacity(0.1),
+                    color: appColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    "+10 pts", // Default score placeholder
+                    '+10 pts', // Default score placeholder
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -318,8 +328,9 @@ class _MultipleChoiceState extends State<MultipleChoice>
                         totalSegments: questions.length,
                         segmentStates: List.generate(questions.length, (index) {
                           final qId = questions[index].id;
-                          if (!_submittedQuestions.contains(qId))
+                          if (!_submittedQuestions.contains(qId)) {
                             return 0; // Not done
+                          }
                           return (_questionCorrectness[qId] ?? false)
                               ? 1
                               : 2; // 1: Correct, 2: Wrong
@@ -330,7 +341,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
                       ),
                     ),
                     Text(
-                      "$completedCount",
+                      '$completedCount',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -347,8 +358,12 @@ class _MultipleChoiceState extends State<MultipleChoice>
     );
   }
 
-  Widget _buildQuestionContent(BuildContext context, QuizQuestion question,
-      AppColorsExtension appColors, bool isSubmitted) {
+  Widget _buildQuestionContent(
+    BuildContext context,
+    QuizQuestion question,
+    AppColorsExtension appColors,
+    bool isSubmitted,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -371,22 +386,28 @@ class _MultipleChoiceState extends State<MultipleChoice>
           final optionKey = String.fromCharCode(65 + index); // 'A' + 0 = 'A'
 
           return _buildOptionItem(
-              context, question, optionKey, optionText, appColors, isSubmitted);
+            context,
+            question,
+            optionKey,
+            optionText,
+            appColors,
+            isSubmitted,
+          );
         }),
 
         // Explain Button (if submitted and has explanation)
-        if (isSubmitted && (question.explain?.isNotEmpty ?? false))
+        if (isSubmitted && question.explain.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 16),
             child: InkWell(
-              onTap: () => widget.onShowExplain?.call(question.explain!),
+              onTap: () => widget.onShowExplain?.call(question.explain),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.info_outline, size: 20, color: appColors.primary),
                   const SizedBox(width: 8),
                   Text(
-                    "Explain",
+                    'Explain',
                     style: TextStyle(
                       color: appColors.primary,
                       fontWeight: FontWeight.bold,
@@ -404,8 +425,12 @@ class _MultipleChoiceState extends State<MultipleChoice>
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, QuizQuestion question,
-      AppColorsExtension appColors, bool isSubmitted) {
+  Widget _buildActionButtons(
+    BuildContext context,
+    QuizQuestion question,
+    AppColorsExtension appColors,
+    bool isSubmitted,
+  ) {
     final hasSelection = _selectedOptions[question.id]?.isNotEmpty ?? false;
 
     // Submit Button
@@ -415,13 +440,13 @@ class _MultipleChoiceState extends State<MultipleChoice>
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
         icon: const Icon(Icons.check, size: 18),
         label:
-            const Text("Submit", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
       );
     }
 
@@ -437,32 +462,39 @@ class _MultipleChoiceState extends State<MultipleChoice>
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
         icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text("Next question",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Next question',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
-    // Finish Button
+    // Next Question Button (at the end of internal list, moves to next quiz)
     if (isSubmitted &&
         _currentQuestionIndex == widget.quiz.questions.length - 1 &&
-        widget.onCheck != null) {
+        widget.onNext != null) {
       return ElevatedButton.icon(
-        onPressed: widget.onCheck,
+        onPressed: () {
+          widget.onCheck?.call(); // Mark current as done
+          widget.onNext?.call();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        icon: const Icon(Icons.check_circle, size: 18),
-        label: const Text("Finish Quiz",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.arrow_forward, size: 18),
+        label: const Text(
+          'Next question',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
@@ -470,19 +502,20 @@ class _MultipleChoiceState extends State<MultipleChoice>
   }
 
   Widget _buildOptionItem(
-      BuildContext context,
-      QuizQuestion question,
-      String optionKey,
-      String optionText,
-      AppColorsExtension appColors,
-      bool isSubmitted) {
+    BuildContext context,
+    QuizQuestion question,
+    String optionKey,
+    String optionText,
+    AppColorsExtension appColors,
+    bool isSubmitted,
+  ) {
     final selectedSet = _selectedOptions[question.id] ?? {};
     final isSelected = selectedSet.contains(optionKey);
 
     // Determine styles
-    Color borderColor = Colors.grey.withOpacity(0.3);
+    var borderColor = Colors.grey.withValues(alpha: 0.3);
     Color? backgroundColor; // Transparent default
-    Color textColor = appColors.textPrimary;
+    var textColor = appColors.textPrimary;
     Widget? icon;
 
     if (isSubmitted) {
@@ -493,13 +526,13 @@ class _MultipleChoiceState extends State<MultipleChoice>
         // Must show green if it's the correct answer (whether selected or not sometimes?)
         // Usually we highlight the correct answer in Green
         borderColor = appColors.primary;
-        backgroundColor = appColors.primary.withOpacity(0.1);
+        backgroundColor = appColors.primary.withValues(alpha: 0.1);
         textColor = appColors.primary;
         icon = const Icon(Icons.check, size: 16, color: Colors.white);
       } else if (isSelected && !isCorrectOption) {
         // Wrong selection -> Red
         borderColor = Colors.red;
-        backgroundColor = Colors.red.withOpacity(0.1);
+        backgroundColor = Colors.red.withValues(alpha: 0.1);
         textColor = Colors.red;
         icon = const Icon(Icons.close, size: 16, color: Colors.white);
       }
@@ -507,7 +540,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
       // Not submitted yet
       if (isSelected) {
         borderColor = appColors.primary;
-        backgroundColor = appColors.primary.withOpacity(0.05);
+        backgroundColor = appColors.primary.withValues(alpha: 0.05);
         textColor = appColors.primary;
         icon = const Icon(Icons.check, size: 16, color: Colors.white);
       }
@@ -519,7 +552,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
         onTap: isSubmitted ? null : () => _onOptionTap(question, optionKey),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: backgroundColor,
             border: Border.all(color: borderColor),
@@ -539,21 +572,25 @@ class _MultipleChoiceState extends State<MultipleChoice>
                           : appColors.primary) // Fill for status
                       : (isSelected ? appColors.primary : Colors.transparent),
                   border: Border.all(
-                      color: (isSubmitted && (icon != null))
-                          ? (textColor == Colors.red
-                              ? Colors.red
-                              : appColors.primary)
-                          : (isSelected
-                              ? appColors.primary
-                              : Colors.grey.withOpacity(0.5)),
-                      width: 2),
+                    color: (isSubmitted && (icon != null))
+                        ? (textColor == Colors.red
+                            ? Colors.red
+                            : appColors.primary)
+                        : (isSelected
+                            ? appColors.primary
+                            : Colors.grey.withValues(alpha: 0.5)),
+                    width: 2,
+                  ),
                 ),
                 child: Center(
                   child: (isSubmitted && icon != null)
                       ? icon
                       : (isSelected
-                          ? const Icon(Icons.check,
-                              size: 14, color: Colors.white)
+                          ? const Icon(
+                              Icons.check,
+                              size: 14,
+                              color: Colors.white,
+                            )
                           : null),
                 ),
               ),
@@ -593,14 +630,15 @@ class _MultipleChoiceState extends State<MultipleChoice>
           set.add(optionKey);
         }
       } else {
-        set.clear();
-        set.add(optionKey);
+        set
+          ..clear()
+          ..add(optionKey);
       }
     });
   }
 
   void _submitAnswer(QuizQuestion question) {
-    if ((_selectedOptions[question.id]?.isEmpty ?? true)) {
+    if (_selectedOptions[question.id]?.isEmpty ?? true) {
       // Don't submit if nothing selected
       return;
     }
@@ -617,7 +655,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
       // The option list building assumed keys A, B, C...
 
       // Check if user got it right
-      bool isCorrect = false;
+      var isCorrect = false;
       // Simple check: do selected keys match any in validAnswers?
       // Since validAnswers might be ["goes"] (text) or ["B"] (key), we need to be careful.
       // The original code passed 'optionKey' (A, B..) to selection.
@@ -634,7 +672,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
       });
 
       if (selected.length == validKeys.length &&
-          selected.every((k) => validKeys.contains(k))) {
+          selected.every(validKeys.contains)) {
         isCorrect = true;
       }
 
@@ -648,41 +686,42 @@ class _MultipleChoiceState extends State<MultipleChoice>
 // -----------------------------------------------------------------------------
 
 class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
   _DashedBorderPainter({
     required this.color,
     this.strokeWidth = 1,
     this.gap = 5,
     this.borderRadius = 0,
   });
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final Path path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(borderRadius),
+        ),
+      );
 
-    final Path dashedPath = _dashPath(path, width: 8, space: gap);
+    final dashedPath = _dashPath(path, width: 8, space: gap);
     canvas.drawPath(dashedPath, paint);
   }
 
   Path _dashPath(Path source, {required double width, required double space}) {
-    final Path dest = Path();
-    for (final ui.PathMetric metric in source.computeMetrics()) {
-      double distance = 0.0;
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double distance = 0;
       while (distance < metric.length) {
-        final double len = (distance + width < metric.length)
+        final len = (distance + width < metric.length)
             ? width
             : metric.length - distance;
         dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
@@ -701,13 +740,6 @@ class _DashedBorderPainter extends CustomPainter {
 }
 
 class _SegmentedProgressPainter extends CustomPainter {
-  final int totalSegments;
-  // 0: Empty, 1: Correct, 2: Wrong
-  final List<int> segmentStates;
-  final Color primaryColor;
-  final Color errorColor;
-  final Color emptyColor;
-
   _SegmentedProgressPainter({
     required this.totalSegments,
     required this.segmentStates,
@@ -715,34 +747,41 @@ class _SegmentedProgressPainter extends CustomPainter {
     required this.errorColor,
     required this.emptyColor,
   });
+  final int totalSegments;
+  // 0: Empty, 1: Correct, 2: Wrong
+  final List<int> segmentStates;
+  final Color primaryColor;
+  final Color errorColor;
+  final Color emptyColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-    final strokeWidth = 3.0;
+    const strokeWidth = 3.0;
 
-    final Paint paint = Paint()
+    final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.butt; // Butt cap for segments
 
     // Start from -90 degrees (top)
-    double startAngle = -pi / 2;
+    var startAngle = -pi / 2;
     // Gap between segments in radians
-    double gap = (totalSegments > 1) ? 0.2 : 0;
-    double totalGap = gap * totalSegments;
-    double segmentAngle = (2 * pi - totalGap) / totalSegments;
+    final gap = (totalSegments > 1) ? 0.2 : 0;
+    final totalGap = gap * totalSegments;
+    final segmentAngle = (2 * pi - totalGap) / totalSegments;
 
-    for (int i = 0; i < totalSegments; i++) {
+    for (var i = 0; i < totalSegments; i++) {
       final state = (i < segmentStates.length) ? segmentStates[i] : 0;
 
-      if (state == 1)
+      if (state == 1) {
         paint.color = primaryColor;
-      else if (state == 2)
+      } else if (state == 2) {
         paint.color = errorColor;
-      else
+      } else {
         paint.color = emptyColor;
+      }
 
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),

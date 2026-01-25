@@ -1,15 +1,16 @@
 pre-push:
   parallel: true
   commands:
-    analyze:
-      glob: "*.dart"
-      run: flutter analyze
     test:
       glob: "*.dart"
       run: flutter test
 
 pre-commit:
+  parallel: true
   commands:
+    analyze:
+      glob: "*.dart"
+      run: flutter analyze
     format:
       glob: "*.dart"
-      run: flutter format {staged_files}
+      run: dart format {staged_files}

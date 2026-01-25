@@ -5,13 +5,17 @@ import 'package:flutter/material.dart';
 
 class WritingEssay extends StatefulWidget {
   const WritingEssay({
-    super.key,
     required this.quiz,
+    super.key,
     this.onWordLongPress,
+    this.onCheck,
+    this.onNext,
   });
 
   final Quiz quiz;
   final void Function(String word)? onWordLongPress;
+  final VoidCallback? onCheck;
+  final VoidCallback? onNext;
 
   @override
   State<WritingEssay> createState() => _WritingEssayState();
@@ -21,7 +25,6 @@ class _WritingEssayState extends State<WritingEssay> {
   final TextEditingController _controller = TextEditingController();
   int _wordCount = 0;
   bool _submitted = false;
-  int? _score;
 
   @override
   void initState() {
@@ -31,8 +34,9 @@ class _WritingEssayState extends State<WritingEssay> {
 
   @override
   void dispose() {
-    _controller.removeListener(_updateWordCount);
-    _controller.dispose();
+    _controller
+      ..removeListener(_updateWordCount)
+      ..dispose();
     super.dispose();
   }
 
@@ -47,7 +51,7 @@ class _WritingEssayState extends State<WritingEssay> {
     // Mock submit
     setState(() {
       _submitted = true;
-      _score = 90; // Mock
+      _submitted = true;
     });
   }
 
@@ -94,16 +98,17 @@ class _WritingEssayState extends State<WritingEssay> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: appColors.border),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            )
-                          ]),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: appColors.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -113,7 +118,6 @@ class _WritingEssayState extends State<WritingEssay> {
                               enabled: !_submitted,
                               expands: true,
                               maxLines: null,
-                              minLines: null,
                               textAlignVertical: TextAlignVertical.top,
                               style: TextStyle(
                                 fontSize: 16,
@@ -123,8 +127,9 @@ class _WritingEssayState extends State<WritingEssay> {
                               decoration: InputDecoration(
                                 hintText: 'Type your essay here...',
                                 hintStyle: TextStyle(
-                                    color: appColors.textSecondary
-                                        .withOpacity(0.7)),
+                                  color: appColors.textSecondary
+                                      .withValues(alpha: 0.7),
+                                ),
                                 filled: true,
                                 fillColor: Colors.transparent,
                                 contentPadding: EdgeInsets.zero,
@@ -165,7 +170,7 @@ class _WritingEssayState extends State<WritingEssay> {
 
           // Bottom Controls
           Positioned(
-            bottom: 24,
+            bottom: 28,
             left: 0,
             right: 0,
             child: Row(
@@ -180,9 +185,13 @@ class _WritingEssayState extends State<WritingEssay> {
                       backgroundColor: appColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
@@ -192,22 +201,27 @@ class _WritingEssayState extends State<WritingEssay> {
                   // Finished State / Next
                   ElevatedButton.icon(
                     onPressed: () {
-                      // Finish logic
+                      widget.onCheck?.call();
+                      widget.onNext?.call();
                     },
                     icon: const Icon(Icons.check_circle),
-                    label: const Text('Finish'),
+                    label: const Text('Next question'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: appColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                  )
+                  ),
               ],
             ),
           ),

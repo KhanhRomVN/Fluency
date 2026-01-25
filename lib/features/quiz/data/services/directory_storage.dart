@@ -1,25 +1,14 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' as foundation;
 import 'package:http/http.dart' as http;
 
 class DirectoryEntry {
-  final String word;
-  final String source; // 'FreeDict' | 'DictAPI'
-  final List<Phonetic> phonetics;
-  final List<Meaning> meanings;
-
   const DirectoryEntry({
     required this.word,
     required this.source,
     required this.phonetics,
     required this.meanings,
   });
-
-  Map<String, dynamic> toJson() => {
-        'word': word,
-        'source': source,
-        'phonetics': phonetics.map((p) => p.toJson()).toList(),
-        'meanings': meanings.map((m) => m.toJson()).toList(),
-      };
 
   factory DirectoryEntry.fromJson(Map<String, dynamic> json) {
     return DirectoryEntry(
@@ -33,21 +22,24 @@ class DirectoryEntry {
           .toList(),
     );
   }
+  final String word;
+  final String source; // 'FreeDict' | 'DictAPI'
+  final List<Phonetic> phonetics;
+  final List<Meaning> meanings;
+
+  Map<String, dynamic> toJson() => {
+        'word': word,
+        'source': source,
+        'phonetics': phonetics.map((p) => p.toJson()).toList(),
+        'meanings': meanings.map((m) => m.toJson()).toList(),
+      };
 }
 
 class Phonetic {
-  final String text;
-  final String? tag;
-
   const Phonetic({
     required this.text,
     this.tag,
   });
-
-  Map<String, dynamic> toJson() => {
-        'text': text,
-        if (tag != null) 'tag': tag,
-      };
 
   factory Phonetic.fromJson(Map<String, dynamic> json) {
     return Phonetic(
@@ -55,24 +47,21 @@ class Phonetic {
       tag: json['tag'] as String?,
     );
   }
+  final String text;
+  final String? tag;
+
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        if (tag != null) 'tag': tag,
+      };
 }
 
 class Definition {
-  final String definition;
-  final String? example;
-  final List<String> translations;
-
   const Definition({
     required this.definition,
-    this.example,
     required this.translations,
+    this.example,
   });
-
-  Map<String, dynamic> toJson() => {
-        'definition': definition,
-        if (example != null) 'example': example,
-        'translations': translations,
-      };
 
   factory Definition.fromJson(Map<String, dynamic> json) {
     return Definition(
@@ -82,21 +71,22 @@ class Definition {
           (json['translations'] as List).map((t) => t as String).toList(),
     );
   }
+  final String definition;
+  final String? example;
+  final List<String> translations;
+
+  Map<String, dynamic> toJson() => {
+        'definition': definition,
+        if (example != null) 'example': example,
+        'translations': translations,
+      };
 }
 
 class Meaning {
-  final String partOfSpeech;
-  final List<Definition> definitions;
-
   const Meaning({
     required this.partOfSpeech,
     required this.definitions,
   });
-
-  Map<String, dynamic> toJson() => {
-        'partOfSpeech': partOfSpeech,
-        'definitions': definitions.map((d) => d.toJson()).toList(),
-      };
 
   factory Meaning.fromJson(Map<String, dynamic> json) {
     return Meaning(
@@ -106,6 +96,13 @@ class Meaning {
           .toList(),
     );
   }
+  final String partOfSpeech;
+  final List<Definition> definitions;
+
+  Map<String, dynamic> toJson() => {
+        'partOfSpeech': partOfSpeech,
+        'definitions': definitions.map((d) => d.toJson()).toList(),
+      };
 }
 
 class DirectoryStorage {
@@ -127,7 +124,7 @@ class DirectoryStorage {
 
   Map<String, dynamic> getStats() {
     final count = _storage.length;
-    int totalBytes = 0;
+    var totalBytes = 0;
 
     // Rough estimation using JSON stringify length
     for (final entry in _storage.values) {
@@ -222,35 +219,41 @@ class DirectoryStorage {
     String word,
     bool usedFallback,
   ) {
+    final source = usedFallback ? 'DictAPI' : 'FreeDict';
     try {
-      final String entryWord = usedFallback
-          ? (data[0]?['word'] as String? ?? word)
-          : (data['word'] as String? ?? word);
-      final String source = usedFallback ? 'DictAPI' : 'FreeDict';
+      final entryWord = usedFallback
+          ? (((data as List).firstOrNull as Map<String, dynamic>?)?['word']
+                  as String? ??
+              word)
+          : ((data as Map<String, dynamic>)['word'] as String? ?? word);
 
-      final List<Phonetic> phonetics = [];
-      final List<Meaning> meanings = [];
+      final phonetics = <Phonetic>[];
+      final meanings = <Meaning>[];
 
-      final entries = (usedFallback ? data : (data['entries'] ?? [])) as List;
+      final entries = (usedFallback
+          ? (data as List)
+          : ((data as Map<String, dynamic>)['entries'] as List? ?? []));
 
       if (entries.isEmpty) return null;
 
       // Extract phonetics
       for (final entry in entries) {
-        if (entry['phonetic'] != null && phonetics.isEmpty) {
+        final entryMap = entry as Map<String, dynamic>;
+        if (entryMap['phonetic'] != null && phonetics.isEmpty) {
           phonetics.add(
-            Phonetic(text: entry['phonetic'] as String),
+            Phonetic(text: entryMap['phonetic'] as String),
           );
         }
 
-        if (entry['phonetics'] != null) {
-          for (final p in (entry['phonetics'] as List)) {
-            final text = p['text'] as String?;
+        if (entryMap['phonetics'] != null) {
+          for (final p in (entryMap['phonetics'] as List)) {
+            final pMap = p as Map<String, dynamic>;
+            final text = pMap['text'] as String?;
             if (text != null && !phonetics.any((ph) => ph.text == text)) {
               phonetics.add(
                 Phonetic(
                   text: text,
-                  tag: (p['audio'] as String?)?.contains('-uk') == true
+                  tag: (pMap['audio'] as String?)?.contains('-uk') ?? false
                       ? 'UK'
                       : null,
                 ),
@@ -262,16 +265,19 @@ class DirectoryStorage {
 
       // Extract meanings
       for (final entry in entries) {
+        final entryMap = entry as Map<String, dynamic>;
         if (usedFallback) {
           // Fallback API structure
-          final entryMeanings = (entry['meanings'] as List?) ?? [];
+          final entryMeanings = (entryMap['meanings'] as List?) ?? [];
           for (final m in entryMeanings) {
+            final mMap = m as Map<String, dynamic>;
             final defs = <Definition>[];
-            for (final d in ((m as Map)['definitions'] as List? ?? [])) {
+            for (final d in (mMap['definitions'] as List? ?? [])) {
+              final dMap = d as Map<String, dynamic>;
               defs.add(
                 Definition(
-                  definition: d['definition'] as String? ?? '',
-                  example: d['example'] as String?,
+                  definition: dMap['definition'] as String? ?? '',
+                  example: dMap['example'] as String?,
                   translations: const [],
                 ),
               );
@@ -279,7 +285,7 @@ class DirectoryStorage {
             if (defs.isNotEmpty) {
               meanings.add(
                 Meaning(
-                  partOfSpeech: m['partOfSpeech'] as String? ?? '',
+                  partOfSpeech: mMap['partOfSpeech'] as String? ?? '',
                   definitions: defs,
                 ),
               );
@@ -288,18 +294,18 @@ class DirectoryStorage {
         } else {
           // Primary API structure
           final defs = <Definition>[];
-          for (final sense in ((entry as Map)['senses'] as List? ?? [])) {
-            final viTranslations =
-                ((sense as Map)['translations'] as List? ?? [])
-                    .where((t) => (t as Map)['language']?['code'] == 'vi')
-                    .map<String>((t) => (t as Map)['word'] as String)
-                    .toList();
+          for (final sense in (entryMap['senses'] as List? ?? [])) {
+            final senseMap = sense as Map<String, dynamic>;
+            final viTranslations = (senseMap['translations'] as List? ?? [])
+                .where((t) => ((t as Map)['language'] as Map?)?['code'] == 'vi')
+                .map<String>((t) => (t as Map)['word'] as String)
+                .toList();
 
             defs.add(
               Definition(
-                definition: (sense as Map)['definition'] as String? ?? '',
+                definition: senseMap['definition'] as String? ?? '',
                 example:
-                    ((sense as Map)['examples'] as List?)?.first as String?,
+                    (senseMap['examples'] as List?)?.firstOrNull as String?,
                 translations: viTranslations,
               ),
             );
@@ -307,7 +313,7 @@ class DirectoryStorage {
           if (defs.isNotEmpty) {
             meanings.add(
               Meaning(
-                partOfSpeech: entry['partOfSpeech'] as String? ?? '',
+                partOfSpeech: entryMap['partOfSpeech'] as String? ?? '',
                 definitions: defs,
               ),
             );
@@ -324,6 +330,7 @@ class DirectoryStorage {
         meanings: meanings,
       );
     } catch (e) {
+      debugPrint('Error parsing $word from $source: $e');
       return null;
     }
   }
@@ -334,5 +341,5 @@ final directoryStorage = DirectoryStorage();
 
 void debugPrint(String message) {
   // In production, use Flutter's debugPrint
-  print(message);
+  foundation.debugPrint(message);
 }

@@ -7,8 +7,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class MediaPlayer extends StatefulWidget {
   const MediaPlayer({
-    super.key,
     required this.audioPath,
+    super.key,
     this.title = '',
     this.externalPlayer,
   });
@@ -89,7 +89,9 @@ class _MediaPlayerState extends State<MediaPlayer> {
       final bytes = await DefaultAssetBundle.of(context).load(widget.audioPath);
       final audioBytes = bytes.buffer.asUint8List();
       await _player.setSourceBytes(audioBytes);
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error setting audio source: $e');
+    }
   }
 
   @override
@@ -208,9 +210,11 @@ class _MediaPlayerState extends State<MediaPlayer> {
                             data: SliderTheme.of(context).copyWith(
                               trackHeight: 3,
                               thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 6),
+                                enabledThumbRadius: 6,
+                              ),
                               overlayShape: const RoundSliderOverlayShape(
-                                  overlayRadius: 14),
+                                overlayRadius: 14,
+                              ),
                               activeTrackColor: appColors.primary,
                               inactiveTrackColor: appColors.border,
                               thumbColor: appColors.primary,
@@ -220,15 +224,16 @@ class _MediaPlayerState extends State<MediaPlayer> {
                             ),
                             child: Slider(
                               value: (_position.inMilliseconds / 1000).clamp(
-                                  0.0,
-                                  (_duration.inMilliseconds / 1000)
-                                      .clamp(0.001, double.infinity)),
-                              min: 0.0,
+                                0.0,
+                                (_duration.inMilliseconds / 1000)
+                                    .clamp(0.001, double.infinity),
+                              ),
                               max: (_duration.inMilliseconds / 1000)
                                   .clamp(0.001, double.infinity),
                               onChanged: (value) {
                                 final position = Duration(
-                                    milliseconds: (value * 1000).round());
+                                  milliseconds: (value * 1000).round(),
+                                );
                                 _player.seek(position);
                               },
                             ),

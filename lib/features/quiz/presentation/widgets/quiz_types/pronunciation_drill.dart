@@ -1,19 +1,23 @@
+import 'dart:math' as math;
+
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 class PronunciationDrill extends StatefulWidget {
   const PronunciationDrill({
-    super.key,
     required this.quiz,
+    super.key,
     this.onWordLongPress,
+    this.onCheck,
+    this.onNext,
   });
 
   final Quiz quiz;
   final void Function(String word)? onWordLongPress;
+  final VoidCallback? onCheck;
+  final VoidCallback? onNext;
 
   @override
   State<PronunciationDrill> createState() => _PronunciationDrillState();
@@ -73,17 +77,11 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     }
   }
 
-  // Simulate Test Button Action (from React's bottom-right button)
-  void _simulateTest() {
-    // For now, it functions as Next or a helper to pass
-    _next();
-  }
-
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final drills = widget.quiz.pronunciations ?? [];
-    final borderColor = Colors.grey.withOpacity(0.5);
+    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     if (drills.isEmpty) {
       return Center(
@@ -148,55 +146,59 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                       children: [
                         // Header inside Card (Counter + Progress)
                         Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Counter
-                                Text(
-                                  '${_currentIndex + 1} / ${drills.length}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight:
-                                        FontWeight.normal, // Fixed: Not bold
-                                    color: appColors.textPrimary,
-                                  ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Counter
+                              Text(
+                                '${_currentIndex + 1} / ${drills.length}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight:
+                                      FontWeight.normal, // Fixed: Not bold
+                                  color: appColors.textPrimary,
                                 ),
-                                // Progress Circle
-                                SizedBox(
-                                  width: 32,
-                                  height: 32,
-                                  child: CustomPaint(
-                                    painter: _CircularProgressPainter(
-                                      // Fixed: Use completedCount instead of currentIndex
-                                      // If strictly segment based, we need to pass states.
-                                      // For now, simple progress of "passed/attempts" is better than "current index".
-                                      // React draws segments for *attempted* items.
-                                      // Let's use completedCount / length for the arc.
-                                      progress: drills.isEmpty
-                                          ? 0
-                                          : completedCount / drills.length,
-                                      color: appColors.primary,
-                                      trackColor: appColors.border,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '$completedCount',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: appColors.textSecondary,
-                                        ),
+                              ),
+                              // Progress Circle
+                              SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: CustomPaint(
+                                  painter: _CircularProgressPainter(
+                                    // Fixed: Use completedCount instead of currentIndex
+                                    // If strictly segment based, we need to pass states.
+                                    // For now, simple progress of "passed/attempts" is better than "current index".
+                                    // React draws segments for *attempted* items.
+                                    // Let's use completedCount / length for the arc.
+                                    progress: drills.isEmpty
+                                        ? 0
+                                        : completedCount / drills.length,
+                                    color: appColors.primary,
+                                    trackColor: appColors.border,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '$completedCount',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: appColors.textSecondary,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ],
-                            )),
+                              ),
+                            ],
+                          ),
+                        ),
                         Divider(
-                            height: 1,
-                            color: appColors.border.withOpacity(0.5)),
+                          height: 1,
+                          color: appColors.border.withValues(alpha: 0.5),
+                        ),
 
                         // Content (Flex to fill available space)
                         Expanded(
@@ -207,7 +209,9 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                                   // Fixed: Center vertically
                                   child: SingleChildScrollView(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 24, vertical: 12),
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment
                                           .center, // Center logic
@@ -216,7 +220,8 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                                         if (currentState.attempts > 0)
                                           Padding(
                                             padding: const EdgeInsets.only(
-                                                bottom: 24),
+                                              bottom: 24,
+                                            ),
                                             child: Text(
                                               '${currentState.bestScore}%',
                                               style: TextStyle(
@@ -235,10 +240,11 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
 
                                         // Main Text
                                         _buildFormattedText(
-                                            context,
-                                            currentItem.text,
-                                            currentState.passed,
-                                            appColors),
+                                          context,
+                                          currentItem.text,
+                                          currentState.passed,
+                                          appColors,
+                                        ),
 
                                         const SizedBox(height: 16),
 
@@ -277,13 +283,12 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                                             padding: const EdgeInsets.all(16),
                                             decoration: BoxDecoration(
                                               color: appColors.primary
-                                                  .withOpacity(0.05),
+                                                  .withValues(alpha: 0.05),
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                               border: Border.all(
                                                 color: appColors.primary
-                                                    .withOpacity(0.3),
-                                                style: BorderStyle.solid,
+                                                    .withValues(alpha: 0.3),
                                               ),
                                             ),
                                             child: Text(
@@ -304,9 +309,17 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                               // Controls Area (Pushed to bottom of Flex)
                               Padding(
                                 padding: const EdgeInsets.only(
-                                    bottom: 32, left: 24, right: 24, top: 16),
-                                child: _buildControls(currentState, currentItem,
-                                    appColors, drills),
+                                  bottom: 32,
+                                  left: 24,
+                                  right: 24,
+                                  top: 16,
+                                ),
+                                child: _buildControls(
+                                  currentState,
+                                  currentItem,
+                                  appColors,
+                                  drills,
+                                ),
                               ),
                             ],
                           ),
@@ -324,8 +337,12 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   }
 
   // Custom formatted text builder to handle <p hide='true'> and other tags
-  Widget _buildFormattedText(BuildContext context, String content,
-      bool isRevealed, AppColorsExtension appColors) {
+  Widget _buildFormattedText(
+    BuildContext context,
+    String content,
+    bool isRevealed,
+    AppColorsExtension appColors,
+  ) {
     // Check if simple text without tags
     if (!content.contains('<p')) {
       return Text(
@@ -340,53 +357,61 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
       );
     }
 
-    final List<InlineSpan> spans = [];
-    final regex = RegExp(r"(<p[^>]*>)(.*?)(</p>)",
-        caseSensitive: false); // Simple tag parser
+    final spans = <InlineSpan>[];
+    final regex = RegExp(
+      '(<p[^>]*>)(.*?)(</p>)',
+      caseSensitive: false,
+    ); // Simple tag parser
 
-    int lastIndex = 0;
+    var lastIndex = 0;
     // We iterate matches. If text is between tags, we add it too.
     for (final match in regex.allMatches(content)) {
       if (match.start > lastIndex) {
-        String text = content.substring(lastIndex, match.start);
+        final text = content.substring(lastIndex, match.start);
         if (text.trim().isNotEmpty) {
           spans.add(TextSpan(text: text));
         }
       }
 
-      String startTag = match.group(1)!;
-      String innerText = match.group(2)!;
+      final startTag = match.group(1)!;
+      final innerText = match.group(2)!;
 
       // Check attributes
-      bool isHidden =
+      final isHidden =
           startTag.contains("hide='true'") || startTag.contains('hide="true"');
 
       if (isHidden && !isRevealed) {
         // Render Gap (Dashed lines)
-        spans.add(TextSpan(
-            text: "_______", // Placeholder for gap
+        spans.add(
+          TextSpan(
+            text: '_______', // Placeholder for gap
             style: TextStyle(
               color: appColors.primary,
               fontWeight: FontWeight.bold,
               letterSpacing: 2, // Space out dashes
-            )));
+            ),
+          ),
+        );
       } else {
         // Render Text (Normal or Revealed)
-        spans.add(TextSpan(
+        spans.add(
+          TextSpan(
             text: innerText,
             style: TextStyle(
               color: isHidden
                   ? appColors.primary
                   : appColors.textPrimary, // Highlight if it was hidden
               fontWeight: FontWeight.normal,
-            )));
+            ),
+          ),
+        );
       }
 
       lastIndex = match.end;
     }
 
     if (lastIndex < content.length) {
-      String text = content.substring(lastIndex);
+      final text = content.substring(lastIndex);
       if (text.trim().isNotEmpty) {
         spans.add(TextSpan(text: text));
       }
@@ -406,10 +431,11 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   }
 
   Widget _buildControls(
-      _PronunciationDrillItemState state,
-      PronunciationItem item,
-      AppColorsExtension appColors,
-      List<PronunciationItem> drills) {
+    _PronunciationDrillItemState state,
+    PronunciationItem item,
+    AppColorsExtension appColors,
+    List<PronunciationItem> drills,
+  ) {
     // High Score: Retry + Next (Internal to Card)
     if (state.attempts > 0 && state.bestScore >= 50) {
       return Row(
@@ -427,7 +453,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -454,14 +480,38 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: appColors.primary.withOpacity(0.3),
+                      color: appColors.primary.withValues(alpha: 0.3),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: const Icon(Icons.arrow_forward_ios_rounded,
-                    color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+            )
+          else if (widget.onNext != null)
+            ElevatedButton.icon(
+              onPressed: () {
+                widget.onCheck?.call();
+                widget.onNext?.call();
+              },
+              icon: const Icon(Icons.arrow_forward, size: 18),
+              label: const Text(
+                'Next question',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: appColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
               ),
             ),
         ],
@@ -480,7 +530,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -506,13 +556,13 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
             boxShadow: [
               if (_isRecording)
                 BoxShadow(
-                  color: Colors.red.withOpacity(0.4),
+                  color: Colors.red.withValues(alpha: 0.4),
                   blurRadius: 12,
                   spreadRadius: 2,
                 )
               else
                 BoxShadow(
-                  color: appColors.primary.withOpacity(0.3),
+                  color: appColors.primary.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -530,12 +580,6 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
 }
 
 class _PronunciationDrillItemState {
-  final int score;
-  final int bestScore;
-  final bool passed;
-  final int attempts;
-  final String? transcript;
-
   _PronunciationDrillItemState({
     this.score = 0,
     this.bestScore = 0,
@@ -543,6 +587,11 @@ class _PronunciationDrillItemState {
     this.attempts = 0,
     this.transcript,
   });
+  final int score;
+  final int bestScore;
+  final bool passed;
+  final int attempts;
+  final String? transcript;
 
   _PronunciationDrillItemState copyWith({
     int? score,
@@ -563,41 +612,42 @@ class _PronunciationDrillItemState {
 
 // Dashed Border Painter
 class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
   _DashedBorderPainter({
     required this.color,
     this.strokeWidth = 1,
     this.gap = 5,
     this.borderRadius = 0,
   });
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final Path path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(borderRadius),
+        ),
+      );
 
-    final Path dashedPath = _dashPath(path, width: 8, space: gap);
+    final dashedPath = _dashPath(path, width: 8, space: gap);
     canvas.drawPath(dashedPath, paint);
   }
 
   Path _dashPath(Path source, {required double width, required double space}) {
-    final Path dest = Path();
-    for (final ui.PathMetric metric in source.computeMetrics()) {
-      double distance = 0.0;
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double distance = 0;
       while (distance < metric.length) {
-        final double len = (distance + width < metric.length)
+        final len = (distance + width < metric.length)
             ? width
             : metric.length - distance;
         dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
@@ -617,17 +667,15 @@ class _DashedBorderPainter extends CustomPainter {
 
 // Circular Progress Painter
 class _CircularProgressPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  final Color trackColor;
-  final double strokeWidth;
-
   _CircularProgressPainter({
     required this.progress,
     required this.color,
     required this.trackColor,
-    this.strokeWidth = 3,
   });
+  final double progress;
+  final Color color;
+  final Color trackColor;
+  final double strokeWidth = 4;
 
   @override
   void paint(Canvas canvas, Size size) {

@@ -1,21 +1,4 @@
 class Course {
-  final String id;
-  final String title;
-  final String imageUrl;
-  final String author;
-  final String translator;
-  final String adapter;
-  final int pageCount;
-  final String publisher;
-  final int publicationYear;
-  final List<String> skill; // e.g., ['Listening']
-  final String shortDescription;
-  final String fullDescription;
-  final String
-      targetAudience; // 'Vietnamese' -> has answers/explanations in Vietnamese
-  final List<Lesson> lessons;
-  final int completedLessons;
-
   const Course({
     required this.id,
     required this.title,
@@ -33,6 +16,46 @@ class Course {
     required this.lessons,
     this.completedLessons = 0,
   });
+
+  factory Course.fromJson(Map<String, dynamic> json) {
+    return Course(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String? ?? '',
+      author: json['author'] as String? ?? '',
+      translator: json['translator'] as String? ?? '',
+      adapter: json['adapter'] as String? ?? '',
+      pageCount: json['pageCount'] as int? ?? 0,
+      publisher: json['publisher'] as String? ?? '',
+      publicationYear: json['publicationYear'] as int? ?? 0,
+      skill: (json['skill'] as List?)?.map((e) => e as String).toList() ??
+          const [],
+      shortDescription: json['shortDescription'] as String? ?? '',
+      fullDescription: json['fullDescription'] as String? ?? '',
+      targetAudience: json['targetAudience'] as String? ?? '',
+      lessons: (json['lessons'] as List?)
+              ?.map((e) => Lesson.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      completedLessons: json['completedLessons'] as int? ?? 0,
+    );
+  }
+  final String id;
+  final String title;
+  final String imageUrl;
+  final String author;
+  final String translator;
+  final String adapter;
+  final int pageCount;
+  final String publisher;
+  final int publicationYear;
+  final List<String> skill; // e.g., ['Listening']
+  final String shortDescription;
+  final String fullDescription;
+  final String
+      targetAudience; // 'Vietnamese' -> has answers/explanations in Vietnamese
+  final List<Lesson> lessons;
+  final int completedLessons;
 
   Course copyWith({
     String? id,
@@ -69,45 +92,14 @@ class Course {
       completedLessons: completedLessons ?? this.completedLessons,
     );
   }
-
-  factory Course.fromJson(Map<String, dynamic> json) {
-    return Course(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      imageUrl: json['imageUrl'] as String? ?? '',
-      author: json['author'] as String? ?? '',
-      translator: json['translator'] as String? ?? '',
-      adapter: json['adapter'] as String? ?? '',
-      pageCount: json['pageCount'] as int? ?? 0,
-      publisher: json['publisher'] as String? ?? '',
-      publicationYear: json['publicationYear'] as int? ?? 0,
-      skill: (json['skill'] as List?)?.map((e) => e as String).toList() ??
-          const [],
-      shortDescription: json['shortDescription'] as String? ?? '',
-      fullDescription: json['fullDescription'] as String? ?? '',
-      targetAudience: json['targetAudience'] as String? ?? '',
-      lessons: (json['lessons'] as List?)
-              ?.map((e) => Lesson.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      completedLessons: json['completedLessons'] as int? ?? 0,
-    );
-  }
 }
 
 class Lesson {
-  final String id;
-  final String title;
-  final String description; // Optional
-  final int lessonNumber;
-  final int quizCount;
-  final List<Quiz> quizzes;
-
   const Lesson({
     required this.id,
     required this.title,
-    this.description = '',
     required this.lessonNumber,
+    this.description = '',
     this.quizCount = 0,
     this.quizzes = const [],
   });
@@ -127,38 +119,16 @@ class Lesson {
       quizzes: quizzes,
     );
   }
+  final String id;
+  final String title;
+  final String description; // Optional
+  final int lessonNumber;
+  final int quizCount;
+  final List<Quiz> quizzes;
 }
 
 class Quiz {
-  final String id;
-  final String title;
-  final String type;
-  final String instruction;
-  final String quizNumber;
-  final String question;
-  final String? audio; // Optional audio path
-  final String? transcript; // Optional transcript
-  final String? passage; // Optional passage file path
-  final List<QuizQuestion> questions;
-  final List<QuizAnswer> answers; // For gap-fill quizzes
-  final List<String>? answersString; // For multi-answer multiple choice
-
-  // Additional fields for different quiz types
-  final List<String>?
-      options; // For multiple choice options (simple string array)
-  final List<MatchingItem>? matchings; // For matching-dropdown quizzes
-  final String? subtype; // 'single-answer' | 'multi-answer'
-  final int? min; // Minimum word count for writing quizzes
-  final String? example; // Example answer for writing/speaking
-  final List<ChatMessage>? chats; // For chatting quizzes
-  final List<FlashcardItem>? flashcards; // For flashcard quizzes
-  final List<DictationItem>? dictations; // For dictation quizzes
-  final List<PronunciationItem>? pronunciations; // For pronunciation quizzes
-  final List<SpeechBuilderItem>? speechBuilders; // For speech builder quizzes
-  final List<ErrorCorrectionItem>?
-      errorCorrections; // For error correction quizzes
-  final List<SentenceTransformationItem>?
-      sentenceTransformations; // For sentence transformation quizzes
+  // For sentence transformation quizzes
 
   const Quiz({
     required this.id,
@@ -167,11 +137,11 @@ class Quiz {
     required this.instruction,
     required this.quizNumber,
     required this.question,
+    required this.answers,
     this.audio,
     this.transcript,
     this.passage,
     this.questions = const [],
-    required this.answers,
     this.answersString,
     this.options,
     this.matchings,
@@ -189,7 +159,7 @@ class Quiz {
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
     // Parse answers - can be List<QuizAnswer> or List<String>
-    List<QuizAnswer> quizAnswers = [];
+    var quizAnswers = <QuizAnswer>[];
     List<String>? stringAnswers;
 
     if (json['answers'] != null) {
@@ -222,16 +192,19 @@ class Quiz {
     }
 
     var sentenceTransformationsList = (json['sentenceTransformations'] as List?)
-        ?.map((e) =>
-            SentenceTransformationItem.fromJson(e as Map<String, dynamic>))
+        ?.map(
+          (e) => SentenceTransformationItem.fromJson(e as Map<String, dynamic>),
+        )
         .toList();
 
     if (sentenceTransformationsList == null &&
         json['questions'] != null &&
         type == 'sentence-transformation') {
       sentenceTransformationsList = (json['questions'] as List?)
-          ?.map((e) =>
-              SentenceTransformationItem.fromJson(e as Map<String, dynamic>))
+          ?.map(
+            (e) =>
+                SentenceTransformationItem.fromJson(e as Map<String, dynamic>),
+          )
           .toList();
     }
 
@@ -253,7 +226,7 @@ class Quiz {
         final items =
             (bMap['items'] as List?)?.map((e) => e.toString()).toList() ?? [];
 
-        List<String> validAnswers = [];
+        final validAnswers = <String>[];
         // Construct answer from correctOrder if available
         if (bMap['correctOrder'] != null) {
           final correctOrder =
@@ -322,13 +295,37 @@ class Quiz {
       sentenceTransformations: sentenceTransformationsList,
     );
   }
+  final String id;
+  final String title;
+  final String type;
+  final String instruction;
+  final String quizNumber;
+  final String question;
+  final String? audio; // Optional audio path
+  final String? transcript; // Optional transcript
+  final String? passage; // Optional passage file path
+  final List<QuizQuestion> questions;
+  final List<QuizAnswer> answers; // For gap-fill quizzes
+  final List<String>? answersString; // For multi-answer multiple choice
+
+  // Additional fields for different quiz types
+  final List<String>?
+      options; // For multiple choice options (simple string array)
+  final List<MatchingItem>? matchings; // For matching-dropdown quizzes
+  final String? subtype; // 'single-answer' | 'multi-answer'
+  final int? min; // Minimum word count for writing quizzes
+  final String? example; // Example answer for writing/speaking
+  final List<ChatMessage>? chats; // For chatting quizzes
+  final List<FlashcardItem>? flashcards; // For flashcard quizzes
+  final List<DictationItem>? dictations; // For dictation quizzes
+  final List<PronunciationItem>? pronunciations; // For pronunciation quizzes
+  final List<SpeechBuilderItem>? speechBuilders; // For speech builder quizzes
+  final List<ErrorCorrectionItem>?
+      errorCorrections; // For error correction quizzes
+  final List<SentenceTransformationItem>? sentenceTransformations;
 }
 
 class QuizAnswer {
-  final String id;
-  final List<String> answer;
-  final String explain;
-
   const QuizAnswer({
     required this.id,
     required this.answer,
@@ -352,17 +349,12 @@ class QuizAnswer {
       explain: json['explain'] as String? ?? '',
     );
   }
+  final String id;
+  final List<String> answer;
+  final String explain;
 }
 
 class QuizQuestion {
-  final String id;
-  final String question;
-  final List<String> options;
-  final String
-      answer; // Kept for backward compat, but use validAnswers for logic
-  final List<String> validAnswers;
-  final String explain;
-
   const QuizQuestion({
     required this.id,
     required this.question,
@@ -374,8 +366,8 @@ class QuizQuestion {
 
   factory QuizQuestion.fromJson(Map<String, dynamic> json) {
     // Handle answer field which might be String or List
-    String singleAnswer = '';
-    List<String> answersList = [];
+    var singleAnswer = '';
+    var answersList = <String>[];
 
     // Check 'answers' (plural) first as it's explicit for lists in the user's JSON
     if (json['answers'] != null) {
@@ -419,12 +411,16 @@ class QuizQuestion {
       explain: json['explain'] as String? ?? '',
     );
   }
+  final String id;
+  final String question;
+  final List<String> options;
+  final String
+      answer; // Kept for backward compat, but use validAnswers for logic
+  final List<String> validAnswers;
+  final String explain;
 }
 
 class QuizOption {
-  final String key;
-  final String text;
-
   const QuizOption({
     required this.key,
     required this.text,
@@ -436,14 +432,11 @@ class QuizOption {
       text: json['text'] as String? ?? '',
     );
   }
+  final String key;
+  final String text;
 }
 
 class MatchingItem {
-  final String id;
-  final String question;
-  final String answer;
-  final String explain;
-
   const MatchingItem({
     required this.id,
     required this.question,
@@ -459,17 +452,14 @@ class MatchingItem {
       explain: json['explain'] as String? ?? '',
     );
   }
+  final String id;
+  final String question;
+  final String answer;
+  final String explain;
 }
 
 class ChatMessage {
-  final String id;
-  final String role; // 'bot' | 'user'
-  final String content;
-  final String? name;
-  final String? time;
-  final String? ipa;
-  final String? explain;
-  final String? question; // Used as content in some legacy structures?
+  // Used as content in some legacy structures?
 
   const ChatMessage({
     required this.id,
@@ -494,22 +484,23 @@ class ChatMessage {
       question: json['question'] as String?,
     );
   }
+  final String id;
+  final String role; // 'bot' | 'user'
+  final String content;
+  final String? name;
+  final String? time;
+  final String? ipa;
+  final String? explain;
+  final String? question;
 }
 
 class FlashcardItem {
-  final String id;
-  final String front;
-  final String? frontAudio;
-  final String? image;
-  final dynamic back; // String or Map (definition, example, etc.)
-  final String? backAudio;
-
   const FlashcardItem({
     required this.id,
     required this.front,
+    required this.back,
     this.frontAudio,
     this.image,
-    required this.back,
     this.backAudio,
   });
 
@@ -523,18 +514,15 @@ class FlashcardItem {
       backAudio: json['backAudio'] as String?,
     );
   }
+  final String id;
+  final String front;
+  final String? frontAudio;
+  final String? image;
+  final dynamic back; // String or Map (definition, example, etc.)
+  final String? backAudio;
 }
 
 class DictationItem {
-  final String id;
-  final String? audio;
-  final String? text; // Logic uses correct text but UI calls it text?
-  final String? transcript; // Usually the correct answer
-  final String? translate;
-  final String? ipa;
-  final int? score;
-  final double? speed;
-
   const DictationItem({
     required this.id,
     this.audio,
@@ -558,14 +546,18 @@ class DictationItem {
       speed: (json['speed'] as num?)?.toDouble(),
     );
   }
+  final String id;
+  final String? audio;
+  final String? text; // Logic uses correct text but UI calls it text?
+  final String? transcript; // Usually the correct answer
+  final String? translate;
+  final String? ipa;
+  final int? score;
+  final double? speed;
 }
 
 class PronunciationItem {
-  final String id;
-  final String text;
-  final String? ipa;
-  final String? translate;
-  final String? hiddenWord; // For FillInTheBlankPronunciation?
+  // For FillInTheBlankPronunciation?
 
   const PronunciationItem({
     required this.id,
@@ -584,18 +576,14 @@ class PronunciationItem {
       hiddenWord: json['hiddenWord'] as String?,
     );
   }
+  final String id;
+  final String text;
+  final String? ipa;
+  final String? translate;
+  final String? hiddenWord;
 }
 
 class SpeechBuilderItem {
-  final String id;
-  final String? question; // Scrambled sentence?
-  final List<String>? items; // For legacy scrambled words
-  final String? hint;
-  final String? translate;
-  // Answers usually defined in `quiz.answers` or `item.answers`?
-  // TSX: `item.answers?.find(...)`
-  final List<QuizAnswer>? answers;
-
   const SpeechBuilderItem({
     required this.id,
     this.question,
@@ -617,14 +605,17 @@ class SpeechBuilderItem {
           .toList(),
     );
   }
+  final String id;
+  final String? question; // Scrambled sentence?
+  final List<String>? items; // For legacy scrambled words
+  final String? hint;
+  final String? translate;
+  // Answers usually defined in `quiz.answers` or `item.answers`?
+  // TSX: `item.answers?.find(...)`
+  final List<QuizAnswer>? answers;
 }
 
 class ErrorCorrectionItem {
-  final String id;
-  final String original;
-  final List<CorrectionError> errors;
-  final String? explain;
-
   const ErrorCorrectionItem({
     required this.id,
     required this.original,
@@ -633,23 +624,161 @@ class ErrorCorrectionItem {
   });
 
   factory ErrorCorrectionItem.fromJson(Map<String, dynamic> json) {
-    return ErrorCorrectionItem(
-      id: json['id'] as String? ?? '',
-      original: json['original'] as String? ?? '',
-      errors: (json['errors'] as List?)
+    var content =
+        json['original'] as String? ?? json['question'] as String? ?? '';
+    var parsedErrors = <CorrectionError>[];
+
+    // Parse <error> tags if present to calculate indices
+    // Example: "She <error id='error_01'>don't</error> like..."
+    // We need to:
+    // 1. Find all tags.
+    // 2. Map IDs to indices.
+    // 3. Strip tags to get clean 'original'.
+
+    if (content.contains('<error')) {
+      final regex =
+          RegExp(r'<error id=[\"\u0027](.*?)[\"\u0027]>(.*?)<\/error>');
+      final matches = regex.allMatches(content);
+
+      var cleanText = content;
+      // Naive approach: Strip tags, then tokenize?
+      // Better: Tokenize the raw string with tags, identify error tokens.
+      // Or: Replace tags with just content, track which word index it falls into.
+
+      // 1. Replace tags with just content, but remember ID.
+      // We can use a temporary map.
+
+      // Simplified parser:
+      // Split by spaces? XML tags might attach to words.
+      // Let's assume space separation for now or standard text.
+      // React "parseTokens" probably handles this.
+
+      // Regex replace and track?
+      // "She " -> "She "
+      // "<error...>don't</error>" -> "don't" (record ID -> index)
+
+      // Let's rebuild the clean string and map indices simultaneously.
+
+      // Split by spaces to find tokens?
+      // Problem: <error> tag might contain multiple words? "have went"
+
+      // Let's try splitting raw string by spaces, then checking for tags.
+      // "She"
+      // "<error" ...
+
+      // Actually, let's keep it simple for MVP similar to React if possible.
+      // React `parseTokens` likely Regexes content.
+
+      // Strategy:
+      // 1. Remove all tags to get `original`.
+      // 2. Use `original` for display.
+      // 3. BUT we need `index` for `CorrectionError`.
+      // User says JSON input: "She <error...>don't</error>..."
+      // `CorrectionError` needs `index`.
+
+      // Parse Logic:
+      // Iterate matches.
+      // Calculate token index of the match start.
+
+      // Implementation:
+      // Split content by matches.
+      var wordCount = 0;
+      var lastEnd = 0;
+      final constructedOriginal = StringBuffer();
+
+      final jsonErrors = (json['errors'] as List?)
               ?.map((e) => CorrectionError.fromJson(e as Map<String, dynamic>))
               .toList() ??
-          const [],
+          [];
+
+      // A list to hold updated errors with indices
+      final updatedErrors = <CorrectionError>[];
+      final errorMap = <String, CorrectionError>{
+        for (final e in jsonErrors) e.id: e,
+      };
+
+      for (final match in matches) {
+        // Text before this match
+        final pre = content.substring(lastEnd, match.start);
+        if (pre.isNotEmpty) {
+          // Count words in pre
+          var preWords = pre.trim().split(RegExp(r'\s+'));
+          if (pre.trim().isEmpty) preWords = [];
+          wordCount += preWords.length;
+          constructedOriginal.write(pre);
+        }
+
+        // The error content
+        final id = match.group(1) ?? '';
+        final text = match.group(2) ?? '';
+
+        // This 'text' is the error token(s).
+        // It starts at `wordCount`.
+        // If "have went" -> 2 words.
+
+        // Map this ID to start index
+        if (errorMap.containsKey(id)) {
+          updatedErrors.add(
+            CorrectionError(
+              id: id,
+              index: wordCount, // Start index
+              correct: errorMap[id]!.correct,
+            ),
+          );
+        }
+
+        var errorWords = text.trim().split(RegExp(r'\s+'));
+        if (text.trim().isEmpty) errorWords = [];
+        wordCount += errorWords.length;
+
+        constructedOriginal.write(text);
+        lastEnd = match.end;
+      }
+
+      // Remaining
+      final post = content.substring(lastEnd);
+      constructedOriginal.write(post);
+
+      // Clean up extra spaces in constructedOriginal for storage if needed?
+      // Or just rely on cleanText logic.
+      cleanText = constructedOriginal.toString(); // Rough approximation.
+
+      // Better: Use `cleanText` derived by just stripping tags.
+      cleanText = content
+          .replaceAll(RegExp('<error.*?>'), '')
+          .replaceAll('</error>', '');
+
+      // Re-assign basic fields
+      content = cleanText;
+      parsedErrors = updatedErrors;
+
+      // If we found errors via tags, use them.
+      // If not (no tags), use jsonErrors as is (assuming indices provided).
+      if (parsedErrors.isEmpty && jsonErrors.isNotEmpty) {
+        parsedErrors = jsonErrors;
+      }
+    } else {
+      // Normal JSON with correct `original` and `errors` with indices
+      parsedErrors = (json['errors'] as List?)
+              ?.map((e) => CorrectionError.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+    }
+
+    return ErrorCorrectionItem(
+      id: json['id'] as String? ?? '',
+      original: content.trim(), // Clean text
+      errors: parsedErrors,
       explain: json['explain'] as String?,
     );
   }
+  final String id;
+  final String original;
+  final List<CorrectionError> errors;
+  final String? explain;
 }
 
 class CorrectionError {
-  final String id;
-  final int index; // Token index
-  final List<String> correct;
-
   const CorrectionError({
     required this.id,
     required this.index,
@@ -664,28 +793,24 @@ class CorrectionError {
           const [],
     );
   }
+  final String id;
+  final int index; // Token index
+  final List<String> correct;
 }
 
 class SentenceTransformationItem {
-  final String id;
-  final String? original;
-  final String? question; // Template with </gap> tags for input
-  final String? require; // The instruction/requirement
-  final List<String> answer; // List of acceptable answers
-  final String? explain;
-
   const SentenceTransformationItem({
     required this.id,
+    required this.answer,
     this.original,
     this.question,
     this.require,
-    required this.answer,
     this.explain,
   });
 
   factory SentenceTransformationItem.fromJson(Map<String, dynamic> json) {
     // Answer can be String or List inside json['answer']
-    List<String> parsedAnswer = [];
+    var parsedAnswer = <String>[];
     if (json['answer'] is List) {
       parsedAnswer = (json['answer'] as List).map((e) => e.toString()).toList();
     } else if (json['answer'] is String) {
@@ -701,4 +826,10 @@ class SentenceTransformationItem {
       explain: json['explain'] as String?,
     );
   }
+  final String id;
+  final String? original;
+  final String? question; // Template with </gap> tags for input
+  final String? require; // The instruction/requirement
+  final List<String> answer; // List of acceptable answers
+  final String? explain;
 }

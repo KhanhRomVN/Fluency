@@ -88,7 +88,7 @@ class MainPage extends StatelessWidget {
                       minHeight: 16,
                     ),
                     child: const Text(
-                      '0', // TODO: Bind to actual collection count
+                      '0', // TODO(khanhromvn): Bind to actual collection count.
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 10,

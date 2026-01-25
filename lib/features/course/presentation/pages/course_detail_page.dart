@@ -155,7 +155,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                   clipBehavior: Clip.antiAlias,
                   child: CourseImage(
                     imageUrl: displayCourse.imageUrl,
-                    fit: BoxFit.cover,
                   ),
                 ),
               ),
@@ -289,7 +288,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                     final lesson = displayCourse.lessons[itemIndex];
                     final isCompleted =
                         itemIndex < displayCourse.completedLessons;
-                    final isLocked = false; // Always unlocked for now
+                    const isLocked = false; // Always unlocked for now
 
                     return LessonCard(
                       lesson: lesson,

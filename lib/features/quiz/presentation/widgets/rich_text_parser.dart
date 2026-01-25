@@ -1,7 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class RichTextParser {
   /// Parses the text content and builds a list of widgets.
@@ -15,7 +14,7 @@ class RichTextParser {
     TextStyle? style,
     TextAlign textAlign = TextAlign.start,
   }) {
-    final List<Widget> widgets = [];
+    final widgets = <Widget>[];
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     final combinedRegex = RegExp(
@@ -23,11 +22,11 @@ class RichTextParser {
       caseSensitive: false,
     );
 
-    int lastIndex = 0;
+    var lastIndex = 0;
 
     // Current style context
-    bool isBold = false;
-    bool isCenter = false;
+    var isBold = false;
+    var isCenter = false;
     double? fontSize;
 
     final matches = combinedRegex.allMatches(content);
@@ -54,7 +53,7 @@ class RichTextParser {
 
       if (tag.toLowerCase().startsWith('</gap')) {
         if (isQuestion && onGapFound != null) {
-          final idMatch = RegExp(r"id='(.*?)'").firstMatch(tag);
+          final idMatch = RegExp("id='(.*?)'").firstMatch(tag);
           final id = idMatch?.group(1);
           if (id != null) {
             final gapWidget = onGapFound(id);
@@ -66,8 +65,8 @@ class RichTextParser {
       } else if (tag.toLowerCase().startsWith('</n')) {
         _addNewline(widgets);
       } else if (tag.toLowerCase().startsWith('<p')) {
-        isBold = tag.contains("bold");
-        isCenter = tag.contains("center");
+        isBold = tag.contains('bold');
+        isCenter = tag.contains('center');
 
         if (isCenter) {
           _addNewline(widgets);
@@ -163,8 +162,8 @@ class RichTextParser {
     // Users interact with "words". Punctuation shouldn't be long-pressed usually.
 
     // Regex to match words and non-words
-    final RegExp tokenRegex = RegExp(r"(\w+)|([^\w\s]+)|(\s+)");
-    final List<InlineSpan> spans = [];
+    final tokenRegex = RegExp(r'(\w+)|([^\w\s]+)|(\s+)');
+    final spans = <InlineSpan>[];
 
     for (final match in tokenRegex.allMatches(text)) {
       final token = match.group(0)!;
@@ -204,7 +203,7 @@ class RichTextParser {
     Widget? Function(String id)? onGapFound,
     void Function(String word)? onWordLongPress,
   }) {
-    final List<InlineSpan> spans = [];
+    final spans = <InlineSpan>[];
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     final combinedRegex = RegExp(
@@ -212,10 +211,10 @@ class RichTextParser {
       caseSensitive: false,
     );
 
-    int lastIndex = 0;
+    var lastIndex = 0;
 
     // Current style context
-    bool isBold = false;
+    var isBold = false;
     double? fontSize;
 
     void addTextSpan(String text) {
@@ -228,7 +227,7 @@ class RichTextParser {
       if (onWordLongPress == null) {
         spans.add(TextSpan(text: text, style: style));
       } else {
-        final RegExp tokenRegex = RegExp(r"(\w+)|([^\w\s]+)|(\s+)");
+        final tokenRegex = RegExp(r'(\w+)|([^\w\s]+)|(\s+)');
         for (final match in tokenRegex.allMatches(text)) {
           final token = match.group(0)!;
           final isWord = match.group(1) != null;
@@ -262,7 +261,7 @@ class RichTextParser {
 
       if (tag.toLowerCase().startsWith('</gap')) {
         if (isQuestion && onGapFound != null) {
-          final idMatch = RegExp(r"id='(.*?)'").firstMatch(tag);
+          final idMatch = RegExp("id='(.*?)'").firstMatch(tag);
           final id = idMatch?.group(1);
           if (id != null) {
             final gapWidget = onGapFound(id);
@@ -280,7 +279,7 @@ class RichTextParser {
       } else if (tag.toLowerCase().startsWith('</n')) {
         spans.add(const TextSpan(text: '\n'));
       } else if (tag.toLowerCase().startsWith('<p')) {
-        isBold = tag.contains("bold");
+        isBold = tag.contains('bold');
         final fontSizeMatch = RegExp(r'\d+').firstMatch(tag);
         if (fontSizeMatch != null) {
           fontSize = double.tryParse(fontSizeMatch.group(0)!);

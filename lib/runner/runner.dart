@@ -1,21 +1,20 @@
 import 'dart:async';
 
+import 'package:fluency/app.dart';
+import 'package:fluency/core/config/environment_config.dart';
+import 'package:fluency/di/injection_container.dart' as di;
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
-
-import '../app.dart';
-import '../core/config/environment_config.dart';
-import '../di/injection_container.dart' as di;
 
 /// App runner class
 class Runner {
   /// Defines how the application should start
   static Future<void> run() async {
     // Handling errors that occur before the application starts
-    runZonedGuarded<Future<void>>(
+    await runZonedGuarded<Future<void>>(
       () async {
         _initLogger();
-        _runApp();
+        await _runApp();
       },
       (error, stack) {
         // Log startup error

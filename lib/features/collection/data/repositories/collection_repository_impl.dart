@@ -1,11 +1,12 @@
 import 'dart:convert';
+
+import 'package:fluency/features/collection/domain/entities/collection_item.dart';
+import 'package:fluency/features/collection/domain/repositories/collection_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_io/io.dart';
-import '../../domain/entities/collection_item.dart';
-import '../../domain/repositories/collection_repository.dart';
 
 class CollectionRepositoryImpl implements CollectionRepository {
   static const String _fileName = 'collection.json';
@@ -31,7 +32,7 @@ class CollectionRepositoryImpl implements CollectionRepository {
     'vellichor',
     'aquiver',
     'nefarious',
-    'somnambulist'
+    'somnambulist',
   ];
 
   // In-memory cache for Web to avoid re-fetching constantly within session
@@ -90,11 +91,11 @@ class CollectionRepositoryImpl implements CollectionRepository {
   Future<List<CollectionItem>> _getMobileItems() async {
     try {
       final file = await _getFile();
-      if (!await file.exists()) {
+      if (!file.existsSync()) {
         return [];
       }
       final content = await file.readAsString();
-      final List<dynamic> jsonList = jsonDecode(content) as List<dynamic>;
+      final jsonList = jsonDecode(content) as List<dynamic>;
       return jsonList
           .map((json) => CollectionItem.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -122,13 +123,13 @@ class CollectionRepositoryImpl implements CollectionRepository {
     // Try loading from cache first
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String? cachedString = prefs.getString('web_collection_cache');
+      final cachedString = prefs.getString('web_collection_cache');
       if (cachedString != null) {
-        final List<dynamic> jsonList =
-            jsonDecode(cachedString) as List<dynamic>;
+        final jsonList = jsonDecode(cachedString) as List<dynamic>;
         final cachedItems = jsonList
             .map(
-                (json) => CollectionItem.fromJson(json as Map<String, dynamic>))
+              (json) => CollectionItem.fromJson(json as Map<String, dynamic>),
+            )
             .toList();
         if (cachedItems.isNotEmpty) {
           _webCache = cachedItems;
@@ -139,13 +140,13 @@ class CollectionRepositoryImpl implements CollectionRepository {
       debugPrint('Error loading web cache: $e');
     }
 
-    final List<CollectionItem> loadedItems = [];
+    final loadedItems = <CollectionItem>[];
 
     // Fetch in parallel for speed
-    final futures = _webWords.map((word) => fetchWord(word));
+    final futures = _webWords.map(fetchWord);
     final results = await Future.wait(futures);
 
-    for (var item in results) {
+    for (final item in results) {
       if (item != null) {
         loadedItems.add(item);
       }
@@ -170,7 +171,8 @@ class CollectionRepositoryImpl implements CollectionRepository {
     // 1. Try Primary API
     try {
       final url = Uri.parse(
-          'https://freedictionaryapi.com/api/v1/entries/en/$word?translations=true');
+        'https://freedictionaryapi.com/api/v1/entries/en/$word?translations=true',
+      );
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -180,7 +182,7 @@ class CollectionRepositoryImpl implements CollectionRepository {
           final entries = data['entries'] as List?;
           if (entries != null && entries.isNotEmpty) {
             final firstEntry = entries[0] as Map<String, dynamic>;
-            String definition = 'No definition found';
+            var definition = 'No definition found';
 
             // Try to find definition in senses
             final senses = firstEntry['senses'] as List?;
@@ -190,11 +192,12 @@ class CollectionRepositoryImpl implements CollectionRepository {
             }
 
             // Extract phonetics (pronunciations)
-            List<String> phoneticsList = [];
+            final phoneticsList = <String>[];
             final pronunciations = firstEntry['pronunciations'] as List?;
             if (pronunciations != null) {
-              for (var p in pronunciations) {
-                final text = p['text'] as String?;
+              for (final p in pronunciations) {
+                final pMap = p as Map<String, dynamic>;
+                final text = pMap['text'] as String?;
                 if (text != null) {
                   phoneticsList.add(text);
                 }
@@ -226,24 +229,27 @@ class CollectionRepositoryImpl implements CollectionRepository {
         final dynamic data = jsonDecode(response.body);
         if (data is List && data.isNotEmpty) {
           final firstEntry = data[0] as Map<String, dynamic>;
-          String definition = 'No definition found';
+          var definition = 'No definition found';
 
           // Parse Fallback API structure
           final meanings = firstEntry['meanings'] as List?;
           if (meanings != null && meanings.isNotEmpty) {
-            final definitions = meanings[0]['definitions'] as List?;
+            final firstMeaning = meanings[0] as Map<String, dynamic>;
+            final definitions = firstMeaning['definitions'] as List?;
             if (definitions != null && definitions.isNotEmpty) {
+              final firstDefinition = definitions[0] as Map<String, dynamic>;
               definition =
-                  definitions[0]['definition'] as String? ?? definition;
+                  firstDefinition['definition'] as String? ?? definition;
             }
           }
 
           // Extract phonetics
-          List<String> phoneticsList = [];
+          final phoneticsList = <String>[];
           final phonetics = firstEntry['phonetics'] as List?;
           if (phonetics != null) {
-            for (var p in phonetics) {
-              final text = p['text'] as String?;
+            for (final p in phonetics) {
+              final pMap = p as Map<String, dynamic>;
+              final text = pMap['text'] as String?;
               if (text != null) {
                 phoneticsList.add(text);
               }

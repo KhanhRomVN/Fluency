@@ -1,8 +1,4 @@
 class Dialogue {
-  final String id;
-  final String original;
-  final String translation;
-
   const Dialogue({
     required this.id,
     required this.original,
@@ -16,6 +12,9 @@ class Dialogue {
       translation: json['translation'] as String? ?? '',
     );
   }
+  final String id;
+  final String original;
+  final String translation;
 
   Map<String, dynamic> toJson() {
     return {
@@ -27,9 +26,6 @@ class Dialogue {
 }
 
 class TranscriptTimestamps {
-  final String start;
-  final String end;
-
   const TranscriptTimestamps({
     required this.start,
     required this.end,
@@ -41,6 +37,8 @@ class TranscriptTimestamps {
       end: json['end'] as String? ?? '00:00',
     );
   }
+  final String start;
+  final String end;
 
   Map<String, dynamic> toJson() {
     return {
@@ -68,11 +66,6 @@ class TranscriptTimestamps {
 }
 
 class TranscriptSegment {
-  final int id;
-  final String speaker;
-  final TranscriptTimestamps timestamps;
-  final List<Dialogue> dialogues;
-
   const TranscriptSegment({
     required this.id,
     required this.speaker,
@@ -85,12 +78,17 @@ class TranscriptSegment {
       id: json['id'] as int? ?? 0,
       speaker: json['speaker'] as String? ?? '',
       timestamps: TranscriptTimestamps.fromJson(
-          json['timestamps'] as Map<String, dynamic>? ?? {}),
+        json['timestamps'] as Map<String, dynamic>? ?? {},
+      ),
       dialogues: (json['dialogues'] as List<dynamic>? ?? [])
           .map((e) => Dialogue.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
+  final int id;
+  final String speaker;
+  final TranscriptTimestamps timestamps;
+  final List<Dialogue> dialogues;
 
   Map<String, dynamic> toJson() {
     return {
@@ -109,9 +107,6 @@ class TranscriptSegment {
 }
 
 class TranscriptData {
-  final Map<String, dynamic> metadata;
-  final List<TranscriptSegment> transcript;
-
   const TranscriptData({
     required this.metadata,
     required this.transcript,
@@ -125,6 +120,8 @@ class TranscriptData {
           .toList(),
     );
   }
+  final Map<String, dynamic> metadata;
+  final List<TranscriptSegment> transcript;
 
   Map<String, dynamic> toJson() {
     return {

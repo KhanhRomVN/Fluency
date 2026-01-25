@@ -1,20 +1,25 @@
+import 'dart:math' as math;
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import 'package:flutter/services.dart';
 
 class DictationAudio extends StatefulWidget {
   const DictationAudio({
-    super.key,
     required this.quiz,
+    super.key,
     this.onWordLongPress,
+    this.onCheck,
+    this.onNext,
   });
 
   final Quiz quiz;
   final void Function(String word)? onWordLongPress;
+  final VoidCallback? onCheck;
+  final VoidCallback? onNext;
 
   @override
   State<DictationAudio> createState() => _DictationAudioState();
@@ -46,7 +51,7 @@ class _DictationAudioState extends State<DictationAudio> {
     super.dispose();
   }
 
-  void _playAudio(DictationItem item) async {
+  Future<void> _playAudio(DictationItem item) async {
     if (_playingId == item.id) {
       await _audioPlayer.stop();
       setState(() {
@@ -62,22 +67,22 @@ class _DictationAudioState extends State<DictationAudio> {
           _playingId = item.id;
         });
       } catch (e) {
-        debugPrint("Error playing audio: $e");
+        debugPrint('Error playing audio: $e');
       }
     }
   }
 
   void _checkAnswer(DictationItem item) {
-    if (_itemStates[item.id]?.passed == true) return;
+    if (_itemStates[item.id]?.passed ?? false) return;
 
     final state = _itemStates[item.id] ?? _DictationItemState();
     final correctText = item.transcript ?? item.text ?? '';
     final words = correctText.trim().split(RegExp(r'\s+'));
 
-    int correctCount = 0;
-    bool allCorrect = true;
+    var correctCount = 0;
+    var allCorrect = true;
 
-    for (int i = 0; i < words.length; i++) {
+    for (var i = 0; i < words.length; i++) {
       // ... (logic remains same for check) ...
       // Re-implementing logic to match state handling
       final input = state.wordInputs[i] ?? '';
@@ -94,7 +99,7 @@ class _DictationAudioState extends State<DictationAudio> {
       }
     }
 
-    int score = (correctCount / words.length * 100).round();
+    final score = (correctCount / words.length * 100).round();
 
     setState(() {
       _itemStates[item.id] = state.copyWith(
@@ -141,8 +146,8 @@ class _DictationAudioState extends State<DictationAudio> {
     final words = correctText.trim().split(RegExp(r'\s+'));
 
     // Check completion
-    bool allFilled = true;
-    for (int i = 0; i < words.length; i++) {
+    var allFilled = true;
+    for (var i = 0; i < words.length; i++) {
       final w = words[i];
       final input = currentState.wordInputs[i] ?? '';
       if (input.length != w.length) {
@@ -151,7 +156,7 @@ class _DictationAudioState extends State<DictationAudio> {
       }
     }
 
-    final borderColor = Colors.grey.withOpacity(0.5);
+    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     return Column(
       children: [
@@ -201,10 +206,15 @@ class _DictationAudioState extends State<DictationAudio> {
                       children: [
                         // HEADER (Matching multiple_choice.dart)
                         _buildCardHeader(
-                            context, appColors, dictations, currentItem),
+                          context,
+                          appColors,
+                          dictations,
+                          currentItem,
+                        ),
                         Divider(
-                            height: 1,
-                            color: appColors.border.withOpacity(0.5)),
+                          height: 1,
+                          color: appColors.border.withValues(alpha: 0.5),
+                        ),
 
                         // BODY
                         Expanded(
@@ -225,7 +235,7 @@ class _DictationAudioState extends State<DictationAudio> {
                                           'Speed: ${currentItem.speed}x',
                                           style: TextStyle(
                                             color: appColors.textSecondary
-                                                .withOpacity(0.7),
+                                                .withValues(alpha: 0.7),
                                             fontSize: 12,
                                           ),
                                         ),
@@ -245,8 +255,12 @@ class _DictationAudioState extends State<DictationAudio> {
                               // Centered Content
                               Center(
                                 child: SingleChildScrollView(
-                                  padding: const EdgeInsets.fromLTRB(24, 60, 24,
-                                      100), // Top padding to avoid overlap with info
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    60,
+                                    24,
+                                    100,
+                                  ), // Top padding to avoid overlap with info
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -286,11 +300,15 @@ class _DictationAudioState extends State<DictationAudio> {
                                             // Simple clean match
                                             final cleanWord = word
                                                 .replaceAll(
-                                                    RegExp(r'[^\w]'), '')
+                                                  RegExp(r'[^\w]'),
+                                                  '',
+                                                )
                                                 .toLowerCase();
                                             final cleanInput = input
                                                 .replaceAll(
-                                                    RegExp(r'[^\w]'), '')
+                                                  RegExp(r'[^\w]'),
+                                                  '',
+                                                )
                                                 .toLowerCase();
                                             if (cleanInput == cleanWord) {
                                               textColor = appColors.primary;
@@ -309,12 +327,14 @@ class _DictationAudioState extends State<DictationAudio> {
                                             onChanged: (val) {
                                               final newInputs =
                                                   Map<int, String>.from(
-                                                      currentState.wordInputs);
+                                                currentState.wordInputs,
+                                              );
                                               newInputs[index] = val;
                                               setState(() {
                                                 _itemStates[currentItem.id] =
                                                     currentState.copyWith(
-                                                        wordInputs: newInputs);
+                                                  wordInputs: newInputs,
+                                                );
                                               });
                                             },
                                           );
@@ -373,79 +393,83 @@ class _DictationAudioState extends State<DictationAudio> {
                   ),
                 ),
 
-                // Floating Action Buttons Area (Overlay)
+                // PLAY BUTTON (Centered at Bottom)
+                if (!currentState.passed && !allFilled)
+                  Positioned(
+                    bottom: 24,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () => _playAudio(currentItem),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: _playingId == currentItem.id
+                                ? Colors.white
+                                : appColors.primary,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (_playingId == currentItem.id
+                                        ? Colors.red
+                                        : appColors.primary)
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            border: _playingId == currentItem.id
+                                ? Border.all(
+                                    color: Colors.red.withValues(alpha: 0.3),
+                                    width: 3,
+                                  )
+                                : null,
+                          ),
+                          child: Icon(
+                            Icons.graphic_eq,
+                            color: _playingId == currentItem.id
+                                ? Colors.red
+                                : Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // ACTION BUTTONS (Bottom Right)
                 Positioned(
                   bottom: 24,
-                  left: 24,
                   right: 24,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // PLAY BUTTON (Bottom Left - or center if space allows, React has it separate)
-                      // React puts AudioLines on the left (spaced), Check on right.
-                      // We can put Play button on left bottom.
-                      if (!currentState.passed && !allFilled)
-                        GestureDetector(
-                          onTap: () => _playAudio(currentItem),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: _playingId == currentItem.id
-                                  ? Colors.white
-                                  : appColors.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (_playingId == currentItem.id
-                                          ? Colors.red
-                                          : appColors.primary)
-                                      .withOpacity(0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                              border: _playingId == currentItem.id
-                                  ? Border.all(
-                                      color: Colors.red.withOpacity(0.3),
-                                      width: 3)
-                                  : null,
-                            ),
-                            child: Icon(
-                              Icons
-                                  .graphic_eq, // Using graphic_eq as similar to AudioLines
-                              color: _playingId == currentItem.id
-                                  ? Colors.red
-                                  : Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        )
-                      else
-                        const SizedBox(width: 56), // Spacer
-
-                      // ACTION BUTTONS (Right)
                       if (!currentState.passed &&
                           allFilled &&
                           currentState.attempts < 3)
                         ElevatedButton.icon(
                           onPressed: () => _checkAnswer(currentItem),
                           icon: const Icon(Icons.check, size: 18),
-                          label: Text(currentState.attempts == 0
-                              ? "Check Answer"
-                              : "Retry"),
+                          label: Text(
+                            currentState.attempts == 0
+                                ? 'Check Answer'
+                                : 'Retry',
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: appColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 12),
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24)),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
                           ),
                         ),
-
-                      // NEXT / RETRY (if passed)
                       if (currentState.passed)
                         Row(
                           children: [
@@ -459,13 +483,18 @@ class _DictationAudioState extends State<DictationAudio> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2)),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
                                   ],
                                 ),
-                                child: Icon(Icons.refresh,
-                                    color: appColors.textSecondary, size: 20),
+                                child: Icon(
+                                  Icons.refresh,
+                                  color: appColors.textSecondary,
+                                  size: 20,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -480,20 +509,45 @@ class _DictationAudioState extends State<DictationAudio> {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                          color: appColors.primary
-                                              .withOpacity(0.3),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2)),
+                                        color: appColors.primary
+                                            .withValues(alpha: 0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
                                     ],
                                   ),
                                   child: const Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      color: Colors.white,
-                                      size: 20),
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              )
+                            else if (widget.onNext != null)
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  widget.onCheck?.call();
+                                  widget.onNext?.call();
+                                },
+                                icon: const Icon(Icons.arrow_forward, size: 18),
+                                label: const Text(
+                                  'Next question',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: appColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
                                 ),
                               ),
                           ],
-                        )
+                        ),
                     ],
                   ),
                 ),
@@ -522,7 +576,7 @@ class _DictationAudioState extends State<DictationAudio> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            "${_currentIndex + 1} / ${items.length}",
+            '${_currentIndex + 1} / ${items.length}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -546,8 +600,9 @@ class _DictationAudioState extends State<DictationAudio> {
                       segmentStates: List.generate(items.length, (index) {
                         final item = items[index];
                         final state = _itemStates[item.id];
-                        if (state == null || state.attempts == 0)
+                        if (state == null || state.attempts == 0) {
                           return 0; // Not started
+                        }
                         return state.passed
                             ? 1
                             : 2; // 1: Correct, 2: Wrong (conceptually)
@@ -558,7 +613,7 @@ class _DictationAudioState extends State<DictationAudio> {
                     ),
                   ),
                   Text(
-                    "$completedCount",
+                    '$completedCount',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -575,7 +630,7 @@ class _DictationAudioState extends State<DictationAudio> {
   }
 }
 
-class _WordInput extends StatelessWidget {
+class _WordInput extends StatefulWidget {
   const _WordInput({
     required this.index,
     required this.correctWord,
@@ -595,11 +650,40 @@ class _WordInput extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   @override
+  State<_WordInput> createState() => _WordInputState();
+}
+
+class _WordInputState extends State<_WordInput> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.currentInput);
+  }
+
+  @override
+  void didUpdateWidget(_WordInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentInput != _controller.text) {
+      _controller.value = _controller.value.copyWith(
+        text: widget.currentInput,
+        selection: TextSelection.collapsed(offset: widget.currentInput.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Estimating width: chars * approx width + padding
     // React: width: `${correctWord.length * 12 + 4}px`
-    final width = (correctWord.length * 12.0) + 4.0;
-    final minWidth = 20.0;
+    final width = (widget.correctWord.length * 12.0) + 4.0;
+    const minWidth = 20.0;
 
     return SizedBox(
       width: math.max(width, minWidth),
@@ -609,14 +693,13 @@ class _WordInput extends StatelessWidget {
           // Dashes Layer (Bottom)
           Padding(
             padding: const EdgeInsets.only(
-                bottom:
-                    4), // align slightly up? React mt-[-2px] means input overlaps dashes
+              bottom: 4,
+            ), // align slightly up? React mt-[-2px] means input overlaps dashes
             // React dashes are 2px high.
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: List.generate(correctWord.length, (i) {
+              children: List.generate(widget.correctWord.length, (i) {
                 // Hide dash if character exists
-                bool hideDash = i < currentInput.length;
+                final hideDash = i < widget.currentInput.length;
 
                 return Container(
                   width: 10, // React w-[10px]
@@ -625,8 +708,9 @@ class _WordInput extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: hideDash
                         ? Colors.transparent
-                        : (textColor ??
-                            appColors.textSecondary.withOpacity(0.4)),
+                        : (widget.textColor ??
+                            widget.appColors.textSecondary
+                                .withValues(alpha: 0.4)),
                     borderRadius: BorderRadius.circular(1),
                   ),
                 );
@@ -636,30 +720,33 @@ class _WordInput extends StatelessWidget {
 
           // Input Layer (Top)
           TextField(
-            controller: TextEditingController(text: currentInput)
-              ..selection = TextSelection.fromPosition(
-                  TextPosition(offset: currentInput.length)),
+            controller: _controller,
             onChanged: (val) {
-              if (val.length <= correctWord.length) {
-                onChanged(val);
+              // Only notify if within limit (UI should block it via maxLength anyway)
+              if (val.length <= widget.correctWord.length) {
+                widget.onChanged(val);
               }
             },
-            enabled: enabled,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(widget.correctWord.length),
+            ],
+            enabled: widget.enabled,
             textAlign: TextAlign.left, // React text-left
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              letterSpacing: 2.0, // Adjust to match dash spacing approx
-              color: textColor ?? appColors.textPrimary,
+              letterSpacing: 2, // Adjust to match dash spacing approx
+              color: widget.textColor ?? widget.appColors.textPrimary,
             ),
             decoration: const InputDecoration(
               isDense: true,
               contentPadding: EdgeInsets.zero,
               border: InputBorder.none,
-              counterText: '',
+              counterText: '', // Hide default counter
             ),
-            maxLength: correctWord.length,
+            maxLength: widget.correctWord.length,
+            maxLengthEnforcement: MaxLengthEnforcement.enforced,
           ),
         ],
       ),
@@ -668,17 +755,16 @@ class _WordInput extends StatelessWidget {
 }
 
 class _DictationItemState {
-  final int score;
-  final bool passed;
-  final int attempts;
-  final Map<int, String> wordInputs;
-
   _DictationItemState({
     this.score = 0,
     this.passed = false,
     this.attempts = 0,
     this.wordInputs = const {},
   });
+  final int score;
+  final bool passed;
+  final int attempts;
+  final Map<int, String> wordInputs;
 
   _DictationItemState copyWith({
     int? score,
@@ -696,41 +782,42 @@ class _DictationItemState {
 }
 
 class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
   _DashedBorderPainter({
     required this.color,
     this.strokeWidth = 1,
     this.gap = 5,
     this.borderRadius = 0,
   });
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
+    final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final Path path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(borderRadius),
-      ));
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(borderRadius),
+        ),
+      );
 
-    final Path dashedPath = _dashPath(path, width: 8, space: gap);
+    final dashedPath = _dashPath(path, width: 8, space: gap);
     canvas.drawPath(dashedPath, paint);
   }
 
   Path _dashPath(Path source, {required double width, required double space}) {
-    final Path dest = Path();
-    for (final ui.PathMetric metric in source.computeMetrics()) {
-      double distance = 0.0;
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double distance = 0;
       while (distance < metric.length) {
-        final double len = (distance + width < metric.length)
+        final len = (distance + width < metric.length)
             ? width
             : metric.length - distance;
         dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
@@ -749,12 +836,6 @@ class _DashedBorderPainter extends CustomPainter {
 }
 
 class _SegmentedProgressPainter extends CustomPainter {
-  final int totalSegments;
-  final List<int> segmentStates; // 0: Empty, 1: Correct, 2: Wrong
-  final Color primaryColor;
-  final Color errorColor;
-  final Color emptyColor;
-
   _SegmentedProgressPainter({
     required this.totalSegments,
     required this.segmentStates,
@@ -762,32 +843,38 @@ class _SegmentedProgressPainter extends CustomPainter {
     required this.errorColor,
     required this.emptyColor,
   });
+  final int totalSegments;
+  final List<int> segmentStates; // 0: Empty, 1: Correct, 2: Wrong
+  final Color primaryColor;
+  final Color errorColor;
+  final Color emptyColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-    final strokeWidth = 3.0;
+    const strokeWidth = 3.0;
 
-    final Paint paint = Paint()
+    final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.butt;
 
-    double startAngle = -math.pi / 2;
-    double gap = (totalSegments > 1) ? 0.2 : 0;
-    double totalGap = gap * totalSegments;
-    double segmentAngle = (2 * math.pi - totalGap) / totalSegments;
+    var startAngle = -math.pi / 2;
+    final gap = (totalSegments > 1) ? 0.2 : 0;
+    final totalGap = gap * totalSegments;
+    final segmentAngle = (2 * math.pi - totalGap) / totalSegments;
 
-    for (int i = 0; i < totalSegments; i++) {
+    for (var i = 0; i < totalSegments; i++) {
       final state = (i < segmentStates.length) ? segmentStates[i] : 0;
 
-      if (state == 1)
+      if (state == 1) {
         paint.color = primaryColor;
-      else if (state == 2)
+      } else if (state == 2) {
         paint.color = errorColor;
-      else
+      } else {
         paint.color = emptyColor;
+      }
 
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),

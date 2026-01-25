@@ -1,15 +1,15 @@
+import 'package:fluency/core/constants/route_constants.dart';
+import 'package:fluency/features/collection/presentation/pages/collection_page.dart';
+import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/course/presentation/pages/course_detail_page.dart';
+import 'package:fluency/features/course/presentation/pages/course_list_page.dart';
+import 'package:fluency/features/home/presentation/pages/home_page.dart';
+import 'package:fluency/features/main/presentation/pages/main_page.dart';
+import 'package:fluency/features/quiz/presentation/pages/quiz_page.dart';
+import 'package:fluency/features/setting/presentation/pages/setting_page.dart';
+import 'package:fluency/features/splash/presentation/pages/splash_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/route_constants.dart';
-import '../../features/collection/presentation/pages/collection_page.dart';
-import '../../features/course/domain/entities/course.dart';
-import '../../features/course/presentation/pages/course_detail_page.dart';
-import '../../features/course/presentation/pages/course_list_page.dart';
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/main/presentation/pages/main_page.dart';
-import '../../features/quiz/presentation/pages/quiz_page.dart';
-import '../../features/setting/presentation/pages/setting_page.dart';
-import '../../features/splash/presentation/pages/splash_page.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorDashboardKey =
@@ -36,7 +36,7 @@ class AppRouter {
             '${RouteConstants.course}/${RouteConstants.courseDetail}/${RouteConstants.quiz}',
         parentNavigatorKey: _rootNavigatorKey, // Ensure it covers the shell
         builder: (context, state) {
-          final lesson = state.extra as Lesson;
+          final lesson = state.extra! as Lesson;
           return QuizPage(lesson: lesson);
         },
       ),
@@ -69,7 +69,6 @@ class AppRouter {
                       final course = state.extra as Course?;
                       return CourseDetailPage(course: course);
                     },
-                    routes: [],
                   ),
                 ],
               ),

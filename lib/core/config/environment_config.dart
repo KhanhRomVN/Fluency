@@ -7,7 +7,8 @@ class EnvironmentConfig {
     await dotenv.load(fileName: fileName);
   }
 
-  static String get apiUrl => dotenv.env['API_URL'] ?? 'https://api.example.com';
+  static String get apiUrl =>
+      dotenv.env['API_URL'] ?? 'https://api.example.com';
 
   static String get appName => dotenv.env['APP_NAME'] ?? 'Template App';
 }

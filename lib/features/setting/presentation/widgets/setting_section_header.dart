@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 
 /// Custom widget for setting section headers
 class SettingSectionHeader extends StatelessWidget {
-  final String title;
-
   const SettingSectionHeader({
     required this.title,
     super.key,
   });
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +17,8 @@ class SettingSectionHeader extends StatelessWidget {
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
             ),
       ),
     );

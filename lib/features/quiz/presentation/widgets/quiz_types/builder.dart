@@ -5,15 +5,17 @@ import 'package:flutter/material.dart';
 
 class QuizBuilder extends StatefulWidget {
   const QuizBuilder({
-    super.key,
     required this.quiz,
+    super.key,
     this.onCheck,
+    this.onNext,
     this.onShowExplain,
     this.onWordLongPress,
   });
 
   final Quiz quiz;
   final VoidCallback? onCheck;
+  final VoidCallback? onNext;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
 
@@ -135,7 +137,6 @@ class _QuizBuilderState extends State<QuizBuilder> {
                 // Instruction
                 if (widget.quiz.instruction.isNotEmpty) ...[
                   Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
                     children: RichTextParser.buildRichText(
                       context,
                       widget.quiz.instruction,
@@ -178,13 +179,13 @@ class _QuizBuilderState extends State<QuizBuilder> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: _currentIsChecked
-                        ? (_currentIsCorrect == true
+                        ? (_currentIsCorrect ?? false
                             ? Colors.green.withValues(alpha: 0.1)
                             : Colors.red.withValues(alpha: 0.1))
                         : appColors.cardBackground,
                     border: Border.all(
                       color: _currentIsChecked
-                          ? (_currentIsCorrect == true
+                          ? (_currentIsCorrect ?? false
                               ? Colors.green
                               : Colors.red)
                           : appColors.primary.withValues(alpha: 0.5),
@@ -197,7 +198,9 @@ class _QuizBuilderState extends State<QuizBuilder> {
                           child: Text(
                             'Tap blocks below to build',
                             style: TextStyle(
-                                color: appColors.textSecondary, fontSize: 14),
+                              color: appColors.textSecondary,
+                              fontSize: 14,
+                            ),
                           ),
                         )
                       : Wrap(
@@ -208,7 +211,9 @@ class _QuizBuilderState extends State<QuizBuilder> {
                               onTap: () => _handleItemClick(index),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _currentIsChecked
                                       ? appColors.background
@@ -278,8 +283,11 @@ class _QuizBuilderState extends State<QuizBuilder> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.menu_book_outlined,
-                              size: 16, color: appColors.primary),
+                          Icon(
+                            Icons.menu_book_outlined,
+                            size: 16,
+                            color: appColors.primary,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Explain',
@@ -316,7 +324,9 @@ class _QuizBuilderState extends State<QuizBuilder> {
                           opacity: isSelected || _currentIsChecked ? 0.5 : 1.0,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? appColors.background
@@ -333,7 +343,7 @@ class _QuizBuilderState extends State<QuizBuilder> {
                                             .withValues(alpha: 0.05),
                                         blurRadius: 2,
                                         offset: const Offset(0, 2),
-                                      )
+                                      ),
                                     ],
                             ),
                             child: Text(
@@ -363,7 +373,8 @@ class _QuizBuilderState extends State<QuizBuilder> {
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(
-                  color: appColors.border.withValues(alpha: 0.5), width: 1),
+                color: appColors.border.withValues(alpha: 0.5),
+              ),
             ),
           ),
           child: Column(
@@ -379,7 +390,10 @@ class _QuizBuilderState extends State<QuizBuilder> {
                     style: TextButton.styleFrom(
                       foregroundColor: appColors.textSecondary,
                       backgroundColor: appColors.cardBackground,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -401,7 +415,10 @@ class _QuizBuilderState extends State<QuizBuilder> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: appColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -409,19 +426,28 @@ class _QuizBuilderState extends State<QuizBuilder> {
                   ),
                 ),
 
-              // Next Button (visible after checking, if more items)
-              if (_currentIsChecked &&
-                  _currentIndex < widget.quiz.questions.length - 1)
+              // Next Button (visible after checking)
+              if (_currentIsChecked)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _goToNext,
-                    icon: const Text('Next'),
-                    label: const Icon(Icons.chevron_right, size: 20),
+                    onPressed: () {
+                      if (_currentIndex < widget.quiz.questions.length - 1) {
+                        _goToNext();
+                      } else {
+                        widget.onCheck?.call();
+                        widget.onNext?.call();
+                      }
+                    },
+                    icon: const Icon(Icons.chevron_right, size: 20),
+                    label: const Text('Next question'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: appColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

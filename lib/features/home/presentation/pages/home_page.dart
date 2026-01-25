@@ -1,9 +1,8 @@
 import 'package:fluency/core/themes/theme_provider.dart';
+import 'package:fluency/features/home/presentation/pages/component_gallery_page.dart';
+import 'package:fluency/features/home/presentation/widgets/home_content.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fluency/features/home/presentation/pages/component_gallery_page.dart';
-
-import '../widgets/home_content.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -18,8 +17,10 @@ class HomePage extends StatelessWidget {
           const Divider(),
           const Padding(
             padding: EdgeInsets.all(8),
-            child: Text('Select Theme:',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              'Select Theme:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           Expanded(
             child: Consumer<ThemeProvider>(
@@ -47,7 +48,7 @@ class HomePage extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (context) => const ComponentGalleryPage(),
             ),
           );

@@ -1,16 +1,16 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
+import 'package:fluency/features/quiz/data/services/bookmark_storage.dart';
 import 'package:fluency/features/quiz/data/services/directory_storage.dart'
     hide debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fluency/features/quiz/data/services/bookmark_storage.dart';
 
 class DirectoryDrawer extends StatefulWidget {
   const DirectoryDrawer({
-    super.key,
     required this.isOpen,
     required this.onClose,
     required this.word,
+    super.key,
   });
 
   final bool isOpen;
@@ -170,8 +170,9 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                    color: appColors.border
-                                        .withValues(alpha: 0.5)),
+                                  color:
+                                      appColors.border.withValues(alpha: 0.5),
+                                ),
                               ),
                               child: Text(
                                 'Cached: ${_stats['count']} | ${_stats['size']}',
@@ -189,7 +190,7 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
                                 onTap: _toggleBookmark,
                                 borderRadius: BorderRadius.circular(20),
                                 child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
+                                  padding: const EdgeInsets.all(8),
                                   child: SvgPicture.asset(
                                     _isBookmarked
                                         ? 'assets/icons/bookmark_check.svg'
@@ -229,8 +230,11 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(Icons.error_outline,
-                                        color: Colors.red, size: 48),
+                                    const Icon(
+                                      Icons.error_outline,
+                                      color: Colors.red,
+                                      size: 48,
+                                    ),
                                     const SizedBox(height: 16),
                                     Text(
                                       _error!,

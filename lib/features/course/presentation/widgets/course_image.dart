@@ -4,8 +4,8 @@ import 'package:universal_io/io.dart';
 
 class CourseImage extends StatelessWidget {
   const CourseImage({
-    super.key,
     required this.imageUrl,
+    super.key,
     this.width,
     this.height,
     this.fit = BoxFit.cover,

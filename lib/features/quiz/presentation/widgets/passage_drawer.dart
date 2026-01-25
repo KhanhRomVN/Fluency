@@ -12,9 +12,9 @@ import 'package:path/path.dart' as p;
 
 class PassageDrawer extends StatefulWidget {
   const PassageDrawer({
-    super.key,
     required this.isOpen,
     required this.onClose,
+    super.key,
     this.passagePath,
     this.parentFilePath,
   });
@@ -62,7 +62,7 @@ class _PassageDrawerState extends State<PassageDrawer> {
     });
 
     try {
-      String fullPath = widget.passagePath!;
+      var fullPath = widget.passagePath!;
       // Resolve relative path if needed
       if (widget.passagePath!.startsWith('./') &&
           widget.parentFilePath != null) {
@@ -79,7 +79,7 @@ class _PassageDrawerState extends State<PassageDrawer> {
       } else {
         // On Mobile, load from File System
         final file = File(fullPath);
-        if (await file.exists()) {
+        if (file.existsSync()) {
           jsonString = await file.readAsString();
         } else {
           setState(() {
@@ -239,19 +239,26 @@ class _PassageDrawerState extends State<PassageDrawer> {
   Widget _buildContent(AppColorsExtension appColors) {
     if (_isLoading) {
       return Center(
-          child: Text('Loading...',
-              style: TextStyle(color: appColors.textSecondary)));
+        child: Text(
+          'Loading...',
+          style: TextStyle(color: appColors.textSecondary),
+        ),
+      );
     }
 
     if (_error != null) {
       return Center(
-          child: Text(_error!, style: const TextStyle(color: Colors.red)));
+        child: Text(_error!, style: const TextStyle(color: Colors.red)),
+      );
     }
 
     if (_passageData == null) {
       return Center(
-          child: Text('No passage available.',
-              style: TextStyle(color: appColors.textSecondary)));
+        child: Text(
+          'No passage available.',
+          style: TextStyle(color: appColors.textSecondary),
+        ),
+      );
     }
 
     return SingleChildScrollView(
@@ -293,7 +300,7 @@ class _PassageDrawerState extends State<PassageDrawer> {
 
     final spans = <InlineSpan>[];
 
-    for (int i = 0; i < _passageData!.segments.length; i++) {
+    for (var i = 0; i < _passageData!.segments.length; i++) {
       final segment = _passageData!.segments[i];
       final isActive = _activeSegmentIndex == i;
 
@@ -349,10 +356,9 @@ class _PassageDrawerState extends State<PassageDrawer> {
     // For inline flow, usually space is safer for simple reading.
     // If double newline is expected, we might need '\n'.
     // Let's use space for flow as per TranscriptDrawer experience.
-    String result = content.replaceAll(RegExp(r'</n\s*>'), ' ');
+    final result = content.replaceAll(RegExp(r'</n\s*>'), ' ');
 
     // Remove other HTML tags but keep text inline
-    result = result.replaceAll(RegExp(r'<[^>]*>'), '');
-    return result;
+    return result.replaceAll(RegExp('<[^>]*>'), '');
   }
 }
