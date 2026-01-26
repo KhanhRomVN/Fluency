@@ -21,16 +21,115 @@ class SpeechBuilder extends StatefulWidget {
   State<SpeechBuilder> createState() => _SpeechBuilderState();
 }
 
-class _SpeechBuilderState extends State<SpeechBuilder> {
+class _SpeechBuilderState extends State<SpeechBuilder>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
   // Map<ItemID, State>
   final Map<String, _SpeechBuilderItemState> _itemStates = {};
 
+  // Animation variables
+  late AnimationController _animController;
+  double _dragOffset = 0;
+  Animation<double>? _slideAnimation;
+
   @override
   void initState() {
     super.initState();
     _initCurrentItem();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animController.addListener(() {
+      setState(() {
+        if (_slideAnimation != null) {
+          _dragOffset = _slideAnimation!.value;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.primaryDelta!;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final velocity = details.primaryVelocity ?? 0;
+    final threshold = screenWidth * 0.25;
+
+    // Check if we should change question
+    var shouldChange = false;
+    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
+
+    if (velocity < -1000 || _dragOffset < -threshold) {
+      if (widget.quiz.speechBuilders != null &&
+          _currentIndex < widget.quiz.speechBuilders!.length - 1) {
+        shouldChange = true;
+        direction = -1;
+      }
+    } else if (velocity > 1000 || _dragOffset > threshold) {
+      if (_currentIndex > 0) {
+        shouldChange = true;
+        direction = 1;
+      }
+    }
+
+    if (shouldChange) {
+      final endX = direction == -1 ? -screenWidth : screenWidth;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+
+      _animController.forward(from: 0).then((_) {
+        setState(() {
+          if (direction == -1) {
+            _currentIndex++;
+          } else {
+            _currentIndex--;
+          }
+          _initCurrentItem();
+          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
+          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+          );
+          _animController.forward(from: 0);
+        });
+      });
+    } else {
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
+    }
+  }
+
+  void _animateToNextQuestion() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    );
+
+    _animController.forward(from: 0).then((_) {
+      setState(() {
+        _currentIndex++;
+        _initCurrentItem();
+        _dragOffset = screenWidth;
+        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+        );
+        _animController.forward(from: 0);
+      });
+    });
   }
 
   void _initCurrentItem() {
@@ -42,7 +141,7 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
     if (_itemStates.containsKey(item.id)) return;
 
     // Initialize pool with scrambled items (if provided) or split question?
-    // Usually `item.items` contains the scrambled words.
+    // Usually `item.items` contains the scrambled items.
     final pool = List<String>.from(item.items ?? []);
     _itemStates[item.id] = _SpeechBuilderItemState(
       pool: pool,
@@ -102,10 +201,7 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
   void _next() {
     if (widget.quiz.speechBuilders != null &&
         _currentIndex < widget.quiz.speechBuilders!.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _initCurrentItem();
-      });
+      _animateToNextQuestion();
     }
   }
 
@@ -126,30 +222,48 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
     return Column(
       children: [
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (widget.quiz.instruction.isNotEmpty) ...[
-                RichTextParser.buildRichText(
-                  context,
-                  widget.quiz.instruction,
-                  onWordLongPress: widget.onWordLongPress,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 16),
-                ).first,
-                const SizedBox(height: 24),
-              ],
-              ...items.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                if (index > _currentIndex) return const SizedBox.shrink();
+          child: GestureDetector(
+            onHorizontalDragUpdate: _onHorizontalDragUpdate,
+            onHorizontalDragEnd: _onHorizontalDragEnd,
+            child: AnimatedBuilder(
+              animation: _animController,
+              builder: (context, child) {
+                final rotateAngle = _dragOffset * 0.001;
+                final opacity = (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
+                return Transform.translate(
+                  offset: Offset(_dragOffset, 0),
+                  child: Transform.rotate(
+                    angle: rotateAngle,
+                    child: Opacity(opacity: opacity, child: child),
+                  ),
+                );
+              },
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (widget.quiz.instruction.isNotEmpty) ...[
+                    RichTextParser.buildRichText(
+                      context,
+                      widget.quiz.instruction,
+                      onWordLongPress: widget.onWordLongPress,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium!
+                          .copyWith(fontSize: 16),
+                    ).first,
+                    const SizedBox(height: 24),
+                  ],
+                  ...items.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    if (index > _currentIndex) return const SizedBox.shrink();
 
-                return _buildCard(context, item, index, appColors);
-              }),
-              const SizedBox(height: 80),
-            ],
+                    return _buildCard(context, item, index, appColors);
+                  }),
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -308,7 +422,7 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
-                    vertical: 10,
+                    vertical: 12.5,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -339,7 +453,7 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
-                    vertical: 10,
+                    vertical: 12.5,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

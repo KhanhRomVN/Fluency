@@ -21,11 +21,113 @@ class SentenceTransformation extends StatefulWidget {
   State<SentenceTransformation> createState() => _SentenceTransformationState();
 }
 
-class _SentenceTransformationState extends State<SentenceTransformation> {
+class _SentenceTransformationState extends State<SentenceTransformation>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
   // Map<ItemID, CardState>
   final Map<String, _CardState> _cardStates = {};
+
+  // Animation variables
+  late AnimationController _animController;
+  double _dragOffset = 0;
+  Animation<double>? _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animController.addListener(() {
+      setState(() {
+        if (_slideAnimation != null) {
+          _dragOffset = _slideAnimation!.value;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.primaryDelta!;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final velocity = details.primaryVelocity ?? 0;
+    final threshold = screenWidth * 0.25;
+
+    // Check if we should change question
+    var shouldChange = false;
+    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
+
+    if (velocity < -1000 || _dragOffset < -threshold) {
+      if (widget.quiz.sentenceTransformations != null &&
+          _currentIndex < widget.quiz.sentenceTransformations!.length - 1) {
+        shouldChange = true;
+        direction = -1;
+      }
+    } else if (velocity > 1000 || _dragOffset > threshold) {
+      if (_currentIndex > 0) {
+        shouldChange = true;
+        direction = 1;
+      }
+    }
+
+    if (shouldChange) {
+      final endX = direction == -1 ? -screenWidth : screenWidth;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+
+      _animController.forward(from: 0).then((_) {
+        setState(() {
+          if (direction == -1) {
+            _currentIndex++;
+          } else {
+            _currentIndex--;
+          }
+          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
+          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+          );
+          _animController.forward(from: 0);
+        });
+      });
+    } else {
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
+    }
+  }
+
+  void _animateToNextQuestion() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    );
+
+    _animController.forward(from: 0).then((_) {
+      setState(() {
+        _currentIndex++;
+        _dragOffset = screenWidth;
+        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+        );
+        _animController.forward(from: 0);
+      });
+    });
+  }
 
   SentenceTransformationItem? get _currentItem {
     final items = widget.quiz.sentenceTransformations ?? [];
@@ -117,9 +219,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   void _goToNext() {
     final items = widget.quiz.sentenceTransformations ?? [];
     if (_currentIndex < items.length - 1) {
-      setState(() {
-        _currentIndex++;
-      });
+      _animateToNextQuestion();
     } else {
       widget.onNext?.call();
     }
@@ -174,94 +274,113 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: ListView(
-                      padding: const EdgeInsets.all(24),
-                      children: [
-                        // Requirement text
-                        if (currentItem.require != null &&
-                            currentItem.require!.isNotEmpty) ...[
-                          DefaultTextStyle(
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: appColors.textSecondary,
-                            ),
-                            child: Text.rich(
-                              TextSpan(
-                                children: RichTextParser.buildTextSpans(
-                                  context,
-                                  currentItem.require!,
-                                  onWordLongPress: widget.onWordLongPress,
+                child: GestureDetector(
+                  onHorizontalDragUpdate: _onHorizontalDragUpdate,
+                  onHorizontalDragEnd: _onHorizontalDragEnd,
+                  child: AnimatedBuilder(
+                    animation: _animController,
+                    builder: (context, child) {
+                      final rotateAngle = _dragOffset * 0.001;
+                      final opacity =
+                          (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
+                      return Transform.translate(
+                        offset: Offset(_dragOffset, 0),
+                        child: Transform.rotate(
+                          angle: rotateAngle,
+                          child: Opacity(opacity: opacity, child: child),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: CustomPaint(
+                        painter: _DashedBorderPainter(
+                          color: borderColor,
+                          strokeWidth: 2,
+                          gap: 4,
+                          borderRadius: 12,
+                        ),
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            // Requirement text
+                            if (currentItem.require != null &&
+                                currentItem.require!.isNotEmpty) ...[
+                              DefaultTextStyle(
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: appColors.textSecondary,
+                                ),
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: RichTextParser.buildTextSpans(
+                                      context,
+                                      currentItem.require!,
+                                      onWordLongPress: widget.onWordLongPress,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            // Original Sentence (bordered container)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: appColors.border),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: DefaultTextStyle(
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: appColors.textPrimary,
+                                  height: 1.5,
+                                ),
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: RichTextParser.buildTextSpans(
+                                      context,
+                                      currentItem.original ?? '',
+                                      onWordLongPress: widget.onWordLongPress,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
 
-                        // Original Sentence (bordered container)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: appColors.border),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: DefaultTextStyle(
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: appColors.textPrimary,
-                              height: 1.5,
+                            const SizedBox(height: 24),
+
+                            // Gap-fill Input Area
+                            _buildGapFillArea(
+                              context,
+                              currentItem,
+                              currentState,
+                              appColors,
                             ),
-                            child: Text.rich(
-                              TextSpan(
-                                children: RichTextParser.buildTextSpans(
-                                  context,
-                                  currentItem.original ?? '',
-                                  onWordLongPress: widget.onWordLongPress,
-                                ),
+
+                            // Result Display
+                            if (currentState.isChecked) ...[
+                              const SizedBox(height: 24),
+                              _buildResultDisplay(
+                                context,
+                                currentItem,
+                                currentState,
+                                appColors,
                               ),
-                            ),
-                          ),
+                            ],
+
+                            // Spacing for floating buttons
+                            const SizedBox(height: 80),
+                          ],
                         ),
-
-                        const SizedBox(height: 24),
-
-                        // Gap-fill Input Area
-                        _buildGapFillArea(
-                          context,
-                          currentItem,
-                          currentState,
-                          appColors,
-                        ),
-
-                        // Result Display
-                        if (currentState.isChecked) ...[
-                          const SizedBox(height: 24),
-                          _buildResultDisplay(
-                            context,
-                            currentItem,
-                            currentState,
-                            appColors,
-                          ),
-                        ],
-
-                        // Spacing for floating buttons
-                        const SizedBox(height: 80),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -286,7 +405,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
-                      vertical: 10,
+                      vertical: 12.5,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -307,7 +426,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
-                      vertical: 10,
+                      vertical: 12.5,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

@@ -47,16 +47,19 @@ class _QuizPageState extends State<QuizPage> {
   String? _selectedWord;
   String _currentExplanation = '';
   late AudioPlayer _audioPlayer;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
+    _pageController = PageController(initialPage: _activeQuizIndex);
   }
 
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -92,10 +95,11 @@ class _QuizPageState extends State<QuizPage> {
     }
 
     if (_activeQuizIndex < widget.lesson.quizzes.length - 1) {
-      setState(() {
-        _activeQuizIndex++;
-        _isQuizChecked = false;
-      });
+      _pageController.animateToPage(
+        _activeQuizIndex + 1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     } else {
       // Last quiz completed, maybe show summary or go back
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,6 +112,13 @@ class _QuizPageState extends State<QuizPage> {
     setState(() {
       _selectedWord = word;
       _showDirectoryDrawer = true;
+    });
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _activeQuizIndex = index;
+      _isQuizChecked = false;
     });
   }
 
@@ -310,8 +321,16 @@ class _QuizPageState extends State<QuizPage> {
                 ),
                 // Quiz Content
                 Expanded(
-                  child:
-                      _buildQuizContent(quizType, questionContent, activeQuiz),
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: _onPageChanged,
+                    itemCount: lesson.quizzes.length,
+                    itemBuilder: (context, index) {
+                      final quiz = lesson.quizzes[index];
+                      return _buildQuizContent(quiz.type, quiz.question, quiz);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -536,10 +555,9 @@ class _QuizPageState extends State<QuizPage> {
           lesson: widget.lesson,
           activeQuizIndex: _activeQuizIndex,
           onQuizSelected: (index) {
-            setState(() {
-              _activeQuizIndex = index;
-              _isQuizChecked = false; // Reset checked state on quiz change
-            });
+            if (index != _activeQuizIndex) {
+              _pageController.jumpToPage(index);
+            }
           },
         );
       },

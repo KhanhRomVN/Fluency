@@ -25,13 +25,106 @@ class MatchingDropdown extends StatefulWidget {
   State<MatchingDropdown> createState() => _MatchingDropdownState();
 }
 
-class _MatchingDropdownState extends State<MatchingDropdown> {
+class _MatchingDropdownState extends State<MatchingDropdown>
+    with SingleTickerProviderStateMixin {
   Map<String, String> _selectedAnswers = {};
+
+  // Animation variables
+  late AnimationController _animController;
+  double _dragOffset = 0;
+  Animation<double>? _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _resetAnswers();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animController.addListener(() {
+      setState(() {
+        if (_slideAnimation != null) {
+          _dragOffset = _slideAnimation!.value;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.primaryDelta!;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final velocity = details.primaryVelocity ?? 0;
+    final threshold = screenWidth * 0.25;
+
+    // MatchingDropdown might handle "Next" via button usually,
+    // but we can add swipe to next if it makes sense contextually.
+    // However, usually swipe to next happens after check.
+    // If not checked, maybe prevent swipe or just partial logic?
+    // Let's assume standard behavior: swipe changes question if applicable?
+    // MatchingDropdown seems to be ONE question (the quiz has list of matching items).
+    // But `quiz.matchings` is a list, displayed in a listview.
+    // The widget `MatchingDropdown` usually represents ONE Quiz item which contains multiple matchings.
+    // The `onNext` callback suggests there is a parent controller moving to next quiz.
+    // So swipe left -> should trigger onNext if finished?
+
+    // Logic:
+    // Swipe Left (Next):
+    //   If Checked -> trigger onNext
+    //   If Not Checked -> maybe nothing (require check first?) OR if all answered, trigger check?
+    // Swipe Right (Prev):
+    //   Usually no prev action defined in callbacks (only onNext), so maybe just bounce back?
+
+    // Let's implement:
+    // Swipe Left: If Checked -> Next.
+
+    var shouldChange = false;
+    // Only support Next via swipe if checked?
+    // Or if user insists.
+    // Given the button logic:
+    // If All Answered & !Checked -> Check
+    // If Checked -> Next
+
+    if (velocity < -1000 || _dragOffset < -threshold) {
+      // Swipe Left
+      if (widget.isChecked && widget.onNext != null) {
+        shouldChange = true;
+      }
+    }
+
+    if (shouldChange) {
+      final endX = -screenWidth;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+
+      _animController.forward(from: 0).then((_) {
+        // Trigger generic next
+        widget.onNext?.call();
+        // Reset (though widget might be replaced/rebuilt)
+        setState(() {
+          _dragOffset = 0; // If we stay on same widget instance for next quiz?
+          // If widget is replaced, this doesn't matter much.
+        });
+      });
+    } else {
+      // Snap back
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
+    }
   }
 
   @override
@@ -39,6 +132,12 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.quiz.id != widget.quiz.id) {
       _resetAnswers();
+      // Slide in animation?
+      _dragOffset = MediaQuery.of(context).size.width;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
     }
   }
 
@@ -115,33 +214,52 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: ListView(
-                      padding: const EdgeInsets.all(24),
-                      children: [
-                        ...matchings.map((matching) {
-                          return _buildMatchingRow(
-                            context,
-                            matching,
-                            appColors,
-                          );
-                        }),
-                        // Provide space for floating buttons
-                        const SizedBox(height: 80),
-                      ],
+                child: GestureDetector(
+                  onHorizontalDragUpdate: _onHorizontalDragUpdate,
+                  onHorizontalDragEnd: _onHorizontalDragEnd,
+                  child: AnimatedBuilder(
+                    animation: _animController,
+                    builder: (context, child) {
+                      final rotateAngle = _dragOffset * 0.001;
+                      final opacity =
+                          (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
+                      return Transform.translate(
+                        offset: Offset(_dragOffset, 0),
+                        child: Transform.rotate(
+                          angle: rotateAngle,
+                          child: Opacity(opacity: opacity, child: child),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: CustomPaint(
+                        painter: _DashedBorderPainter(
+                          color: borderColor,
+                          strokeWidth: 2,
+                          gap: 4,
+                          borderRadius: 12,
+                        ),
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            ...matchings.map((matching) {
+                              return _buildMatchingRow(
+                                context,
+                                matching,
+                                appColors,
+                              );
+                            }),
+                            // Provide space for floating buttons
+                            const SizedBox(height: 80),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -167,7 +285,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4,
         ),
@@ -185,7 +303,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4,
         ),
@@ -336,25 +454,6 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                   ),
                 ),
               ),
-
-              // Info Icon (if correct and has explanation) - Inline
-              /* Hidden as per request
-              if (widget.isChecked && isCorrect && matching.explain.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: IconButton(
-                    onPressed: () {
-                      widget.onShowExplain?.call(matching.explain);
-                    },
-                    icon: Icon(
-                      Icons.info_outline_rounded,
-                      color: appColors.primary,
-                      size: 24,
-                    ),
-                    tooltip: 'Show Explanation',
-                  ),
-                ),
-              */
             ],
           ),
 
@@ -389,6 +488,43 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                           fontSize: 15,
                           decoration: TextDecoration.underline,
                           decorationColor: Colors.red,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Explain Display (if correct and has explanation)
+          if (isCorrect && matching.explain.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: InkWell(
+                onTap: () {
+                  widget.onShowExplain?.call(matching.explain);
+                },
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.green,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Expanded(
+                      child: Text(
+                        'Explain',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.green,
                         ),
                       ),
                     ),

@@ -32,16 +32,33 @@ class GapFillTyping extends StatefulWidget {
   State<GapFillTyping> createState() => _GapFillTypingState();
 }
 
-class _GapFillTypingState extends State<GapFillTyping> {
+class _GapFillTypingState extends State<GapFillTyping>
+    with SingleTickerProviderStateMixin {
   // Map of gap ID to text controller
   final Map<String, TextEditingController> _controllers = {};
   bool _isChecked = false;
   bool _areAllGapsFilled = false;
 
+  // Animation variables
+  late AnimationController _animController;
+  double _dragOffset = 0;
+  Animation<double>? _slideAnimation;
+
   @override
   void initState() {
     super.initState();
     _parseGaps();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animController.addListener(() {
+      setState(() {
+        if (_slideAnimation != null) {
+          _dragOffset = _slideAnimation!.value;
+        }
+      });
+    });
   }
 
   @override
@@ -54,6 +71,12 @@ class _GapFillTypingState extends State<GapFillTyping> {
         _areAllGapsFilled = false;
       });
       _parseGaps();
+      // Slide in animation?
+      _dragOffset = MediaQuery.of(context).size.width;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
     }
   }
 
@@ -82,10 +105,55 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
   @override
   void dispose() {
+    _animController.dispose();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.primaryDelta!;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final velocity = details.primaryVelocity ?? 0;
+    final threshold = screenWidth * 0.25;
+
+    var shouldChange = false;
+    // Condition to swipe next:
+    // If Checked AND onNext is available.
+    // Or if not checked, maybe don't allow?
+
+    // Swipe Left (Next)
+    if (velocity < -1000 || _dragOffset < -threshold) {
+      if (_isChecked && widget.onNext != null) {
+        shouldChange = true;
+      }
+    }
+
+    if (shouldChange) {
+      final endX = -screenWidth;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+
+      _animController.forward(from: 0).then((_) {
+        widget.onNext?.call();
+        setState(() {
+          _dragOffset = 0;
+        });
+      });
+    } else {
+      // Snap back
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
+    }
   }
 
   @override
@@ -124,41 +192,61 @@ class _GapFillTypingState extends State<GapFillTyping> {
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Theme(
-                            data: Theme.of(context).copyWith(
-                              textTheme: Theme.of(context).textTheme.copyWith(
-                                    bodyMedium: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontSize: 16),
-                                  ),
-                            ),
-                            child: Builder(
-                              builder: _buildContent,
-                            ),
+                child: GestureDetector(
+                  onHorizontalDragUpdate: _onHorizontalDragUpdate,
+                  onHorizontalDragEnd: _onHorizontalDragEnd,
+                  child: AnimatedBuilder(
+                    animation: _animController,
+                    builder: (context, child) {
+                      final rotateAngle = _dragOffset * 0.001;
+                      final opacity =
+                          (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
+                      return Transform.translate(
+                        offset: Offset(_dragOffset, 0),
+                        child: Transform.rotate(
+                          angle: rotateAngle,
+                          child: Opacity(opacity: opacity, child: child),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: CustomPaint(
+                        painter: _DashedBorderPainter(
+                          color: borderColor,
+                          strokeWidth: 2,
+                          gap: 4,
+                          borderRadius: 12,
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Theme(
+                                data: Theme.of(context).copyWith(
+                                  textTheme:
+                                      Theme.of(context).textTheme.copyWith(
+                                            bodyMedium: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(fontSize: 16),
+                                          ),
+                                ),
+                                child: Builder(
+                                  builder: _buildContent,
+                                ),
+                              ),
+                              // Spacing at bottom for scrolling past floating button
+                              const SizedBox(height: 80),
+                            ],
                           ),
-                          // Spacing at bottom for scrolling past floating button
-                          const SizedBox(height: 80),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -191,7 +279,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4, // Shadow for floating effect
         ),
@@ -214,7 +302,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4,
         ),

@@ -23,13 +23,19 @@ class QuizBuilder extends StatefulWidget {
   State<QuizBuilder> createState() => _QuizBuilderState();
 }
 
-class _QuizBuilderState extends State<QuizBuilder> {
+class _QuizBuilderState extends State<QuizBuilder>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   // Key: Question ID, Value: List of selected indices from the options pool
   final Map<String, List<int>> _selectedIndices = {};
   // Map<QuestionID, isCorrect>
   final Map<String, bool?> _correctness = {};
   final Map<String, bool> _isCheckedMap = {};
+
+  // Animation variables
+  late AnimationController _animController;
+  double _dragOffset = 0;
+  Animation<double>? _slideAnimation;
 
   QuizQuestion? get _currentItem => widget.quiz.questions.isNotEmpty
       ? widget.quiz.questions[_currentIndex]
@@ -38,6 +44,107 @@ class _QuizBuilderState extends State<QuizBuilder> {
   List<int> get _currentSelected => _selectedIndices[_currentItem?.id] ?? [];
   bool get _currentIsChecked => _isCheckedMap[_currentItem?.id] ?? false;
   bool? get _currentIsCorrect => _correctness[_currentItem?.id];
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animController.addListener(() {
+      setState(() {
+        if (_slideAnimation != null) {
+          _dragOffset = _slideAnimation!.value;
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    if (_currentIsChecked)
+      return; // Optional: disable drag if checked? Or allow?
+    setState(() {
+      _dragOffset += details.primaryDelta!;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final velocity = details.primaryVelocity ?? 0;
+    final threshold = screenWidth * 0.25;
+
+    // Check if we should change question
+    var shouldChange = false;
+    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
+
+    if (velocity < -1000 || _dragOffset < -threshold) {
+      if (_currentIndex < widget.quiz.questions.length - 1) {
+        shouldChange = true;
+        direction = -1;
+      }
+    } else if (velocity > 1000 || _dragOffset > threshold) {
+      if (_currentIndex > 0) {
+        shouldChange = true;
+        direction = 1;
+      }
+    }
+
+    if (shouldChange) {
+      // Animate out completely
+      final endX = direction == -1 ? -screenWidth : screenWidth;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+
+      _animController.forward(from: 0).then((_) {
+        // Change index
+        setState(() {
+          if (direction == -1) {
+            _currentIndex++;
+          } else {
+            _currentIndex--;
+          }
+          // Reset for slide in
+          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
+          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+          );
+          _animController.forward(from: 0);
+        });
+      });
+    } else {
+      // Snap back
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
+    }
+  }
+
+  void _animateToNextQuestion() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    );
+
+    _animController.forward(from: 0).then((_) {
+      setState(() {
+        _currentIndex++;
+        _dragOffset = screenWidth;
+        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+        );
+        _animController.forward(from: 0);
+      });
+    });
+  }
 
   void _handleItemClick(int itemIndex) {
     final currentItem = _currentItem;
@@ -94,14 +201,6 @@ class _QuizBuilderState extends State<QuizBuilder> {
     });
   }
 
-  void _goToNext() {
-    if (_currentIndex < widget.quiz.questions.length - 1) {
-      setState(() {
-        _currentIndex++;
-      });
-    }
-  }
-
   String _getCorrectString() {
     final currentItem = _currentItem;
     if (currentItem == null) return '';
@@ -129,240 +228,265 @@ class _QuizBuilderState extends State<QuizBuilder> {
     return Column(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Instruction
-                if (widget.quiz.instruction.isNotEmpty) ...[
-                  Wrap(
-                    children: RichTextParser.buildRichText(
-                      context,
-                      widget.quiz.instruction,
-                      onWordLongPress: widget.onWordLongPress,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium!
-                          .copyWith(fontSize: 16),
+          child: GestureDetector(
+            onHorizontalDragUpdate: _onHorizontalDragUpdate,
+            onHorizontalDragEnd: _onHorizontalDragEnd,
+            child: AnimatedBuilder(
+              animation: _animController,
+              builder: (context, child) {
+                final rotateAngle = _dragOffset * 0.001; // rad
+                final opacity = (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
+
+                return Transform.translate(
+                  offset: Offset(_dragOffset, 0),
+                  child: Transform.rotate(
+                    angle: rotateAngle,
+                    child: Opacity(
+                      opacity: opacity,
+                      child: child,
                     ),
                   ),
-                  Divider(height: 32, color: appColors.border),
-                ],
-
-                // Context Hint (with lightbulb icon)
-                if (hint.isNotEmpty) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: appColors.cardBackground.withValues(alpha: 0.5),
-                      border: Border.all(color: appColors.border),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '💡 $hint',
-                      style: TextStyle(
-                        color: appColors.textSecondary,
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
+                );
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Instruction
+                    if (widget.quiz.instruction.isNotEmpty) ...[
+                      Wrap(
+                        children: RichTextParser.buildRichText(
+                          context,
+                          widget.quiz.instruction,
+                          onWordLongPress: widget.onWordLongPress,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium!
+                              .copyWith(fontSize: 16),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                      Divider(height: 32, color: appColors.border),
+                    ],
 
-                // Built Sentence Display (Dashed Border)
-                Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(minHeight: 80),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _currentIsChecked
-                        ? (_currentIsCorrect ?? false
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1))
-                        : appColors.cardBackground,
-                    border: Border.all(
-                      color: _currentIsChecked
-                          ? (_currentIsCorrect ?? false
-                              ? Colors.green
-                              : Colors.red)
-                          : appColors.primary.withValues(alpha: 0.5),
-                      width: 2,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: _currentSelected.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Tap blocks below to build',
-                            style: TextStyle(
-                              color: appColors.textSecondary,
-                              fontSize: 14,
-                            ),
+                    // Context Hint (with lightbulb icon)
+                    if (hint.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color:
+                              appColors.cardBackground.withValues(alpha: 0.5),
+                          border: Border.all(color: appColors.border),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '💡 $hint',
+                          style: TextStyle(
+                            color: appColors.textSecondary,
+                            fontSize: 14,
+                            fontStyle: FontStyle.italic,
                           ),
-                        )
-                      : Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _currentSelected.map((index) {
-                            return GestureDetector(
-                              onTap: () => _handleItemClick(index),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Built Sentence Display (Dashed Border)
+                    Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(minHeight: 80),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _currentIsChecked
+                            ? (_currentIsCorrect ?? false
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1))
+                            : appColors.cardBackground,
+                        border: Border.all(
+                          color: _currentIsChecked
+                              ? (_currentIsCorrect ?? false
+                                  ? Colors.green
+                                  : Colors.red)
+                              : appColors.primary.withValues(alpha: 0.5),
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: _currentSelected.isEmpty
+                          ? Center(
+                              child: Text(
+                                'Tap blocks below to build',
+                                style: TextStyle(
+                                  color: appColors.textSecondary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            )
+                          : Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _currentSelected.map((index) {
+                                return GestureDetector(
+                                  onTap: () => _handleItemClick(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _currentIsChecked
+                                          ? appColors.background
+                                          : appColors.primary,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      options[index],
+                                      style: TextStyle(
+                                        color: _currentIsChecked
+                                            ? appColors.textPrimary
+                                            : Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                    ),
+
+                    // Correct Answer (shown after check if wrong)
+                    if (_currentIsChecked && _currentIsCorrect == false) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          border: Border.all(color: Colors.green),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Correct answer:',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getCorrectString(),
+                              style: TextStyle(
+                                color: appColors.textPrimary,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Explanation Button
+                    if (_currentIsChecked &&
+                        currentItem.explain.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: InkWell(
+                          onTap: () {
+                            widget.onShowExplain?.call(currentItem.explain);
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.menu_book_outlined,
+                                size: 16,
+                                color: appColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Explain',
+                                style: TextStyle(
+                                  color: appColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // Item Blocks (Available Words)
+                    Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 12,
+                        children: options.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final word = entry.value;
+                          final isSelected = _currentSelected.contains(index);
+
+                          return GestureDetector(
+                            onTap: () => _handleItemClick(index),
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity:
+                                  isSelected || _currentIsChecked ? 0.5 : 1.0,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
+                                  horizontal: 16,
+                                  vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _currentIsChecked
+                                  color: isSelected
                                       ? appColors.background
-                                      : appColors.primary,
-                                  borderRadius: BorderRadius.circular(8),
+                                      : appColors.cardBackground,
+                                  border: Border.all(
+                                    color: appColors.border,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: isSelected
+                                      ? null
+                                      : [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.05),
+                                            blurRadius: 2,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                 ),
                                 child: Text(
-                                  options[index],
+                                  word,
                                   style: TextStyle(
-                                    color: _currentIsChecked
-                                        ? appColors.textPrimary
-                                        : Colors.white,
+                                    color: isSelected
+                                        ? appColors.textSecondary
+                                        : appColors.textPrimary,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 16,
                                   ),
                                 ),
                               ),
-                            );
-                          }).toList(),
-                        ),
-                ),
-
-                // Correct Answer (shown after check if wrong)
-                if (_currentIsChecked && _currentIsCorrect == false) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      border: Border.all(color: Colors.green),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Correct answer:',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _getCorrectString(),
-                          style: TextStyle(
-                            color: appColors.textPrimary,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                // Explanation Button
-                if (_currentIsChecked && currentItem.explain.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: InkWell(
-                      onTap: () {
-                        widget.onShowExplain?.call(currentItem.explain);
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.menu_book_outlined,
-                            size: 16,
-                            color: appColors.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Explain',
-                            style: TextStyle(
-                              color: appColors.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              decoration: TextDecoration.underline,
                             ),
-                          ),
-                        ],
+                          );
+                        }).toList(),
                       ),
                     ),
-                  ),
-                ],
-
-                const SizedBox(height: 24),
-
-                // Item Blocks (Available Words)
-                Center(
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 12,
-                    children: options.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final word = entry.value;
-                      final isSelected = _currentSelected.contains(index);
-
-                      return GestureDetector(
-                        onTap: () => _handleItemClick(index),
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 200),
-                          opacity: isSelected || _currentIsChecked ? 0.5 : 1.0,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? appColors.background
-                                  : appColors.cardBackground,
-                              border: Border.all(
-                                color: appColors.border,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: isSelected
-                                  ? null
-                                  : [
-                                      BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.05),
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                            ),
-                            child: Text(
-                              word,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? appColors.textSecondary
-                                    : appColors.textPrimary,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -392,7 +516,7 @@ class _QuizBuilderState extends State<QuizBuilder> {
                       backgroundColor: appColors.cardBackground,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 10,
+                        vertical: 12.5,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -417,7 +541,7 @@ class _QuizBuilderState extends State<QuizBuilder> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 10,
+                        vertical: 12.5,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -433,7 +557,7 @@ class _QuizBuilderState extends State<QuizBuilder> {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       if (_currentIndex < widget.quiz.questions.length - 1) {
-                        _goToNext();
+                        _animateToNextQuestion();
                       } else {
                         widget.onCheck?.call();
                         widget.onNext?.call();
@@ -446,7 +570,7 @@ class _QuizBuilderState extends State<QuizBuilder> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 10,
+                        vertical: 12.5,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),

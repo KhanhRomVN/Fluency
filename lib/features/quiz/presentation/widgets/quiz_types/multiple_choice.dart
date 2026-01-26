@@ -125,6 +125,24 @@ class _MultipleChoiceState extends State<MultipleChoice>
     }
   }
 
+  void _animateToNextQuestion() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    );
+
+    _animController.forward(from: 0).then((_) {
+      setState(() {
+        _currentQuestionIndex++;
+        _dragOffset = screenWidth;
+        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+        );
+        _animController.forward(from: 0);
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // If no questions, show empty
@@ -440,7 +458,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -455,14 +473,12 @@ class _MultipleChoiceState extends State<MultipleChoice>
         _currentQuestionIndex < widget.quiz.questions.length - 1) {
       return ElevatedButton.icon(
         onPressed: () {
-          setState(() {
-            _currentQuestionIndex++;
-          });
+          _animateToNextQuestion();
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -486,7 +502,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),

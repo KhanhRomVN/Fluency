@@ -22,7 +22,8 @@ class ErrorCorrection extends StatefulWidget {
   State<ErrorCorrection> createState() => _ErrorCorrectionState();
 }
 
-class _ErrorCorrectionState extends State<ErrorCorrection> {
+class _ErrorCorrectionState extends State<ErrorCorrection>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
   // Map<ItemID, State>
@@ -38,16 +39,121 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
 
   bool _showExplanation = false;
 
+  // Animation variables
+  late AnimationController _animController;
+  double _dragOffset = 0;
+  Animation<double>? _slideAnimation;
+
   @override
   void initState() {
     super.initState();
     _inputController = TextEditingController();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _animController.addListener(() {
+      setState(() {
+        if (_slideAnimation != null) {
+          _dragOffset = _slideAnimation!.value;
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _animController.dispose();
     _inputController.dispose();
     super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    setState(() {
+      _dragOffset += details.primaryDelta!;
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final velocity = details.primaryVelocity ?? 0;
+    final threshold = screenWidth * 0.25;
+
+    // Check if we should change question
+    var shouldChange = false;
+    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
+
+    if (velocity < -1000 || _dragOffset < -threshold) {
+      if (widget.quiz.errorCorrections != null &&
+          _currentIndex < widget.quiz.errorCorrections!.length - 1) {
+        shouldChange = true;
+        direction = -1;
+      }
+    } else if (velocity > 1000 || _dragOffset > threshold) {
+      if (_currentIndex > 0) {
+        shouldChange = true;
+        direction = 1;
+      }
+    }
+
+    if (shouldChange) {
+      final endX = direction == -1 ? -screenWidth : screenWidth;
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+
+      _animController.forward(from: 0).then((_) {
+        setState(() {
+          if (direction == -1) {
+            _currentIndex++;
+          } else {
+            _currentIndex--;
+          }
+          // Reset interaction state for new item
+          _selectedTokenIndex = null;
+          _selectedError = null;
+          _inputValue = '';
+          _inputController.clear();
+          _showExplanation = false;
+
+          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
+          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+          );
+          _animController.forward(from: 0);
+        });
+      });
+    } else {
+      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+      );
+      _animController.forward(from: 0);
+    }
+  }
+
+  void _animateToNextQuestion() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    );
+
+    _animController.forward(from: 0).then((_) {
+      setState(() {
+        _currentIndex++;
+        // Reset interaction state for new item
+        _selectedTokenIndex = null;
+        _selectedError = null;
+        _inputValue = '';
+        _inputController.clear();
+        _showExplanation = false;
+
+        _dragOffset = screenWidth;
+        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+        );
+        _animController.forward(from: 0);
+      });
+    });
   }
 
   void _onTokenTap(ErrorCorrectionItem item, int tokenIndex) {
@@ -142,20 +248,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     }
   }
 
-  void _next() {
-    if (widget.quiz.errorCorrections != null &&
-        _currentIndex < widget.quiz.errorCorrections!.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _selectedTokenIndex = null;
-        _selectedError = null;
-        _inputValue = '';
-        _inputController.clear();
-        _showExplanation = false;
-      });
-    }
-  }
-
   void _retryCurrent() {
     final item = widget.quiz.errorCorrections![_currentIndex];
     setState(() {
@@ -205,124 +297,146 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Stack(
-              children: [
-                // The Card
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: appColors.border,
-                      strokeWidth: 1.5,
-                      gap: 4,
-                      borderRadius: 16,
+            child: GestureDetector(
+              onHorizontalDragUpdate: _onHorizontalDragUpdate,
+              onHorizontalDragEnd: _onHorizontalDragEnd,
+              child: AnimatedBuilder(
+                animation: _animController,
+                builder: (context, child) {
+                  final rotateAngle = _dragOffset * 0.001;
+                  final opacity =
+                      (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
+                  return Transform.translate(
+                    offset: Offset(_dragOffset, 0),
+                    child: Transform.rotate(
+                      angle: rotateAngle,
+                      child: Opacity(opacity: opacity, child: child),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Card Header
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${_currentIndex + 1} / ${items.length}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: appColors.textSecondary,
-                                ),
-                              ),
-                              // Score/State Indicator (Circle)
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: appColors.border),
-                                ),
-                                child: Text(
-                                  currentState.passed ? '✓' : '0',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: currentState.passed
-                                        ? Colors.green
-                                        : appColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                  );
+                },
+                child: Stack(
+                  children: [
+                    // The Card
+                    Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: CustomPaint(
+                        painter: _DashedBorderPainter(
+                          color: appColors.border,
+                          strokeWidth: 1.5,
+                          gap: 4,
+                          borderRadius: 16,
                         ),
-                        Divider(height: 1, color: appColors.border),
-
-                        // Card Content (Sentence)
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildTokens(
-                                  currentItem,
-                                  currentState,
-                                  appColors,
-                                ),
-
-                                // Input Area (Animated)
-                                if (!currentState.passed &&
-                                    _selectedTokenIndex != null)
-                                  _buildInputArea(
-                                    appColors,
-                                    currentState,
-                                    currentItem,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Card Header
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${_currentIndex + 1} / ${items.length}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: appColors.textSecondary,
+                                    ),
                                   ),
-
-                                // Feedback Message
-                                if (currentState.feedbackMessage.isNotEmpty)
-                                  _buildFeedbackMessage(
-                                    appColors,
-                                    currentState,
-                                    currentItem,
+                                  // Score/State Indicator (Circle)
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border:
+                                          Border.all(color: appColors.border),
+                                    ),
+                                    child: Text(
+                                      currentState.passed ? '✓' : '0',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: currentState.passed
+                                            ? Colors.green
+                                            : appColors.textSecondary,
+                                      ),
+                                    ),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
+                            Divider(height: 1, color: appColors.border),
+
+                            // Card Content (Sentence)
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding:
+                                    const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildTokens(
+                                      currentItem,
+                                      currentState,
+                                      appColors,
+                                    ),
+
+                                    // Input Area (Animated)
+                                    if (!currentState.passed &&
+                                        _selectedTokenIndex != null)
+                                      _buildInputArea(
+                                        appColors,
+                                        currentState,
+                                        currentItem,
+                                      ),
+
+                                    // Feedback Message
+                                    if (currentState.feedbackMessage.isNotEmpty)
+                                      _buildFeedbackMessage(
+                                        appColors,
+                                        currentState,
+                                        currentItem,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
 
-                // Floating Action Buttons
-                Positioned(
-                  bottom: 28,
-                  right: 36,
-                  child: _buildActionButtons(
-                    appColors,
-                    currentState,
-                    currentItem,
-                    items,
-                  ),
-                ),
+                    // Floating Action Buttons
+                    Positioned(
+                      bottom: 28,
+                      right: 36,
+                      child: _buildActionButtons(
+                        appColors,
+                        currentState,
+                        currentItem,
+                        items,
+                      ),
+                    ),
 
-                // Explain Drawer
-                if (currentItem.explain != null)
-                  ExplainDrawer(
-                    isOpen: _showExplanation,
-                    onClose: () => setState(() => _showExplanation = false),
-                    explanation: currentItem.explain!,
-                  ),
-              ],
+                    // Explain Drawer
+                    if (currentItem.explain != null)
+                      ExplainDrawer(
+                        isOpen: _showExplanation,
+                        onClose: () => setState(() => _showExplanation = false),
+                        explanation: currentItem.explain!,
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -654,14 +768,14 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
           const SizedBox(width: 16),
           if (_currentIndex < items.length - 1)
             ElevatedButton.icon(
-              onPressed: _next,
+              onPressed: _animateToNextQuestion,
               icon: const Icon(Icons.arrow_forward_rounded, size: 20),
               label: const Text('Next question'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: appColors.primary,
                 foregroundColor: Colors.white,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -680,7 +794,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                 backgroundColor: appColors.primary,
                 foregroundColor: Colors.white,
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -701,7 +815,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
           style: ElevatedButton.styleFrom(
             backgroundColor: appColors.primary,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 4,
