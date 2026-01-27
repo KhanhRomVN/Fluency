@@ -502,6 +502,7 @@ class FlashcardItem {
     this.frontAudio,
     this.image,
     this.backAudio,
+    this.options,
   });
 
   factory FlashcardItem.fromJson(Map<String, dynamic> json) {
@@ -512,6 +513,7 @@ class FlashcardItem {
       image: json['image'] as String?,
       back: json['back'], // Can be String or Map
       backAudio: json['backAudio'] as String?,
+      options: (json['options'] as List?)?.map((e) => e.toString()).toList(),
     );
   }
   final String id;
@@ -520,6 +522,7 @@ class FlashcardItem {
   final String? image;
   final dynamic back; // String or Map (definition, example, etc.)
   final String? backAudio;
+  final List<String>? options;
 }
 
 class DictationItem {

@@ -11,6 +11,12 @@ analyzer:
 
   errors:
     invalid_annotation_target: ignore
+    unused_local_variable: ignore
+    curly_braces_in_flow_control_structures: ignore
+    require_trailing_commas: ignore
+    prefer_const_constructors: ignore
+    prefer_const_literals_to_create_immutables: ignore
+    unnecessary_lambdas: ignore
 
 linter:
   rules:

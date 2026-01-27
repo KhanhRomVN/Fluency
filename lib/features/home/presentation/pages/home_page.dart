@@ -1,8 +1,9 @@
-import 'package:fluency/core/themes/theme_provider.dart';
-import 'package:fluency/features/home/presentation/pages/component_gallery_page.dart';
-import 'package:fluency/features/home/presentation/widgets/home_content.dart';
+import 'package:fluency/features/home/presentation/widgets/activity_chart.dart';
+import 'package:fluency/features/home/presentation/widgets/continue_learning_card.dart';
+import 'package:fluency/features/home/presentation/widgets/home_header.dart';
+import 'package:fluency/features/home/presentation/widgets/recent_activity_list.dart';
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -10,50 +11,23 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: Column(
-        children: [
-          const Expanded(child: HomeContent()),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text(
-              'Select Theme:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              HomeHeader(),
+              SizedBox(height: 24),
+              ContinueLearningCard(),
+              SizedBox(height: 24),
+              ActivityChart(),
+              SizedBox(height: 24),
+              RecentActivityList(),
+              SizedBox(height: 80), // Bottom padding for navigation bar
+            ],
           ),
-          Expanded(
-            child: Consumer<ThemeProvider>(
-              builder: (context, themeProvider, _) {
-                return ListView.builder(
-                  itemCount: themeProvider.availableThemes.length,
-                  itemBuilder: (context, index) {
-                    final themePath = themeProvider.availableThemes[index];
-                    final themeName =
-                        themePath.split('/').last.replaceAll('.json', '');
-                    return ListTile(
-                      title: Text(themeName),
-                      subtitle: Text(themePath),
-                      onTap: () {
-                        themeProvider.loadTheme(themePath);
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (context) => const ComponentGalleryPage(),
-            ),
-          );
-        },
-        child: const Icon(Icons.widgets),
+        ),
       ),
     );
   }

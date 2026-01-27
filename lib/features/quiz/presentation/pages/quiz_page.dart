@@ -132,8 +132,6 @@ class _QuizPageState extends State<QuizPage> {
         lesson.quizzes.isNotEmpty ? lesson.quizzes[_activeQuizIndex] : null;
 
     final quizType = activeQuiz?.type ?? 'gap-fill';
-    final questionContent =
-        activeQuiz?.question ?? '<p>No quiz data available.</p>';
 
     // Audio path logic
     final audioPath = activeQuiz?.audio;
@@ -418,7 +416,7 @@ class _QuizPageState extends State<QuizPage> {
           quiz: quiz,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
-          onShowExplain: (explanation) {
+          onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
               _showExplainDrawer = true;
@@ -432,7 +430,7 @@ class _QuizPageState extends State<QuizPage> {
           isChecked: _isQuizChecked,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
-          onShowExplain: (explanation) {
+          onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
               _showExplainDrawer = true;
@@ -445,7 +443,7 @@ class _QuizPageState extends State<QuizPage> {
           quiz: quiz,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
-          onShowExplain: (explanation) {
+          onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
               _showExplainDrawer = true;
@@ -496,7 +494,7 @@ class _QuizPageState extends State<QuizPage> {
         return SentenceTransformation(
           quiz: quiz,
           onNext: _onNextQuiz,
-          onShowExplain: (explanation) {
+          onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
               _showExplainDrawer = true;
@@ -533,7 +531,7 @@ class _QuizPageState extends State<QuizPage> {
           instruction: quiz.instruction,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
-          onShowExplain: (explanation) {
+          onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
               _showExplainDrawer = true;

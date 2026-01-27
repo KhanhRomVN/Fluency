@@ -332,7 +332,8 @@ class _DictationAudioState extends State<DictationAudio>
                                         if (currentItem.speed != null)
                                           Padding(
                                             padding: const EdgeInsets.only(
-                                                bottom: 4),
+                                              bottom: 4,
+                                            ),
                                             child: Text(
                                               'Speed: ${currentItem.speed}x',
                                               style: TextStyle(

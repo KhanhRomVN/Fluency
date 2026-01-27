@@ -16,8 +16,7 @@ final _shellNavigatorDashboardKey =
     GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final _shellNavigatorCourseKey =
     GlobalKey<NavigatorState>(debugLabel: 'course');
-final _shellNavigatorCenterKey =
-    GlobalKey<NavigatorState>(debugLabel: 'center');
+
 final _shellNavigatorTempKey = GlobalKey<NavigatorState>(debugLabel: 'temp');
 final _shellNavigatorSettingKey =
     GlobalKey<NavigatorState>(debugLabel: 'setting');
@@ -74,17 +73,7 @@ class AppRouter {
               ),
             ],
           ),
-          // Center Button Branch
-          StatefulShellBranch(
-            navigatorKey: _shellNavigatorCenterKey,
-            routes: [
-              GoRoute(
-                path: RouteConstants.center,
-                builder: (context, state) =>
-                    const Scaffold(body: Center(child: Text('Center Page'))),
-              ),
-            ],
-          ),
+
           // Collection Branch
           StatefulShellBranch(
             navigatorKey: _shellNavigatorTempKey,

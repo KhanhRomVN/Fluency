@@ -195,7 +195,6 @@ class _SentenceTransformationState extends State<SentenceTransformation>
 
   String _extractGapId(String gapTag, int fallbackIndex) {
     // Try to extract id from gap tag like </gap id='gap1'> or </gap id="gap1">
-    // Using simple string manipulation instead of complex regex
     final idIndex = gapTag.indexOf('id=');
     if (idIndex == -1) return 'gap-$fallbackIndex';
 
@@ -305,79 +304,98 @@ class _SentenceTransformationState extends State<SentenceTransformation>
                           gap: 4,
                           borderRadius: 12,
                         ),
-                        child: ListView(
-                          padding: const EdgeInsets.all(24),
+                        child: Column(
                           children: [
-                            // Requirement text
-                            if (currentItem.require != null &&
-                                currentItem.require!.isNotEmpty) ...[
-                              DefaultTextStyle(
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: appColors.textSecondary,
-                                ),
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: RichTextParser.buildTextSpans(
-                                      context,
-                                      currentItem.require!,
-                                      onWordLongPress: widget.onWordLongPress,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-
-                            // Original Sentence (bordered container)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: appColors.border),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: DefaultTextStyle(
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: appColors.textPrimary,
-                                  height: 1.5,
-                                ),
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: RichTextParser.buildTextSpans(
-                                      context,
-                                      currentItem.original ?? '',
-                                      onWordLongPress: widget.onWordLongPress,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Gap-fill Input Area
-                            _buildGapFillArea(
+                            // Card Header: Counter & Progress
+                            _buildCardHeader(
                               context,
-                              currentItem,
-                              currentState,
                               appColors,
+                              items,
                             ),
+                            const Divider(height: 1),
 
-                            // Result Display
-                            if (currentState.isChecked) ...[
-                              const SizedBox(height: 24),
-                              _buildResultDisplay(
-                                context,
-                                currentItem,
-                                currentState,
-                                appColors,
+                            Expanded(
+                              child: ListView(
+                                padding: const EdgeInsets.all(24),
+                                children: [
+                                  // Requirement text
+                                  if (currentItem.require != null &&
+                                      currentItem.require!.isNotEmpty) ...[
+                                    DefaultTextStyle(
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: appColors.textSecondary,
+                                      ),
+                                      child: Text.rich(
+                                        TextSpan(
+                                          children:
+                                              RichTextParser.buildTextSpans(
+                                            context,
+                                            currentItem.require!,
+                                            onWordLongPress:
+                                                widget.onWordLongPress,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+
+                                  // Original Sentence (bordered container)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: appColors.border),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: DefaultTextStyle(
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: appColors.textPrimary,
+                                        height: 1.5,
+                                      ),
+                                      child: Text.rich(
+                                        TextSpan(
+                                          children:
+                                              RichTextParser.buildTextSpans(
+                                            context,
+                                            currentItem.original ?? '',
+                                            onWordLongPress:
+                                                widget.onWordLongPress,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 24),
+
+                                  // Gap-fill Input Area
+                                  _buildGapFillArea(
+                                    context,
+                                    currentItem,
+                                    currentState,
+                                    appColors,
+                                  ),
+
+                                  // Result Display
+                                  if (currentState.isChecked) ...[
+                                    const SizedBox(height: 24),
+                                    _buildResultDisplay(
+                                      context,
+                                      currentItem,
+                                      currentState,
+                                      appColors,
+                                    ),
+                                  ],
+
+                                  // Spacing for floating buttons
+                                  const SizedBox(height: 80),
+                                ],
                               ),
-                            ],
-
-                            // Spacing for floating buttons
-                            const SizedBox(height: 80),
+                            ),
                           ],
                         ),
                       ),
@@ -653,6 +671,70 @@ class _SentenceTransformationState extends State<SentenceTransformation>
       ],
     );
   }
+
+  Widget _buildCardHeader(
+    BuildContext context,
+    AppColorsExtension appColors,
+    List<SentenceTransformationItem> questions,
+  ) {
+    // Count how many items are checked
+    final completedCount = _cardStates.values.where((v) => v.isChecked).length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Counter
+          Text(
+            '${_currentIndex + 1} / ${questions.length}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: appColors.textSecondary,
+            ),
+          ),
+
+          // Segmented Progress Circle
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(32, 32),
+                  painter: _SegmentedProgressPainter(
+                    totalSegments: questions.length,
+                    segmentStates: List.generate(questions.length, (index) {
+                      final qId = questions[index].id;
+                      final state = _cardStates[qId];
+                      if (state == null || !state.isChecked)
+                        return 0; // Not done
+                      return (state.isCorrect ?? false)
+                          ? 1
+                          : 2; // 1: Correct, 2: Wrong
+                    }),
+                    primaryColor: appColors.primary,
+                    errorColor: Colors.red,
+                    emptyColor: appColors.border.withValues(alpha: 0.5),
+                  ),
+                ),
+                Text(
+                  '$completedCount',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _GapInputField extends StatelessWidget {
@@ -803,5 +885,66 @@ class _DashedBorderPainter extends CustomPainter {
     return oldDelegate.color != color ||
         oldDelegate.strokeWidth != strokeWidth ||
         oldDelegate.gap != gap;
+  }
+}
+
+class _SegmentedProgressPainter extends CustomPainter {
+  _SegmentedProgressPainter({
+    required this.totalSegments,
+    required this.segmentStates,
+    required this.primaryColor,
+    required this.errorColor,
+    required this.emptyColor,
+  });
+  final int totalSegments;
+  // 0: Empty, 1: Correct, 2: Wrong
+  final List<int> segmentStates;
+  final Color primaryColor;
+  final Color errorColor;
+  final Color emptyColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    const strokeWidth = 3.0;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.butt;
+
+    var startAngle = -3.14159 / 2; // -pi/2
+    final gap = (totalSegments > 1) ? 0.2 : 0;
+    final totalGap = gap * totalSegments;
+    final segmentAngle = (2 * 3.14159 - totalGap) / totalSegments;
+
+    for (var i = 0; i < totalSegments; i++) {
+      final state = (i < segmentStates.length) ? segmentStates[i] : 0;
+
+      if (state == 1) {
+        paint.color = primaryColor;
+      } else if (state == 2) {
+        paint.color = errorColor;
+      } else {
+        paint.color = emptyColor;
+      }
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+        startAngle,
+        segmentAngle,
+        false,
+        paint,
+      );
+
+      startAngle += segmentAngle + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SegmentedProgressPainter oldDelegate) {
+    return oldDelegate.totalSegments != totalSegments ||
+        oldDelegate.segmentStates != segmentStates;
   }
 }

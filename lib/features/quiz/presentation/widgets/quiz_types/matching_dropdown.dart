@@ -380,37 +380,67 @@ class _MatchingDropdownState extends State<MatchingDropdown>
           Row(
             children: [
               Expanded(
-                child: Container(
-                  height: 48, // Slightly Taller for better touch target
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: backgroundColor,
-                    border: Border.all(color: borderColor, width: 2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedKey.isNotEmpty ? selectedKey : null,
-                      isExpanded: true,
-                      isDense: true,
-                      menuMaxHeight: 300,
-                      borderRadius: BorderRadius.circular(8),
-                      dropdownColor: Colors.white,
-                      hint: Text(
-                        'Choose an answer',
-                        style: TextStyle(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return DropdownMenu<String>(
+                      width: constraints.maxWidth,
+                      expandedInsets: EdgeInsets.zero,
+                      initialSelection:
+                          selectedKey.isNotEmpty ? selectedKey : null,
+                      hintText: 'Choose an answer',
+                      textStyle: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      inputDecorationTheme: InputDecorationTheme(
+                        filled: true,
+                        fillColor: backgroundColor,
+                        isDense: true,
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 16),
+                        constraints: const BoxConstraints(maxHeight: 36),
+                        isCollapsed: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: borderColor, width: 2),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: borderColor, width: 2),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: borderColor, width: 2),
+                        ),
+                        hintStyle: TextStyle(
                           color: appColors.textSecondary,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
                       ),
-                      icon: Icon(
-                        // Change icon color based on state
+                      menuStyle: MenuStyle(
+                        backgroundColor: WidgetStateProperty.all(Colors.white),
+                        elevation: WidgetStateProperty.all(0),
+                        padding: WidgetStateProperty.all(EdgeInsets.zero),
+                        fixedSize: WidgetStateProperty.all(
+                          Size.fromWidth(constraints.maxWidth),
+                        ),
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(
+                              color: appColors.border.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                      trailingIcon: Icon(
                         Icons.keyboard_arrow_down_rounded,
                         color: iconColor,
                         size: 24,
                       ),
-                      onChanged: widget.isChecked
+                      onSelected: widget.isChecked
                           ? null
                           : (value) {
                               if (value != null) {
@@ -419,39 +449,48 @@ class _MatchingDropdownState extends State<MatchingDropdown>
                                 });
                               }
                             },
-                      items: _options.map((opt) {
-                        return DropdownMenuItem<String>(
+                      dropdownMenuEntries:
+                          _options.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final opt = entry.value;
+                        final isLast = index == _options.length - 1;
+
+                        return DropdownMenuEntry<String>(
                           value: opt.key,
-                          child: Text(
-                            opt.value,
-                            style: TextStyle(
-                              color: appColors.textPrimary,
-                              fontWeight: FontWeight
-                                  .w600, // Slightly less broad than bold
-                              fontSize: 16,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                          label: opt.value,
+                          labelWidget: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 16,
+                                ),
+                                child: Text(
+                                  opt.value,
+                                  style: TextStyle(
+                                    color: appColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              if (!isLast)
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color:
+                                      appColors.border.withValues(alpha: 0.5),
+                                ),
+                            ],
+                          ),
+                          style: MenuItemButton.styleFrom(
+                            padding: EdgeInsets.zero,
                           ),
                         );
                       }).toList(),
-                      selectedItemBuilder: (context) {
-                        return _options.map((opt) {
-                          return Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              opt.value,
-                              style: TextStyle(
-                                color: textColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }).toList();
-                      },
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ],

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
@@ -22,29 +24,28 @@ class SpeechBuilder extends StatefulWidget {
 }
 
 class _SpeechBuilderState extends State<SpeechBuilder>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   int _currentIndex = 0;
-
-  // Map<ItemID, State>
+  bool _isRecording = false;
   final Map<String, _SpeechBuilderItemState> _itemStates = {};
 
-  // Animation variables
-  late AnimationController _animController;
-  double _dragOffset = 0;
-  Animation<double>? _slideAnimation;
+  // Animation variables for Swipe
+  double _swipeOffset = 0;
+  late AnimationController _swipeController;
+  Animation<double>? _swipeSlideAnimation;
+  bool _isTransitioning = false;
 
   @override
   void initState() {
     super.initState();
-    _initCurrentItem();
-    _animController = AnimationController(
-      vsync: this,
+    _swipeController = AnimationController(
       duration: const Duration(milliseconds: 300),
+      vsync: this,
     );
-    _animController.addListener(() {
+    _swipeController.addListener(() {
       setState(() {
-        if (_slideAnimation != null) {
-          _dragOffset = _slideAnimation!.value;
+        if (_swipeSlideAnimation != null) {
+          _swipeOffset = _swipeSlideAnimation!.value;
         }
       });
     });
@@ -52,157 +53,103 @@ class _SpeechBuilderState extends State<SpeechBuilder>
 
   @override
   void dispose() {
-    _animController.dispose();
+    _swipeController.dispose();
     super.dispose();
   }
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    if (_isTransitioning) return;
     setState(() {
-      _dragOffset += details.primaryDelta!;
+      _swipeOffset += details.primaryDelta!;
+      _swipeOffset = _swipeOffset.clamp(-100.0, 100.0);
     });
   }
 
   void _onHorizontalDragEnd(DragEndDetails details) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final velocity = details.primaryVelocity ?? 0;
-    final threshold = screenWidth * 0.25;
+    if (_isTransitioning) return;
+    const threshold = 80.0;
+    final items = widget.quiz.speechBuilders ?? [];
 
-    // Check if we should change question
-    var shouldChange = false;
-    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
-
-    if (velocity < -1000 || _dragOffset < -threshold) {
-      if (widget.quiz.speechBuilders != null &&
-          _currentIndex < widget.quiz.speechBuilders!.length - 1) {
-        shouldChange = true;
-        direction = -1;
-      }
-    } else if (velocity > 1000 || _dragOffset > threshold) {
-      if (_currentIndex > 0) {
-        shouldChange = true;
-        direction = 1;
-      }
+    if (_swipeOffset < -threshold && _currentIndex < items.length - 1) {
+      _slideCard('left');
+    } else if (_swipeOffset > threshold && _currentIndex > 0) {
+      _slideCard('right');
+    } else {
+      _resetSwipe();
     }
+  }
 
-    if (shouldChange) {
-      final endX = direction == -1 ? -screenWidth : screenWidth;
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
+  void _slideCard(String direction) {
+    setState(() {
+      _isTransitioning = true;
+    });
 
-      _animController.forward(from: 0).then((_) {
-        setState(() {
-          if (direction == -1) {
-            _currentIndex++;
-          } else {
-            _currentIndex--;
-          }
-          _initCurrentItem();
-          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
-          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-          );
-          _animController.forward(from: 0);
+    final endOffset = direction == 'left' ? -400.0 : 400.0;
+    _swipeSlideAnimation =
+        Tween<double>(begin: _swipeOffset, end: endOffset).animate(
+      CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
+    );
+
+    _swipeController.forward(from: 0).then((_) {
+      setState(() {
+        _currentIndex += (direction == 'left' ? 1 : -1);
+        _swipeOffset = (direction == 'left' ? 400.0 : -400.0);
+
+        _swipeSlideAnimation =
+            Tween<double>(begin: _swipeOffset, end: 0).animate(
+          CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
+        );
+        _swipeController.forward(from: 0).then((_) {
+          setState(() {
+            _isTransitioning = false;
+          });
         });
       });
-    } else {
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-      _animController.forward(from: 0);
-    }
-  }
-
-  void _animateToNextQuestion() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
-
-    _animController.forward(from: 0).then((_) {
-      setState(() {
-        _currentIndex++;
-        _initCurrentItem();
-        _dragOffset = screenWidth;
-        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-        );
-        _animController.forward(from: 0);
-      });
     });
   }
 
-  void _initCurrentItem() {
-    final items = widget.quiz.speechBuilders ?? [];
-    if (items.isEmpty) return;
-    if (_currentIndex >= items.length) return;
-
-    final item = items[_currentIndex];
-    if (_itemStates.containsKey(item.id)) return;
-
-    // Initialize pool with scrambled items (if provided) or split question?
-    // Usually `item.items` contains the scrambled items.
-    final pool = List<String>.from(item.items ?? []);
-    _itemStates[item.id] = _SpeechBuilderItemState(
-      pool: pool,
-      selected: [],
+  void _resetSwipe() {
+    _swipeSlideAnimation = Tween<double>(begin: _swipeOffset, end: 0).animate(
+      CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
     );
+    _swipeController.forward(from: 0);
   }
 
-  void _toggleWord(String word, bool fromPool, SpeechBuilderItem item) {
-    final state =
-        _itemStates[item.id] ?? _SpeechBuilderItemState(pool: [], selected: []);
-    if (state.passed) return;
+  void _startRecording(SpeechBuilderItem item) {
+    if (_isRecording) return;
+    setState(() {
+      _isRecording = true;
+    });
 
-    final newPool = List<String>.from(state.pool);
-    final newSelected = List<String>.from(state.selected);
+    // Mock Recording Logic
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _stopRecording(item);
+    });
+  }
 
-    if (fromPool) {
-      newPool.remove(word); // Remove one instance
-      newSelected.add(word);
-    } else {
-      newSelected.remove(word);
-      newPool.add(word);
-    }
+  void _stopRecording(SpeechBuilderItem item) {
+    if (!_isRecording) return;
+
+    // Determine target text from answers
+    final targetText = item.answers?.first.answer.first ?? '';
+
+    // Mock result (60-100% score)
+    final score = math.Random().nextInt(41) + 60;
+    final passed = score >= 80; // Threshold to pass
 
     setState(() {
-      _itemStates[item.id] =
-          state.copyWith(pool: newPool, selected: newSelected);
-    });
-  }
-
-  void _checkAnswer(SpeechBuilderItem item) {
-    final state = _itemStates[item.id];
-    if (state == null) return;
-
-    final builtSentence = state.selected.join(' ');
-    final normalizedBuilt =
-        builtSentence.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-
-    // Check against valid answers
-    // item.answers is List<QuizAnswer>
-    final validAnswers = item.answers?.expand((a) => a.answer).toList() ?? [];
-
-    final isCorrect = validAnswers.any((ans) {
-      final normalizedAns =
-          ans.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-      return normalizedAns == normalizedBuilt;
-    });
-
-    setState(() {
-      _itemStates[item.id] = state.copyWith(
-        passed: isCorrect,
-        attempts: state.attempts + 1,
-        showFeedback: true,
+      _isRecording = false;
+      final current = _itemStates[item.id] ?? _SpeechBuilderItemState();
+      _itemStates[item.id] = current.copyWith(
+        score: score,
+        bestScore: score > current.bestScore ? score : current.bestScore,
+        passed: passed || current.passed,
+        attempts: current.attempts + 1,
+        transcript:
+            passed ? targetText : 'I am trying to speak...', // Mock transcript
       );
     });
-  }
-
-  void _next() {
-    if (widget.quiz.speechBuilders != null &&
-        _currentIndex < widget.quiz.speechBuilders!.length - 1) {
-      _animateToNextQuestion();
-    }
   }
 
   @override
@@ -213,251 +160,309 @@ class _SpeechBuilderState extends State<SpeechBuilder>
     if (items.isEmpty) {
       return Center(
         child: Text(
-          'No speech builder items.',
+          'No speech builder items available.',
           style: TextStyle(color: appColors.textSecondary, fontSize: 16),
         ),
       );
     }
 
-    return Column(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onHorizontalDragUpdate: _onHorizontalDragUpdate,
-            onHorizontalDragEnd: _onHorizontalDragEnd,
-            child: AnimatedBuilder(
-              animation: _animController,
-              builder: (context, child) {
-                final rotateAngle = _dragOffset * 0.001;
-                final opacity = (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
-                return Transform.translate(
-                  offset: Offset(_dragOffset, 0),
-                  child: Transform.rotate(
-                    angle: rotateAngle,
-                    child: Opacity(opacity: opacity, child: child),
-                  ),
-                );
-              },
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  if (widget.quiz.instruction.isNotEmpty) ...[
-                    RichTextParser.buildRichText(
-                      context,
-                      widget.quiz.instruction,
-                      onWordLongPress: widget.onWordLongPress,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium!
-                          .copyWith(fontSize: 16),
-                    ).first,
-                    const SizedBox(height: 24),
-                  ],
-                  ...items.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final item = entry.value;
-                    if (index > _currentIndex) return const SizedBox.shrink();
+    final currentItem = items[_currentIndex];
+    final currentState =
+        _itemStates[currentItem.id] ?? _SpeechBuilderItemState();
 
-                    return _buildCard(context, item, index, appColors);
-                  }),
-                  const SizedBox(height: 80),
-                ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Instruction (Outer)
+        if (widget.quiz.instruction.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: DefaultTextStyle(
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium!
+                  .copyWith(fontSize: 16),
+              child: Text.rich(
+                TextSpan(
+                  children: RichTextParser.buildTextSpans(
+                    context,
+                    widget.quiz.instruction,
+                    onWordLongPress: widget.onWordLongPress,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // Main Card Area
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: GestureDetector(
+              onHorizontalDragUpdate: _onHorizontalDragUpdate,
+              onHorizontalDragEnd: _onHorizontalDragEnd,
+              child: Transform.translate(
+                offset: Offset(_swipeOffset, 0),
+                child: Transform.rotate(
+                  angle: _swipeOffset * 0.0002,
+                  child: Opacity(
+                    opacity: (1 - (_swipeOffset.abs() / 400)).clamp(0.5, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: appColors.cardBackground,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: CustomPaint(
+                        painter: _DashedBorderPainter(
+                          color: appColors.primary.withValues(alpha: 0.5),
+                          strokeWidth: 2,
+                          gap: 4,
+                          borderRadius: 12,
+                        ),
+                        child: Column(
+                          children: [
+                            // Internal Header
+                            _buildInternalHeader(context, appColors, items),
+
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  children: [
+                                    // Hint / Translate
+                                    if (currentItem.hint != null ||
+                                        currentItem.translate != null)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 24),
+                                        child: Text.rich(
+                                          TextSpan(
+                                            children:
+                                                RichTextParser.buildTextSpans(
+                                              context,
+                                              currentItem.hint ??
+                                                  currentItem.translate ??
+                                                  '',
+                                            ),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: appColors.textSecondary,
+                                            fontSize: 14,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ),
+
+                                    // Question Context
+                                    Expanded(
+                                      child: Center(
+                                        child: SingleChildScrollView(
+                                          child: _buildQuestionContent(
+                                            context,
+                                            currentItem,
+                                            currentState,
+                                            appColors,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Score / Feedback
+                                    if (currentState.attempts > 0 &&
+                                        !currentState.passed)
+                                      _buildFeedback(currentState, appColors),
+
+                                    const SizedBox(height: 32),
+
+                                    // Controls
+                                    _buildControls(
+                                        currentItem, currentState, appColors),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
         ),
+
+        // Floating Next (Standard in some quizzes when passed)
+        if (currentState.passed && _currentIndex < items.length - 1)
+          _buildFloatingNextButton(appColors),
       ],
     );
   }
 
-  Widget _buildCard(
+  Widget _buildInternalHeader(
     BuildContext context,
-    SpeechBuilderItem item,
-    int index,
     AppColorsExtension appColors,
+    List<SpeechBuilderItem> questions,
   ) {
-    final state =
-        _itemStates[item.id] ?? _SpeechBuilderItemState(pool: [], selected: []);
-    final isCurrent = index == _currentIndex;
-    final isPassed = state.passed;
+    final passedCount = _itemStates.values.where((s) => s.passed).length;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isCurrent
-            ? appColors.cardBackground
-            : appColors.cardBackground.withValues(alpha: 0.5),
-        border: Border.all(
-          color: isCurrent
-              ? appColors.primary.withValues(alpha: 0.5)
-              : appColors.border,
+        border: Border(
+          bottom: BorderSide(
+            color: appColors.border.withValues(alpha: 0.3),
+          ),
         ),
-        borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
+          Text(
+            '${_currentIndex + 1} / ${questions.length}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: appColors.textSecondary,
+            ),
+          ),
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                if (isPassed && !isCurrent)
-                  const Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: 20,
+                CustomPaint(
+                  size: const Size(32, 32),
+                  painter: _SegmentedProgressPainter(
+                    totalSegments: questions.length,
+                    segmentStates: List.generate(questions.length, (index) {
+                      final qId = questions[index].id;
+                      final s = _itemStates[qId];
+                      if (s == null || (!s.passed && s.attempts == 0)) return 0;
+                      return s.passed ? 1 : 2;
+                    }),
+                    primaryColor: appColors.primary,
+                    errorColor: Colors.red,
+                    emptyColor: appColors.border.withValues(alpha: 0.5),
                   ),
-                SizedBox(width: isPassed && !isCurrent ? 8 : 0),
+                ),
                 Text(
-                  '${index + 1}/${widget.quiz.speechBuilders?.length ?? 0}',
-                  style:
-                      TextStyle(color: appColors.textSecondary, fontSize: 14),
+                  '$passedCount',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textSecondary,
+                  ),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: appColors.border.withValues(alpha: 0.5)),
+        ],
+      ),
+    );
+  }
 
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (item.question != null)
-                  Text(
-                    item.question!,
-                    style:
-                        TextStyle(fontSize: 18, color: appColors.textPrimary),
-                  ),
-                const SizedBox(height: 24),
+  Widget _buildQuestionContent(
+    BuildContext context,
+    SpeechBuilderItem item,
+    _SpeechBuilderItemState state,
+    AppColorsExtension appColors,
+  ) {
+    if (item.question != null) {
+      return Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: RichTextParser.buildRichText(
+          context,
+          item.question!,
+          isQuestion: true,
+          onGapFound: (gapId) {
+            final answerObj = item.answers?.firstWhere(
+              (a) => a.id == gapId,
+              orElse: () => const QuizAnswer(id: '', answer: [], explain: ''),
+            );
+            final answerText = answerObj?.answer.first ?? '';
+            final underscores =
+                '_' * (answerText.isNotEmpty ? answerText.length : 5);
 
-                // Selected Area
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  constraints: const BoxConstraints(minHeight: 60),
-                  decoration: BoxDecoration(
-                    color: appColors.inputBackground,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: appColors.border),
-                  ),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: state.selected
-                        .map(
-                          (word) =>
-                              _buildChip(context, word, false, item, appColors),
-                        )
-                        .toList(),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Pool Area
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: state.pool
-                      .map(
-                        (word) =>
-                            _buildChip(context, word, true, item, appColors),
-                      )
-                      .toList(),
-                ),
-
-                if (state.showFeedback) ...[
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: state.passed
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: state.passed ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          state.passed ? 'Correct!' : 'Incorrect. Try again.',
-                          style: TextStyle(
-                            color: state.passed ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (!state.passed && state.attempts >= 3) ...[
-                          const SizedBox(height: 8),
-                          if (item.answers != null && item.answers!.isNotEmpty)
-                            Text(
-                              'Answer: ${item.answers!.first.answer.first}',
-                              style: TextStyle(
-                                color: appColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          if (isCurrent && !isPassed)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton(
-                onPressed:
-                    state.selected.isNotEmpty ? () => _checkAnswer(item) : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Check',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                state.passed ? answerText : underscores,
+                style: TextStyle(
+                  color: state.passed
+                      ? appColors.primary
+                      : appColors.primary.withValues(alpha: 0.5),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: state.passed ? 0 : 2,
                 ),
               ),
-            )
-          else if (isCurrent && isPassed)
+            );
+          },
+        ),
+      );
+    } else {
+      // Legacy Items Mode
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: (item.items ?? []).map((word) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: state.passed
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : appColors.inputBackground,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: state.passed ? Colors.green : appColors.border,
+              ),
+            ),
+            child: Text(
+              word,
+              style: TextStyle(
+                color: state.passed ? Colors.green : appColors.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    }
+  }
+
+  Widget _buildFeedback(
+      _SpeechBuilderItemState state, AppColorsExtension appColors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(top: 24),
+      decoration: BoxDecoration(
+        color: _getScoreColor(state.score).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '${state.bestScore}%',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: _getScoreColor(state.score),
+            ),
+          ),
+          if (state.transcript != null)
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (index < (widget.quiz.speechBuilders?.length ?? 0) - 1) {
-                    _next();
-                  } else {
-                    widget.onCheck?.call();
-                    widget.onNext?.call();
-                  }
-                },
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Next question'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12.5,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'You said: "${state.transcript}"',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: appColors.textSecondary,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -466,41 +471,71 @@ class _SpeechBuilderState extends State<SpeechBuilder>
     );
   }
 
-  Widget _buildChip(
-    BuildContext context,
-    String word,
-    bool inPool,
+  Color _getScoreColor(int score) {
+    if (score >= 80) return Colors.green;
+    if (score >= 50) return Colors.orange;
+    return Colors.red;
+  }
+
+  Widget _buildControls(
     SpeechBuilderItem item,
+    _SpeechBuilderItemState state,
     AppColorsExtension appColors,
   ) {
-    return GestureDetector(
-      onTap: () => _toggleWord(word, inPool, item),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    if (state.passed) {
+      return Container(
+        width: 64,
+        height: 64,
+        decoration: const BoxDecoration(
+          color: Colors.green,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.check, color: Colors.white, size: 32),
+      );
+    }
+
+    return InkWell(
+      onTap: () => _isRecording ? _stopRecording(item) : _startRecording(item),
+      borderRadius: BorderRadius.circular(32),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
-          color: inPool
-              ? appColors.cardBackground
-              : appColors.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border:
-              Border.all(color: inPool ? appColors.border : appColors.primary),
-          boxShadow: inPool
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          word,
-          style: TextStyle(
-            color: inPool ? appColors.textPrimary : appColors.primary,
-            fontSize: 16,
+          color: _isRecording ? Colors.red : appColors.primary,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: _isRecording
+                ? Colors.red.withValues(alpha: 0.2)
+                : Colors.transparent,
+            width: 4,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: (_isRecording ? Colors.red : appColors.primary)
+                  .withValues(alpha: 0.4),
+              blurRadius: 10,
+              spreadRadius: _isRecording ? 4 : 0,
+            ),
+          ],
         ),
+        child: Icon(
+          _isRecording ? Icons.mic_off : Icons.mic,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingNextButton(AppColorsExtension appColors) {
+    return Positioned(
+      bottom: 24,
+      right: 24,
+      child: FloatingActionButton(
+        onPressed: () => _slideCard('left'),
+        backgroundColor: appColors.primary,
+        child: const Icon(Icons.chevron_right, color: Colors.white, size: 32),
       ),
     );
   }
@@ -508,31 +543,145 @@ class _SpeechBuilderState extends State<SpeechBuilder>
 
 class _SpeechBuilderItemState {
   _SpeechBuilderItemState({
-    required this.pool,
-    required this.selected,
+    this.score = 0,
+    this.bestScore = 0,
     this.passed = false,
     this.attempts = 0,
-    this.showFeedback = false,
+    this.transcript,
   });
-  final List<String> pool;
-  final List<String> selected;
+  final int score;
+  final int bestScore;
   final bool passed;
   final int attempts;
-  final bool showFeedback;
+  final String? transcript;
 
   _SpeechBuilderItemState copyWith({
-    List<String>? pool,
-    List<String>? selected,
+    int? score,
+    int? bestScore,
     bool? passed,
     int? attempts,
-    bool? showFeedback,
+    String? transcript,
   }) {
     return _SpeechBuilderItemState(
-      pool: pool ?? this.pool,
-      selected: selected ?? this.selected,
+      score: score ?? this.score,
+      bestScore: bestScore ?? this.bestScore,
       passed: passed ?? this.passed,
       attempts: attempts ?? this.attempts,
-      showFeedback: showFeedback ?? this.showFeedback,
+      transcript: transcript ?? this.transcript,
     );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({
+    required this.color,
+    this.strokeWidth = 1,
+    this.gap = 5,
+    this.borderRadius = 0,
+  });
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(borderRadius),
+        ),
+      );
+
+    final dashedPath = _dashPath(path, width: 8, space: gap);
+    canvas.drawPath(dashedPath, paint);
+  }
+
+  Path _dashPath(Path source, {required double width, required double space}) {
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final len = (distance + width < metric.length)
+            ? width
+            : metric.length - distance;
+        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
+        distance += width + space;
+      }
+    }
+    return dest;
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.gap != gap;
+  }
+}
+
+class _SegmentedProgressPainter extends CustomPainter {
+  _SegmentedProgressPainter({
+    required this.totalSegments,
+    required this.segmentStates,
+    required this.primaryColor,
+    required this.errorColor,
+    required this.emptyColor,
+  });
+  final int totalSegments;
+  final List<int> segmentStates;
+  final Color primaryColor;
+  final Color errorColor;
+  final Color emptyColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    const strokeWidth = 3;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth.toDouble()
+      ..strokeCap = StrokeCap.butt;
+
+    var startAngle = -math.pi / 2;
+    final gap = (totalSegments > 1) ? 0.2 : 0;
+    final totalGap = gap * totalSegments;
+    final segmentAngle = (2 * math.pi - totalGap) / totalSegments;
+
+    for (var i = 0; i < totalSegments; i++) {
+      final state = (i < segmentStates.length) ? segmentStates[i] : 0;
+
+      if (state == 1) {
+        paint.color = primaryColor;
+      } else if (state == 2) {
+        paint.color = errorColor;
+      } else {
+        paint.color = emptyColor;
+      }
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+        startAngle,
+        segmentAngle,
+        false,
+        paint,
+      );
+
+      startAngle += segmentAngle + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SegmentedProgressPainter oldDelegate) {
+    return oldDelegate.totalSegments != totalSegments ||
+        oldDelegate.segmentStates != segmentStates;
   }
 }
