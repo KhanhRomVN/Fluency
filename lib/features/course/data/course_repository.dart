@@ -324,17 +324,17 @@ class CourseRepository {
 
   Quiz _resolveQuizPathsFromZip(Quiz quiz, Directory extractedDir) {
     var audio = quiz.audio;
-    if (audio != null && audio.startsWith('./')) {
+    if (audio != null && audio.isNotEmpty) {
       audio = _zipLoader.resolveFilePath(extractedDir, audio);
     }
 
     var transcript = quiz.transcript;
-    if (transcript != null && transcript.startsWith('./')) {
+    if (transcript != null && transcript.isNotEmpty) {
       transcript = _zipLoader.resolveFilePath(extractedDir, transcript);
     }
 
     var passage = quiz.passage;
-    if (passage != null && passage.startsWith('./')) {
+    if (passage != null && passage.isNotEmpty) {
       passage = _zipLoader.resolveFilePath(extractedDir, passage);
     }
 
@@ -394,18 +394,31 @@ class CourseRepository {
 
   Quiz _resolveQuizPaths(Quiz quiz, String basePath) {
     var audio = quiz.audio;
-    if (audio != null && audio.startsWith('./')) {
-      audio = audio.replaceFirst('./', basePath);
+    if (audio != null && audio.isNotEmpty) {
+      if (audio.startsWith('./')) {
+        audio = audio.replaceFirst('./', basePath);
+      } else if (!audio.startsWith('/') && !audio.startsWith('http')) {
+        audio = '$basePath$audio';
+      }
     }
 
     var transcript = quiz.transcript;
-    if (transcript != null && transcript.startsWith('./')) {
-      transcript = transcript.replaceFirst('./', basePath);
+    if (transcript != null && transcript.isNotEmpty) {
+      if (transcript.startsWith('./')) {
+        transcript = transcript.replaceFirst('./', basePath);
+      } else if (!transcript.startsWith('/') &&
+          !transcript.startsWith('http')) {
+        transcript = '$basePath$transcript';
+      }
     }
 
     var passage = quiz.passage;
-    if (passage != null && passage.startsWith('./')) {
-      passage = passage.replaceFirst('./', basePath);
+    if (passage != null && passage.isNotEmpty) {
+      if (passage.startsWith('./')) {
+        passage = passage.replaceFirst('./', basePath);
+      } else if (!passage.startsWith('/') && !passage.startsWith('http')) {
+        passage = '$basePath$passage';
+      }
     }
 
     return Quiz(

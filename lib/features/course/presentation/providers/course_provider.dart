@@ -4,21 +4,45 @@ import 'package:flutter/material.dart';
 
 class CourseProvider extends ChangeNotifier {
   final CourseRepository _repository = CourseRepository();
-  List<Course> _courses = [];
+  List<Course> _allCourses = [];
+  List<Course> _filteredCourses = [];
   bool _isLoading = false;
+  String _searchQuery = '';
 
-  List<Course> get courses => _courses;
+  List<Course> get courses => _filteredCourses;
   bool get isLoading => _isLoading;
+  String get searchQuery => _searchQuery;
 
   Future<void> loadCourses() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      _courses = await _repository.getCourses();
+      _allCourses = await _repository.getCourses();
+      _filterCourses();
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    _filterCourses();
+    notifyListeners();
+  }
+
+  void _filterCourses() {
+    if (_searchQuery.isEmpty) {
+      _filteredCourses = _allCourses;
+    } else {
+      _filteredCourses = _allCourses
+          .where((course) =>
+              course.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              course.shortDescription
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase()))
+          .toList();
     }
   }
 

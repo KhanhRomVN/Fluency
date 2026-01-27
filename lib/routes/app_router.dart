@@ -3,6 +3,7 @@ import 'package:fluency/features/collection/presentation/pages/collection_page.d
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/pages/course_detail_page.dart';
 import 'package:fluency/features/course/presentation/pages/course_list_page.dart';
+import 'package:fluency/features/error/presentation/pages/not_found_page.dart';
 import 'package:fluency/features/home/presentation/pages/home_page.dart';
 import 'package:fluency/features/main/presentation/pages/main_page.dart';
 import 'package:fluency/features/quiz/presentation/pages/quiz_page.dart';
@@ -25,7 +26,12 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: RouteConstants.splash,
+    errorBuilder: (context, state) => const NotFoundPage(),
     routes: [
+      GoRoute(
+        path: RouteConstants.home,
+        redirect: (context, state) => RouteConstants.splash,
+      ),
       GoRoute(
         path: RouteConstants.splash,
         builder: (context, state) => const SplashPage(),
@@ -84,6 +90,7 @@ class AppRouter {
               ),
             ],
           ),
+
           // Setting Branch
           StatefulShellBranch(
             navigatorKey: _shellNavigatorSettingKey,

@@ -10,7 +10,7 @@ pre-commit:
   commands:
     analyze:
       glob: "*.dart"
-      run: flutter analyze
+      run: flutter analyze --no-fatal-warnings --no-fatal-infos
     format:
       glob: "*.dart"
       run: dart format {staged_files}

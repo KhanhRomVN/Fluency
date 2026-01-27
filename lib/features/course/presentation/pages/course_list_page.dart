@@ -87,78 +87,29 @@ class _CourseListPageState extends State<CourseListPage> {
                             ),
                             child: TextField(
                               onChanged: (value) {
-                                // TODO(dev): Implement search logic
+                                provider.setSearchQuery(value);
                               },
+                              textAlignVertical: TextAlignVertical.center,
                               decoration: InputDecoration(
                                 hintText: 'Search courses...',
                                 hintStyle: TextStyle(
                                   color: Theme.of(context)
                                       .extension<AppColorsExtension>()
                                       ?.textSecondary,
+                                  fontSize: 14,
                                 ),
                                 prefixIcon: Icon(
                                   Icons.search,
+                                  size: 20,
                                   color: Theme.of(context)
                                       .extension<AppColorsExtension>()
                                       ?.textSecondary,
                                 ),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
+                                  vertical: 12,
                                 ),
-                                isDense: true,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        InkWell(
-                          onTap: () {
-                            showModalBottomSheet<void>(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Theme.of(context)
-                                      .extension<AppColorsExtension>()
-                                      ?.background ??
-                                  Theme.of(context).scaffoldBackgroundColor,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(20),
-                                ),
-                              ),
-                              builder: (context) {
-                                return SizedBox(
-                                  height:
-                                      MediaQuery.of(context).size.height * 0.5,
-                                  width: double.infinity,
-                                  child: const Center(
-                                    child: Text('Filter content goes here'),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                      .extension<AppColorsExtension>()
-                                      ?.inputBackground ??
-                                  Colors.grey[200],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: SvgPicture.asset(
-                              'assets/icons/filter.svg',
-                              width: 24,
-                              height: 24,
-                              colorFilter: ColorFilter.mode(
-                                Theme.of(context)
-                                        .extension<AppColorsExtension>()
-                                        ?.textPrimary ??
-                                    Colors.black,
-                                BlendMode.srcIn,
+                                isCollapsed: false,
                               ),
                             ),
                           ),
@@ -173,8 +124,79 @@ class _CourseListPageState extends State<CourseListPage> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (provider.courses.isEmpty)
-                  const SliverFillRemaining(
-                    child: Center(child: Text('No courses found.')),
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .extension<AppColorsExtension>()
+                                    ?.primary
+                                    .withOpacity(0.05),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.search_off_rounded,
+                                size: 80,
+                                color: Theme.of(context)
+                                    .extension<AppColorsExtension>()
+                                    ?.primary
+                                    .withOpacity(0.5),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'No courses found',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context)
+                                        .extension<AppColorsExtension>()
+                                        ?.textPrimary,
+                                  ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              provider.searchQuery.isEmpty
+                                  ? "You haven't imported any courses yet. Start your learning journey by adding a new course!"
+                                  : "We couldn't find any courses matching '${provider.searchQuery}'. Try using different keywords.",
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .extension<AppColorsExtension>()
+                                        ?.textSecondary,
+                                    height: 1.5,
+                                  ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Try to download courses',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .extension<AppColorsExtension>()
+                                        ?.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 80), // Push content up
+                          ],
+                        ),
+                      ),
+                    ),
                   )
                 else
                   SliverPadding(

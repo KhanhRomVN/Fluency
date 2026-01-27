@@ -176,7 +176,7 @@ class _QuizPageState extends State<QuizPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(6),
                               child: SvgPicture.asset(
-                                'icons/chevron_left.svg',
+                                'assets/icons/chevron_left.svg',
                                 width: 20,
                                 height: 20,
                                 colorFilter: ColorFilter.mode(
@@ -206,7 +206,7 @@ class _QuizPageState extends State<QuizPage> {
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: SvgPicture.asset(
-                                  'icons/pilcrow.svg',
+                                  'assets/icons/pilcrow.svg',
                                   width: 18,
                                   height: 18,
                                   colorFilter: ColorFilter.mode(
@@ -230,7 +230,7 @@ class _QuizPageState extends State<QuizPage> {
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: SvgPicture.asset(
-                                  'icons/circle_dot_dashed.svg',
+                                  'assets/icons/circle_dot_dashed.svg',
                                   width: 18,
                                   height: 18,
                                   colorFilter: ColorFilter.mode(
@@ -255,7 +255,7 @@ class _QuizPageState extends State<QuizPage> {
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: SvgPicture.asset(
-                                  'icons/audio_lines.svg',
+                                  'assets/icons/audio_lines.svg',
                                   width: 18,
                                   height: 18,
                                   colorFilter: ColorFilter.mode(
@@ -302,7 +302,7 @@ class _QuizPageState extends State<QuizPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(6),
                               child: SvgPicture.asset(
-                                'icons/align_end_vertical.svg',
+                                'assets/icons/align_end_vertical.svg',
                                 width: 18,
                                 height: 18,
                                 colorFilter: ColorFilter.mode(

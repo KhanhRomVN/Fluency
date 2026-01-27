@@ -194,7 +194,7 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
                         Row(
                           children: [
                             SvgPicture.asset(
-                              'icons/audio_lines.svg',
+                              'assets/icons/audio_lines.svg',
                               width: 18,
                               height: 18,
                               colorFilter: ColorFilter.mode(
@@ -222,7 +222,7 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             child: SvgPicture.asset(
-                              'icons/x.svg',
+                              'assets/icons/x.svg',
                               width: 20,
                               height: 20,
                               colorFilter: ColorFilter.mode(
@@ -433,7 +433,7 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: SvgPicture.asset(
-                          'icons/scan_eye.svg',
+                          'assets/icons/scan_eye.svg',
                           width: 16,
                           height: 16,
                           colorFilter: ColorFilter.mode(

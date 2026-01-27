@@ -16,143 +16,134 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get card background from theme extension
-    final cardBg =
-        Theme.of(context).extension<AppColorsExtension>()?.cardBackground ??
-            Theme.of(context).cardColor;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 0, // Flat design as requested or implied by custom color
-      color: cardBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Course Image
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                bottomLeft: Radius.circular(12),
-              ),
-              child: CourseImage(
-                imageUrl: course.imageUrl,
-                width: 90,
-              ),
-            ),
-            // Course Info
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      course.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                      maxLines: 1, // Max 1 line as requested
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    // Description (Moved up)
-                    Text(
-                      course.shortDescription,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[500],
-                            fontStyle: FontStyle.italic,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    // Author & Adapter & Progress
-                    Row(
-                      children: [
-                        Flexible(
-                          child: _buildInfoRow(
-                            context,
-                            'assets/icons/author.svg',
-                            course.author,
-                          ),
-                        ),
-                        _buildSeparator(context),
-                        Flexible(
-                          child: _buildInfoRow(
-                            context,
-                            'assets/icons/adapter.svg',
-                            course.adapter,
-                          ),
-                        ),
-                        _buildSeparator(context),
-                        // Progress
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SvgPicture.asset(
-                              'assets/icons/lesson.svg',
-                              width: 14,
-                              height: 14,
-                              colorFilter: ColorFilter.mode(
-                                Colors.grey[500]!,
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${course.completedLessons}/${course.lessons.length}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: Colors.grey[400],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Skills (Moved down)
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          ...course.skill.map((skill) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: _buildSkillTag(context, skill),
-                            );
-                          }),
-                        ],
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Course Image (Square Ratio)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 100,
+                    height: 100,
+                    child: AspectRatio(
+                      aspectRatio: 1.0,
+                      child: CourseImage(
+                        imageUrl: course.imageUrl,
+                        width: 100,
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 16),
+                // Course Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        course.title,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Theme.of(context)
+                                      .extension<AppColorsExtension>()
+                                      ?.textPrimary,
+                                ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        course.shortDescription,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .extension<AppColorsExtension>()
+                                  ?.textSecondary,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                      // Time & Completed Lessons
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: Theme.of(context)
+                                    .extension<AppColorsExtension>()
+                                    ?.textSecondary ??
+                                Colors.grey[500],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '12h 30m',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .extension<AppColorsExtension>()
+                                          ?.textSecondary,
+                                    ),
+                          ),
+                          const SizedBox(width: 16),
+                          _buildInfoRow(
+                            context,
+                            'assets/icons/lesson.svg',
+                            '${course.completedLessons}/${course.lessons.length} lessons',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Progress Bar (Fake Data)
+                      _buildProgressBar(context),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Divider(
+            height: 1,
+            indent: 16,
+            endIndent: 16,
+            color: Theme.of(context).dividerColor.withOpacity(0.1),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSeparator(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(
-        '|',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
-              fontSize: 10,
-            ),
-      ),
+  Widget _buildProgressBar(BuildContext context) {
+    // Fake progress calculation
+    final progress = course.lessons.isEmpty
+        ? 0.0
+        : course.completedLessons / course.lessons.length;
+    final primaryColor =
+        Theme.of(context).extension<AppColorsExtension>()?.primary ??
+            Theme.of(context).primaryColor;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress > 0
+                ? progress
+                : 0.1, // Show a bit of progress if 0 for UI demo
+            minHeight: 6,
+            backgroundColor: primaryColor.withOpacity(0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+          ),
+        ),
+      ],
     );
   }
 
@@ -165,7 +156,8 @@ class CourseCard extends StatelessWidget {
           width: 14,
           height: 14,
           colorFilter: ColorFilter.mode(
-            Colors.grey[500]!,
+            Theme.of(context).extension<AppColorsExtension>()?.textSecondary ??
+                Colors.grey[500]!,
             BlendMode.srcIn,
           ),
         ),
@@ -174,7 +166,9 @@ class CourseCard extends StatelessWidget {
           child: Text(
             text,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[400],
+                  color: Theme.of(context)
+                      .extension<AppColorsExtension>()
+                      ?.textSecondary,
                 ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -182,52 +176,5 @@ class CourseCard extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Widget _buildSkillTag(BuildContext context, String text) {
-    final color = _getSkillColor(text);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 0.5,
-        ),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 11,
-            ),
-      ),
-    );
-  }
-
-  Color _getSkillColor(String skill) {
-    // Define distinct colors for skills, working in both dark/light modes
-    switch (skill.toLowerCase()) {
-      case 'listening':
-        return Colors.lightBlueAccent;
-      case 'reading':
-        return Colors.greenAccent;
-      case 'speaking':
-        return Colors.orangeAccent;
-      case 'writing':
-        return Colors.pinkAccent;
-      default:
-        // Hash string to get a consistent random color if unknown
-        final hash = skill.hashCode;
-        final colors = [
-          Colors.purpleAccent,
-          Colors.tealAccent,
-          Colors.amberAccent,
-          Colors.cyanAccent,
-        ];
-        return colors[hash.abs() % colors.length];
-    }
   }
 }

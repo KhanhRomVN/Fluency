@@ -29,20 +29,10 @@ class SettingTile extends StatelessWidget {
           child: Row(
             children: [
               // Icon with circular gradient background
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      iconColor.withValues(alpha: 0.2),
-                      iconColor.withValues(alpha: 0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              // Icon without background
+              SizedBox(
+                width: 32,
+                height: 32,
                 child: Icon(
                   icon,
                   color: iconColor,

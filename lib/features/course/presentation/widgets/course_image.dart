@@ -18,15 +18,22 @@ class CourseImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.startsWith('http')) {
+    var finalUrl = imageUrl;
+    // Patch for broken image URL provided by user
+    if (finalUrl == 'https://i.ibb.co/ZVRKdVm/grammar-hero.jpg') {
+      finalUrl =
+          'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=1000&auto=format&fit=crop';
+    }
+
+    if (finalUrl.startsWith('http')) {
       return Image.network(
-        imageUrl,
+        finalUrl,
         width: width,
         height: height,
         fit: fit,
         errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(),
       );
-    } else if (imageUrl.startsWith('assets/') || imageUrl.startsWith('lib/')) {
+    } else if (finalUrl.startsWith('assets/') || finalUrl.startsWith('lib/')) {
       return Image.asset(
         imageUrl,
         width: width,
@@ -54,8 +61,33 @@ class CourseImage extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      color: Colors.grey[800],
-      child: const Icon(Icons.broken_image, color: Colors.grey),
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.image_not_supported_rounded,
+              color: Colors.grey.withValues(alpha: 0.4),
+              size: 32,
+            ),
+            if ((width ?? 100) > 80) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Image not found',
+                style: TextStyle(
+                  color: Colors.grey.withValues(alpha: 0.5),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

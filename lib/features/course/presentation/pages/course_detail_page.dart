@@ -5,6 +5,7 @@ import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/widgets/course_image.dart';
 import 'package:fluency/features/course/presentation/widgets/lesson_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 class CourseDetailPage extends StatefulWidget {
@@ -102,35 +103,63 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             // 1. Header with 'Course' title and Badge
             SliverToBoxAdapter(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Row(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    Text(
-                      'Course',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: appColors.textPrimary,
+                    // Back Button on the far left
+                    Positioned(
+                      left: 4,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: SvgPicture.asset(
+                          'assets/icons/chevron_left.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: ColorFilter.mode(
+                            appColors.textPrimary,
+                            BlendMode.srcIn,
                           ),
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: appColors.primary,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'v1.0.0',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                      ),
+                    // Centered Title and Badge
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Courses',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.textPrimary,
+                                  ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: appColors.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'v1.0.0',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -174,46 +203,10 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                 ),
               ),
             ),
-            // 4. Centered Skill Badge
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 24),
-                child: Center(
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: displayCourse.skill.map((String skill) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color:
-                                const Color(0xFF2196F3).withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Text(
-                          skill,
-                          style:
-                              Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: const Color(0xFF2196F3),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            ),
             // 5. Info Section Label
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
                 child: Text(
                   'Information',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -261,7 +254,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             // 7. Lessons Header (Renamed from Detail Syllabus)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                 child: Text(
                   'Lessons',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -273,15 +266,17 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             ),
             // 8. Lesson List (New Card Design)
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final itemIndex = index ~/ 2;
                     if (index.isOdd) {
                       return Divider(
-                        color: appColors.border.withValues(alpha: 0.3),
+                        color: appColors.border.withValues(alpha: 0.1),
                         height: 1,
+                        indent: 60,
+                        endIndent: 8,
                       );
                     }
 
@@ -336,8 +331,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
         children: [
           _buildInfoRow(context, 'Author', course.author, appColors),
           _buildDivider(appColors),
-          _buildInfoRow(context, 'Translator', course.translator, appColors),
-          _buildDivider(appColors),
           _buildInfoRow(context, 'Adapter', course.adapter, appColors),
           _buildDivider(appColors),
           _buildInfoRow(context, 'Publisher', course.publisher, appColors),
@@ -349,12 +342,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
             appColors,
           ),
           _buildDivider(appColors),
-          _buildInfoRow(
-            context,
-            'Pages',
-            course.pageCount.toString(),
-            appColors,
-          ),
+          _buildSkillRow(context, 'Skill', course.skill, appColors),
         ],
       ),
     );
@@ -365,6 +353,84 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       height: 24,
       color: appColors.divider.withValues(alpha: 0.5),
     );
+  }
+
+  Widget _buildSkillRow(
+    BuildContext context,
+    String label,
+    List<String> skills,
+    AppColorsExtension appColors,
+  ) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: appColors.textSecondary,
+                ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 6,
+            runSpacing: 6,
+            children: skills.map((skill) {
+              final color = _getSkillColor(skill);
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Text(
+                  skill,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getSkillColor(String skill) {
+    switch (skill.toLowerCase()) {
+      case 'listening':
+      case 'listen':
+        return Colors.red;
+      case 'speaking':
+      case 'speak':
+        return Colors.orange;
+      case 'reading':
+      case 'read':
+        return Colors.green;
+      case 'writing':
+      case 'write':
+        return Colors.blue;
+      case 'grammar':
+        return Colors.purple;
+      case 'vocabulary':
+        return Colors.teal;
+      default:
+        return Colors.blueGrey;
+    }
   }
 
   Widget _buildInfoRow(

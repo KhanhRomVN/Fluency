@@ -3,6 +3,9 @@ import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 
@@ -262,12 +265,17 @@ class ZipCourseLoader {
   }
 
   /// Get file path within extracted directory
-  /// Converts relative paths like './audio/file.mp3' to absolute paths
+  /// Converts paths like './audio/file.mp3' or 'audio/file.mp3' to absolute paths
   String resolveFilePath(Directory extractedDir, String relativePath) {
-    if (relativePath.startsWith('./')) {
-      return '${extractedDir.path}/${relativePath.substring(2)}';
+    var cleanedPath = relativePath;
+    if (cleanedPath.startsWith('./')) {
+      cleanedPath = cleanedPath.substring(2);
+    } else if (cleanedPath.startsWith('/')) {
+      cleanedPath = cleanedPath.substring(1);
     }
-    return '${extractedDir.path}/$relativePath';
+
+    final fullPath = '${extractedDir.path}/$cleanedPath';
+    return fullPath;
   }
 
   /// Clear the cache directory

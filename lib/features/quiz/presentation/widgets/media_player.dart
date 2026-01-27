@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:universal_io/io.dart';
 
 class MediaPlayer extends StatefulWidget {
   const MediaPlayer({
@@ -46,6 +47,9 @@ class _MediaPlayerState extends State<MediaPlayer> {
     // Set the release mode to stop the audio when it finishes
     await _player.setReleaseMode(ReleaseMode.stop);
 
+    // Listen to logs for debugging
+    _player.onLog.listen((msg) => debugPrint('AudioPlayer Log: $msg'));
+
     // Initialize audio source properly
     if (widget.externalPlayer == null) {
       await _setSource();
@@ -60,6 +64,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
     }
 
     _durationSubscription = _player.onDurationChanged.listen((duration) {
+      debugPrint('Audio duration received: $duration');
       setState(() => _duration = duration);
     });
 
@@ -68,6 +73,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
     });
 
     _playerCompleteSubscription = _player.onPlayerComplete.listen((event) {
+      debugPrint('Audio playback completed');
       setState(() {
         _playerState = PlayerState.stopped;
         _position = Duration.zero;
@@ -76,6 +82,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
     _playerStateChangeSubscription =
         _player.onPlayerStateChanged.listen((state) {
+      debugPrint('Audio player state changed: $state');
       setState(() {
         _playerState = state;
       });
@@ -84,13 +91,51 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
   Future<void> _setSource() async {
     try {
-      // Workaround: Load bytes from rootBundle because AssetSource assumes 'assets/' prefix.
-      // The provided path is a full lib path which behaves like a key in rootBundle.
+      debugPrint('Attempting to set source: ${widget.audioPath}');
+      // Check if it's a file path (absolute path on device)
+      if (widget.audioPath.startsWith('/') ||
+          widget.audioPath.contains('course_cache')) {
+        final file = File(widget.audioPath);
+        if (await file.exists()) {
+          await _player.setSource(DeviceFileSource(widget.audioPath));
+          debugPrint('Audio source set successfully (DeviceFileSource)');
+
+          // Try to get duration immediately
+          final duration = await _player.getDuration();
+          if (duration != null) {
+            debugPrint('Immediate duration: $duration');
+            setState(() => _duration = duration);
+          } else {
+            debugPrint('Immediate duration is NULL');
+          }
+          return;
+        } else {
+          debugPrint('Audio file NOT found at path: ${widget.audioPath}');
+          // Diagnostic: List files in the same directory
+          try {
+            final dir = file.parent;
+            if (await dir.exists()) {
+              final files = await dir.list().toList();
+              debugPrint('Files in ${dir.path}:');
+              for (final f in files) {
+                debugPrint(' - ${f.path}');
+              }
+            } else {
+              debugPrint('Parent directory does NOT exist: ${dir.path}');
+            }
+          } catch (e) {
+            debugPrint('Error listing directory for diagnostics: $e');
+          }
+        }
+      }
+
+      // Fallback: Try to load as asset
       final bytes = await DefaultAssetBundle.of(context).load(widget.audioPath);
       final audioBytes = bytes.buffer.asUint8List();
       await _player.setSourceBytes(audioBytes);
+      debugPrint('Audio source set to asset bytes: ${widget.audioPath}');
     } catch (e) {
-      debugPrint('Error setting audio source: $e');
+      debugPrint('Error setting audio source (${widget.audioPath}): $e');
     }
   }
 

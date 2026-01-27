@@ -1,3 +1,4 @@
+import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/setting/data/services/app_info_service.dart';
 import 'package:flutter/material.dart';
 
@@ -37,299 +38,294 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>();
+    final primaryColor = colors?.primary ?? Theme.of(context).primaryColor;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Về ứng dụng'),
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // App Icon and Name
-          Center(
-            child: Column(
-              children: [
-                Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.secondary,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.4),
-                        blurRadius: 30,
-                        offset: const Offset(0, 15),
-                        spreadRadius: -5,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.school,
-                    size: 56,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  _appName,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Phiên bản $_version',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 40),
-
-          // Description
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outline
-                    .withValues(alpha: 0.2),
-              ),
-            ),
+      body: CustomScrollView(
+        slivers: [
+          // Scrollable Header
+          SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(16, 48, 16, 8),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.blue.withValues(alpha: 0.2),
-                              Colors.blue.withValues(alpha: 0.1),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.description,
-                          color: Colors.blue,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Mô tả',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                      ),
-                    ],
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      size: 20,
+                      color: colors?.textPrimary,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(width: 12),
                   Text(
-                    'Fluency là ứng dụng học ngoại ngữ giúp bạn cải thiện khả năng tiếng Anh thông qua các bài quiz tương tác, luyện nghe, và đọc hiểu.',
-                    style: TextStyle(
-                      height: 1.6,
-                      fontSize: 14,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.8),
-                    ),
+                    'About App',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colors?.textPrimary,
+                        ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
 
-          // Credits
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outline
-                    .withValues(alpha: 0.2),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          // Content
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // App Icon and Name
+                Center(
+                  child: Column(
                     children: [
+                      const SizedBox(height: 24),
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 110,
+                        height: 110,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.purple.withValues(alpha: 0.2),
-                              Colors.purple.withValues(alpha: 0.1),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(10),
+                          color: primaryColor,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                              spreadRadius: -2,
+                            ),
+                          ],
                         ),
                         child: const Icon(
-                          Icons.group,
-                          color: Colors.purple,
-                          size: 20,
+                          Icons.school_rounded,
+                          size: 56,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(height: 24),
                       Text(
-                        'Phát triển bởi',
+                        _appName,
                         style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                  color: colors?.textPrimary,
                                 ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const _InfoRow(
-                    icon: Icons.person,
-                    iconColor: Colors.teal,
-                    label: 'Nhà phát triển',
-                    value: 'KhanhRomVN',
-                  ),
-                  const Divider(height: 32),
-                  const _InfoRow(
-                    icon: Icons.code,
-                    iconColor: Colors.blue,
-                    label: 'Framework',
-                    value: 'Flutter',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // License
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outline
-                    .withValues(alpha: 0.2),
-              ),
-            ),
-            child: ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              leading: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.orange.withValues(alpha: 0.2),
-                      Colors.orange.withValues(alpha: 0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.article,
-                  color: Colors.orange,
-                  size: 22,
-                ),
-              ),
-              title: const Text(
-                'Giấy phép mã nguồn mở',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text('Xem các giấy phép thư viện'),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                showLicensePage(
-                  context: context,
-                  applicationName: _appName,
-                  applicationVersion: _version,
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 40),
-
-          // Copyright
-          Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.favorite,
-                  color: Colors.red.withValues(alpha: 0.7),
-                  size: 20,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '© 2026 Fluency',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Version $_version',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
+                        ),
                       ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 48),
+
+                // Description
+                _buildPremiumCard(
+                  context,
+                  icon: Icons.description_rounded,
+                  title: 'Description',
+                  content:
+                      'Fluency is a premier language learning application designed to elevate your English proficiency through immersive interactive quizzes, comprehensive listening exercises, and curated reading materials.',
+                  primaryColor: primaryColor,
+                  colors: colors,
+                ),
+                const SizedBox(height: 16),
+
+                // Credits
+                _buildPremiumCard(
+                  context,
+                  icon: Icons.stars_rounded,
+                  title: 'Engineered by',
+                  primaryColor: primaryColor,
+                  colors: colors,
+                  child: Column(
+                    children: [
+                      _InfoRow(
+                        icon: Icons.person_rounded,
+                        iconColor: primaryColor,
+                        label: 'Lead Developer',
+                        value: 'KhanhRomVN',
+                        primaryColor: primaryColor,
+                      ),
+                      Divider(
+                        height: 32,
+                        color: colors?.divider?.withOpacity(0.5),
+                      ),
+                      _InfoRow(
+                        icon: Icons.flutter_dash_rounded,
+                        iconColor: primaryColor,
+                        label: 'Framework',
+                        value: 'Flutter Stable',
+                        primaryColor: primaryColor,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // License Tile
+                Card(
+                  elevation: 0,
+                  color: Theme.of(context).cardColor.withOpacity(0.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: colors?.divider?.withOpacity(0.1) ??
+                          Theme.of(context).dividerColor.withOpacity(0.05),
+                    ),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.article_rounded,
+                        color: primaryColor,
+                        size: 24,
+                      ),
+                    ),
+                    title: const Text(
+                      'Open Source Libraries',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text('View third-party licenses'),
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: colors?.textSecondary?.withOpacity(0.3),
+                    ),
+                    onTap: () {
+                      showLicensePage(
+                        context: context,
+                        applicationName: _appName,
+                        applicationVersion: _version,
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 48),
+
+                // Copyright
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.favorite_rounded,
+                        color: Colors.red.withValues(alpha: 0.7),
+                        size: 20,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '© 2026 Fluency',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colors?.textSecondary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      Text(
+                        'Crafted with passion using Flutter',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colors?.textSecondary?.withOpacity(0.5),
+                              fontSize: 12,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    String? content,
+    Widget? child,
+    required Color primaryColor,
+    required AppColorsExtension? colors,
+  }) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).cardColor.withOpacity(0.5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: colors?.divider?.withOpacity(0.1) ??
+              Theme.of(context).dividerColor.withOpacity(0.05),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: primaryColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
                 Text(
-                  'Made with Flutter',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.4),
-                        fontSize: 12,
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-        ],
+            if (content != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                content,
+                style: TextStyle(
+                  height: 1.6,
+                  fontSize: 14,
+                  color: colors?.textSecondary,
+                ),
+              ),
+            ],
+            if (child != null) ...[
+              const SizedBox(height: 20),
+              child,
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -341,32 +337,23 @@ class _InfoRow extends StatelessWidget {
     required this.iconColor,
     required this.label,
     required this.value,
+    required this.primaryColor,
   });
   final IconData icon;
   final Color iconColor;
   final String label;
   final String value;
+  final Color primaryColor;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>();
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                iconColor.withValues(alpha: 0.2),
-                iconColor.withValues(alpha: 0.1),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: iconColor,
-          ),
+        Icon(
+          icon,
+          size: 20,
+          color: primaryColor,
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -377,10 +364,7 @@ class _InfoRow extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
+                  color: colors?.textSecondary,
                 ),
               ),
               const SizedBox(height: 2),

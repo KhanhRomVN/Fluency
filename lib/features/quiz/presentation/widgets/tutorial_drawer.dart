@@ -141,7 +141,7 @@ class TutorialDrawer extends StatelessWidget {
                         Row(
                           children: [
                             SvgPicture.asset(
-                              'icons/circle_dot_dashed.svg',
+                              'assets/icons/circle_dot_dashed.svg',
                               width: 20,
                               height: 20,
                               colorFilter: ColorFilter.mode(
@@ -168,7 +168,7 @@ class TutorialDrawer extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             child: SvgPicture.asset(
-                              'icons/x.svg',
+                              'assets/icons/x.svg',
                               width: 20,
                               height: 20,
                               colorFilter: ColorFilter.mode(

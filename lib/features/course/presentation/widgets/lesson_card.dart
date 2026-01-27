@@ -19,32 +19,38 @@ class LessonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final primaryColor = appColors.primary;
+
+    // Calculate details
+    final skills = _getSkillsList();
+    final maxScore = lesson.quizzes.length * 10;
+    final progress = isCompleted ? 1.0 : 0.0;
 
     return InkWell(
       onTap: isLocked ? null : onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         child: Row(
           children: [
-            // Left: Square Badge (Reduced size to 28x28)
+            // Left: Square Badge
             Container(
               width: 28,
               height: 28,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isCompleted
-                    ? appColors.primary
+                    ? primaryColor
                     : (isLocked
                         ? Colors.grey.withValues(alpha: 0.1)
-                        : Colors.transparent), // Transparent for unlocked
+                        : Colors.transparent),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: isCompleted
-                      ? appColors.primary
+                      ? primaryColor
                       : (isLocked
                           ? Colors.grey.withValues(alpha: 0.3)
-                          : appColors.primary),
+                          : primaryColor),
                   width: 1.5,
                 ),
               ),
@@ -52,20 +58,20 @@ class LessonCard extends StatelessWidget {
                 '${lesson.lessonNumber}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 12, // Reduced font size
+                      fontSize: 12,
                       color: isCompleted
                           ? Colors.white
-                          : (isLocked ? Colors.grey : appColors.primary),
+                          : (isLocked ? Colors.grey : primaryColor),
                     ),
               ),
             ),
             const SizedBox(width: 16),
-            // Right: Info
+
+            // Middle: Lesson Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Row 1: Title
                   Text(
                     lesson.title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -76,34 +82,86 @@ class LessonCard extends StatelessWidget {
                           fontSize: 14,
                         ),
                   ),
-                  const SizedBox(height: 6),
-                  // Row 2: Quiz Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isLocked
-                          ? Colors.grey.withValues(alpha: 0.1)
-                          : appColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '${lesson.quizCount} Quizzes',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: isLocked ? Colors.grey : appColors.primary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
+                  const SizedBox(height: 4),
+                  // Skills and Score info
+                  Text(
+                    '${skills.join(' • ')}  |  Max Score: $maxScore',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: appColors.textSecondary.withValues(alpha: 0.7),
+                          fontSize: 11,
+                        ),
                   ),
                 ],
               ),
+            ),
+            const SizedBox(width: 12),
+
+            // Right: Progress Circle with Quiz Count
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    backgroundColor: Colors.grey.withValues(alpha: 0.12),
+                    color: primaryColor,
+                    strokeWidth: 2.5,
+                  ),
+                ),
+                Text(
+                  '${lesson.quizCount}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: progress > 0 ? primaryColor : Colors.grey,
+                        fontSize: 11,
+                      ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  List<String> _getSkillsList() {
+    final Set<String> skills = {};
+    for (final quiz in lesson.quizzes) {
+      final type = quiz.type.toLowerCase();
+
+      // Listening: Has audio
+      if (quiz.audio != null && quiz.audio!.isNotEmpty) {
+        skills.add('Listen');
+      }
+
+      // Reading: Has passage or specific types
+      if ((quiz.passage != null && quiz.passage!.isNotEmpty) ||
+          type == 'flashcard' ||
+          type == 'reading') {
+        skills.add('Read');
+      }
+
+      // Speaking: Pronunciation or speech builder
+      if (type == 'pronunciation' ||
+          type == 'pronunciation-drill' ||
+          type == 'speech-builder') {
+        skills.add('Speak');
+      }
+
+      // Writing: Dictation, transformation, error correction
+      if (type == 'dictation' ||
+          type == 'sentence-transformation' ||
+          type == 'error-correction' ||
+          type == 'writing') {
+        skills.add('Write');
+      }
+    }
+
+    // Default or fallback
+    if (skills.isEmpty) return ['Vocabulary'];
+
+    return skills.toList();
   }
 }

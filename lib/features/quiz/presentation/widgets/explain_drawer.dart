@@ -233,7 +233,7 @@ class _ExplainDrawerState extends State<ExplainDrawer>
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   child: SvgPicture.asset(
-                                    'icons/x.svg',
+                                    'assets/icons/x.svg',
                                     width: 20,
                                     height: 20,
                                     colorFilter: ColorFilter.mode(
