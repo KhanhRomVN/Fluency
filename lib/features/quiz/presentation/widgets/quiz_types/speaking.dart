@@ -194,24 +194,10 @@ class _SpeakingState extends State<Speaking>
                 );
               },
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                 children: [
                   // Instruction
-                  if (widget.quiz.instruction.isNotEmpty) ...[
-                    DefaultTextStyle(
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium!
-                          .copyWith(fontSize: 16),
-                      child: Wrap(
-                        children: RichTextParser.buildRichText(
-                          context,
-                          widget.quiz.instruction,
-                        ),
-                      ),
-                    ),
-                    Divider(height: 32, color: appColors.border),
-                  ],
 
                   // Question
                   if (currentQuestion.question.isNotEmpty)

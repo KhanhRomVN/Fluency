@@ -3,9 +3,6 @@ import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:archive/archive.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 
@@ -204,13 +201,14 @@ class ZipCourseLoader {
       }
 
       if (courseJsonFile == null) {
-        // Try to find any JSON file with 'course' in the name
+        // Try to find any JSON file with 'course' in the name (check filename only)
         for (final file in files) {
-          if (file is File &&
-              file.path.toLowerCase().contains('course') &&
-              file.path.endsWith('.json')) {
-            courseJsonFile = file;
-            break;
+          if (file is File) {
+            final fileName = file.path.split('/').last.toLowerCase();
+            if (fileName.contains('course') && fileName.endsWith('.json')) {
+              courseJsonFile = file;
+              break;
+            }
           }
         }
       }
@@ -237,15 +235,17 @@ class ZipCourseLoader {
       final lessons = <Map<String, dynamic>>[];
 
       for (final file in files) {
-        if (file is File &&
-            file.path.toLowerCase().contains('lesson') &&
-            file.path.endsWith('.json')) {
-          try {
-            final jsonString = await file.readAsString();
-            final lessonJson = json.decode(jsonString) as Map<String, dynamic>;
-            lessons.add(lessonJson);
-          } catch (e) {
-            debugPrint('Error loading lesson file ${file.path}: $e');
+        if (file is File) {
+          final fileName = file.path.split('/').last.toLowerCase();
+          if (fileName.contains('lesson') && fileName.endsWith('.json')) {
+            try {
+              final jsonString = await file.readAsString();
+              final lessonJson =
+                  json.decode(jsonString) as Map<String, dynamic>;
+              lessons.add(lessonJson);
+            } catch (e) {
+              debugPrint('Error loading lesson file ${file.path}: $e');
+            }
           }
         }
       }

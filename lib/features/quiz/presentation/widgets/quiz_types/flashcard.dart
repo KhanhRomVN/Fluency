@@ -23,6 +23,7 @@ class Flashcard extends StatefulWidget {
 class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   int _currentIndex = 0;
   bool _isFlipped = false;
+  bool _isAutoPlay = false;
   final Map<String, bool> _completedCards = {};
   final Map<String, bool> _cardCorrectness = {};
 
@@ -83,7 +84,10 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     }
 
     final hasOptions =
-        currentCard.options != null && currentCard.options!.isNotEmpty;
+        (currentCard.options != null && currentCard.options!.isNotEmpty) ||
+            (currentCard.optionsTrans != null &&
+                currentCard.optionsTrans!.isNotEmpty);
+
     if (hasOptions && !(_completedCards[currentCard.id] ?? false)) {
       _showOptionsDrawer(currentCard);
     } else {
@@ -113,12 +117,25 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   }
 
   void _showOptionsDrawer(FlashcardItem card) {
-    final correctOption = card.back is String
-        ? card.back as String
-        : (card.back as Map<String, dynamic>)['definition'] as String;
-
     String? localSelectedOption;
     var isProcessing = false;
+
+    // Determine correct option text
+    String correctOptionText = '';
+    if (card.optionsTrans != null && card.optionsTrans!.isNotEmpty) {
+      correctOptionText = card.optionsTrans!
+          .firstWhere((o) => o.isCorrect,
+              orElse: () => const QuizOptionTrans(text: '', isCorrect: false))
+          .text;
+    } else {
+      final back = card.back;
+      correctOptionText = back is String
+          ? back
+          : (back is Map ? (back['mainDefinition']?.toString() ?? '') : '');
+    }
+
+    final displayCorrectOption =
+        _stripHtml(correctOptionText).trim().toLowerCase();
 
     showModalBottomSheet<void>(
       context: context,
@@ -126,11 +143,13 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-        final displayCorrectOption =
-            _stripHtml(correctOption).trim().toLowerCase();
 
         return StatefulBuilder(
           builder: (context, setDrawerState) {
+            final options = card.optionsTrans?.map((e) => e.text).toList() ??
+                card.options ??
+                [];
+
             return Container(
               decoration: BoxDecoration(
                 color: appColors.cardBackground,
@@ -146,7 +165,9 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Select the correct definition',
+                        card.optionsTrans != null
+                            ? 'Chọn định nghĩa đúng'
+                            : 'Select the correct definition',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -162,7 +183,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  ...card.options!.map((option) {
+                  ...options.map((option) {
                     final isSelected = localSelectedOption == option;
                     final isActuallyCorrect =
                         option.trim().toLowerCase() == displayCorrectOption;
@@ -347,37 +368,28 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Instruction (Fixed height outside card)
         if (widget.quiz.instruction.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: DefaultTextStyle(
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium!
-                  .copyWith(fontSize: 16),
-              child: Text.rich(
-                TextSpan(
-                  children: RichTextParser.buildTextSpans(
-                    context,
-                    widget.quiz.instruction,
-                    onWordLongPress: widget.onWordLongPress,
-                  ),
-                ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Wrap(
+              children: RichTextParser.buildRichText(
+                context,
+                widget.quiz.instruction,
+                style: TextStyle(color: appColors.textPrimary, fontSize: 16),
               ),
             ),
           ),
-
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, bottom: 24, top: 8),
             child: GestureDetector(
               onHorizontalDragUpdate: _onHorizontalDragUpdate,
               onHorizontalDragEnd: _onHorizontalDragEnd,
               child: Transform.translate(
                 offset: Offset(_swipeOffset, 0),
                 child: Transform.rotate(
-                  angle: _swipeOffset * 0.0002, // subtle rotation during swipe
+                  angle: _swipeOffset * 0.0002,
                   child: Opacity(
                     opacity: (1 - (_swipeOffset.abs() / 400)).clamp(0.5, 1.0),
                     child: Container(
@@ -396,9 +408,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                         ),
                         child: Column(
                           children: [
-                            // Header INSIDE Card
                             _buildInternalHeader(context, appColors, cards),
-
                             Expanded(
                               child: GestureDetector(
                                 onTap: _handleFlipRequest,
@@ -470,36 +480,55 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
               color: appColors.textSecondary,
             ),
           ),
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(32, 32),
-                  painter: _SegmentedProgressPainter(
-                    totalSegments: questions.length,
-                    segmentStates: List.generate(questions.length, (index) {
-                      final qId = questions[index].id;
-                      if (!(_completedCards[qId] ?? false)) return 0;
-                      return (_cardCorrectness[qId] ?? true) ? 1 : 2;
-                    }),
-                    primaryColor: appColors.primary,
-                    errorColor: Colors.red,
-                    emptyColor: appColors.border.withValues(alpha: 0.5),
-                  ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isAutoPlay = !_isAutoPlay;
+                  });
+                },
+                icon: Icon(
+                  _isAutoPlay ? Icons.volume_up : Icons.volume_off,
+                  size: 20,
+                  color: appColors.textSecondary,
                 ),
-                Text(
-                  '$completedCount',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textSecondary,
-                  ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      size: const Size(32, 32),
+                      painter: _SegmentedProgressPainter(
+                        totalSegments: questions.length,
+                        segmentStates: List.generate(questions.length, (index) {
+                          final qId = questions[index].id;
+                          if (!(_completedCards[qId] ?? false)) return 0;
+                          return (_cardCorrectness[qId] ?? true) ? 1 : 2;
+                        }),
+                        primaryColor: appColors.primary,
+                        errorColor: Colors.red,
+                        emptyColor: appColors.border.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    Text(
+                      '$completedCount',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -511,75 +540,83 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     FlashcardItem item,
     AppColorsExtension appColors,
   ) {
+    final front = item.front;
+    String term = '';
+    String? ipa;
+    String? contextSentence;
+    String? audio;
+
+    if (front is Map) {
+      term = front['term']?.toString() ?? '';
+      ipa = front['ipa']?.toString();
+      contextSentence = front['contextSentence']?.toString();
+      audio = front['audio']?.toString() ?? item.frontAudio;
+    } else {
+      term = front?.toString() ?? '';
+      audio = item.frontAudio;
+    }
+
     return Container(
       width: double.infinity,
       height: double.infinity,
       padding: const EdgeInsets.all(24),
       child: Stack(
         children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            child: Text(
-              'FRONT',
-              style: TextStyle(
-                color: appColors.primary.withValues(alpha: 0.8),
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (item.image != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Image.network(
-                        item.image!,
-                        height: 180,
-                        fit: BoxFit.contain,
-                        errorBuilder: (ctx, err, stack) => Icon(
-                          Icons.image_not_supported,
-                          size: 64,
-                          color: appColors.textSecondary.withValues(alpha: 0.3),
-                        ),
-                      ),
-                    ),
-                  ),
                 Text(
-                  item.front,
+                  term,
                   style: TextStyle(
                     color: appColors.textPrimary,
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                if (item.frontAudio != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 24),
-                    child: InkWell(
-                      onTap: () => _playAudio(item.frontAudio),
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: appColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.volume_up,
-                            color: Colors.white, size: 24),
-                      ),
+                if (ipa != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    ipa,
+                    style: TextStyle(
+                      color: appColors.textSecondary,
+                      fontSize: 18,
+                      fontFamily: 'monospace',
                     ),
                   ),
+                ],
+                if (audio != null) ...[
+                  const SizedBox(height: 24),
+                  InkWell(
+                    onTap: () => _playAudio(audio),
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: appColors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: appColors.primary.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.volume_up,
+                          color: Colors.white, size: 24),
+                    ),
+                  ),
+                ],
+                if (contextSentence != null) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: _buildContextSentence(
+                        context, contextSentence, term, appColors),
+                  ),
+                ],
               ],
             ),
           ),
@@ -591,14 +628,12 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.rotate_right,
-                    size: 16,
-                    color: appColors.primary,
-                  ),
+                  Icon(Icons.rotate_right, size: 16, color: appColors.primary),
                   const SizedBox(width: 8),
                   Text(
-                    item.options != null && item.options!.isNotEmpty
+                    (item.options != null && item.options!.isNotEmpty) ||
+                            (item.optionsTrans != null &&
+                                item.optionsTrans!.isNotEmpty)
                         ? 'Tap to solve & flip'
                         : 'Click to flip',
                     style: TextStyle(
@@ -616,6 +651,66 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildContextSentence(BuildContext context, String sentence,
+      String term, AppColorsExtension appColors) {
+    if (term.isEmpty) return Text(sentence);
+
+    final pattern = RegExp(RegExp.escape(term), caseSensitive: false);
+    final matches = pattern.allMatches(sentence);
+
+    if (matches.isEmpty) {
+      return Text(
+        '"$sentence"',
+        style: TextStyle(
+          fontSize: 18,
+          color: appColors.textPrimary.withValues(alpha: 0.9),
+          fontStyle: FontStyle.italic,
+        ),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    final spans = <InlineSpan>[];
+    var lastMatchEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastMatchEnd) {
+        spans
+            .add(TextSpan(text: sentence.substring(lastMatchEnd, match.start)));
+      }
+      spans.add(TextSpan(
+        text: sentence.substring(match.start, match.end),
+        style: TextStyle(
+          color: appColors.primary,
+          fontWeight: FontWeight.w900,
+          fontStyle: FontStyle.normal,
+        ),
+      ));
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < sentence.length) {
+      spans.add(TextSpan(text: sentence.substring(lastMatchEnd)));
+    }
+
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: TextStyle(
+          fontSize: 18,
+          color: appColors.textPrimary.withValues(alpha: 0.9),
+          fontStyle: FontStyle.italic,
+          fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+        ),
+        children: [
+          const TextSpan(text: '"'),
+          ...spans,
+          const TextSpan(text: '"'),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBack(
     BuildContext context,
     FlashcardItem item,
@@ -624,52 +719,16 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: appColors.cardBackground,
       ),
-      child: Stack(
+      child: Column(
         children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            child: Text(
-              'BACK',
-              style: TextStyle(
-                color: appColors.textSecondary.withValues(alpha: 0.8),
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 1.5,
-              ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: _buildBackContent(context, item, appColors),
             ),
-          ),
-          Column(
-            children: [
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: _buildBackContent(context, item, appColors),
-                  ),
-                ),
-              ),
-              if (item.backAudio != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: InkWell(
-                    onTap: () => _playAudio(item.backAudio),
-                    borderRadius: BorderRadius.circular(32),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: appColors.buttonSecondBg,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.volume_up,
-                          color: appColors.textPrimary, size: 24),
-                    ),
-                  ),
-                ),
-            ],
           ),
         ],
       ),
@@ -678,147 +737,344 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
 
   Widget _buildBackContent(
       BuildContext context, FlashcardItem item, AppColorsExtension appColors) {
-    if (item.back is String) {
-      return Center(
-        child: RichTextParser.buildRichText(
-          context,
-          item.back as String,
-          style: TextStyle(
-            fontSize: 22,
-            color: appColors.textPrimary,
+    final back = item.back;
+    final String term = (item.front is Map)
+        ? (item.front['term']?.toString() ?? '')
+        : (item.front?.toString() ?? '');
+
+    if (back is String) {
+      return Column(
+        children: [
+          Text(
+            term,
+            style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: appColors.primary),
+            textAlign: TextAlign.center,
           ),
-          onWordLongPress: widget.onWordLongPress,
-        ).first,
+          const SizedBox(height: 16),
+          Wrap(
+            children: RichTextParser.buildRichText(
+              context,
+              back,
+              style: TextStyle(fontSize: 20, color: appColors.textPrimary),
+            ),
+          ),
+        ],
       );
-    } else if (item.back is Map) {
-      final map = item.back as Map<String, dynamic>;
-      final definition = map['definition'] as String?;
-      final example = map['example'] as String?;
-      final synonyms = map['synonyms'] as String?;
-      final antonyms = map['antonyms'] as String?;
+    } else if (back is Map) {
+      final map = back as Map<String, dynamic>;
+      final images =
+          (map['images'] as List?)?.map((e) => e.toString()).toList();
+      final mainDefinition = map['mainDefinitionTrans']?.toString() ??
+          map['mainDefinition']?.toString() ??
+          map['definition']?.toString();
+      final example = map['example']?.toString();
+      final wordForms = map['wordForms'] as List?;
+      final synonyms = map['synonyms'];
+      final antonyms = map['antonyms'];
+      final detailedDefinitions = map['detailedDefinitions'] as List?;
+      final collocations = map['collocations'] as List?;
+      final audio = map['audio']?.toString() ?? item.backAudio;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (definition != null) ...[
-            Text(
-              'DEFINITION',
+          Center(
+            child: Text(
+              term,
               style: TextStyle(
-                fontSize: 12,
-                color: appColors.primary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: appColors.primary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (images != null && images.isNotEmpty)
+            Container(
+              height: 160,
+              padding: const EdgeInsets.only(bottom: 20),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 0),
+                itemCount: images.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      images[index],
+                      height: 160,
+                      width: 240,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 160,
+                        width: 240,
+                        color: appColors.primary.withValues(alpha: 0.1),
+                        child: const Icon(Icons.broken_image, size: 40),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 8),
-            RichTextParser.buildRichText(
-              context,
-              definition,
-              style: TextStyle(
-                fontSize: 22,
-                color: appColors.textPrimary,
-                height: 1.5,
-              ),
-              onWordLongPress: widget.onWordLongPress,
-            ).first,
-          ],
-          if (example != null) ...[
-            const SizedBox(height: 24),
+          if (mainDefinition != null)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: appColors.background.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: appColors.border),
+                color: appColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'EXAMPLE',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: appColors.textSecondary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
+                  Wrap(
+                    children: RichTextParser.buildRichText(
+                      context,
+                      mainDefinition,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w500),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  RichTextParser.buildRichText(
-                    context,
-                    example,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: appColors.textPrimary,
-                      fontStyle: FontStyle.italic,
+                  if (example != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.only(left: 12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                            left:
+                                BorderSide(color: appColors.primary, width: 2)),
+                      ),
+                      child: Wrap(
+                        children: RichTextParser.buildRichText(
+                          context,
+                          '"$example"',
+                          style: TextStyle(
+                              color: appColors.textSecondary,
+                              fontStyle: FontStyle.italic,
+                              fontSize: 16),
+                        ),
+                      ),
                     ),
-                    onWordLongPress: widget.onWordLongPress,
-                  ).first,
+                  ],
                 ],
               ),
             ),
-          ],
-          if (synonyms != null || antonyms != null) ...[
-            const SizedBox(height: 24),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (synonyms != null)
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'SYNONYMS',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: appColors.textSecondary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          synonyms,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: appColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
+          if (wordForms != null && wordForms.isNotEmpty)
+            _buildSectionHeader('Word Forms', appColors),
+          if (wordForms != null && wordForms.isNotEmpty)
+            ...wordForms.map(
+                (f) => _buildFormItem(f as Map<dynamic, dynamic>, appColors)),
+          if (synonyms != null) _buildSectionHeader('Synonyms', appColors),
+          if (synonyms != null) _buildListLike(synonyms, appColors),
+          if (antonyms != null) _buildSectionHeader('Antonyms', appColors),
+          if (antonyms != null) _buildListLike(antonyms, appColors),
+          if (detailedDefinitions != null && detailedDefinitions.isNotEmpty)
+            _buildSectionHeader('Detailed Meanings', appColors),
+          if (detailedDefinitions != null && detailedDefinitions.isNotEmpty)
+            ...detailedDefinitions.map(
+                (d) => _buildDetailItem(d as Map<dynamic, dynamic>, appColors)),
+          if (collocations != null && collocations.isNotEmpty)
+            _buildSectionHeader('Collocations', appColors),
+          if (collocations != null && collocations.isNotEmpty)
+            ...collocations.map((c) =>
+                _buildCollocationItem(c as Map<dynamic, dynamic>, appColors)),
+          if (audio != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 24),
+                child: IconButton(
+                  onPressed: () => _playAudio(audio),
+                  icon: const Icon(Icons.volume_up, size: 28),
+                  color: appColors.primary,
+                  style: IconButton.styleFrom(
+                    backgroundColor: appColors.primary.withValues(alpha: 0.1),
+                    padding: const EdgeInsets.all(16),
                   ),
-                if (antonyms != null)
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'ANTONYMS',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: appColors.textSecondary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          antonyms,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: appColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+                ),
+              ),
             ),
-          ],
         ],
       );
     }
     return const SizedBox.shrink();
+  }
+
+  Widget _buildSectionHeader(String title, AppColorsExtension appColors) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: appColors.textSecondary,
+              letterSpacing: 1,
+            ),
+          ),
+          const Divider(thickness: 0.5),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormItem(
+      Map<dynamic, dynamic> form, AppColorsExtension appColors) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                ),
+                child: Text(
+                  form['label']?.toString().toUpperCase() ?? '',
+                  style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                form['value']?.toString() ?? '',
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ],
+          ),
+          if (form['example'] != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4),
+              child: Text(
+                'ex: ${form['example']}',
+                style: TextStyle(
+                    fontSize: 14,
+                    color: appColors.textSecondary,
+                    fontStyle: FontStyle.italic),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(
+      Map<dynamic, dynamic> detail, AppColorsExtension appColors) {
+    final pos = detail['partOfSpeech']?.toString().toLowerCase() ?? '';
+    Color color = appColors.primary;
+    if (pos.contains('verb')) color = Colors.blue;
+    if (pos.contains('noun')) color = Colors.green;
+    if (pos.contains('adj')) color = Colors.orange;
+    if (pos.contains('adv')) color = Colors.purple;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  pos.toUpperCase(),
+                  style: TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.bold, color: color),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  detail['trans']?.toString() ?? '',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w500, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          if (detail['example'] != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4),
+              child: Text(
+                'ex: ${detail['example']}',
+                style: TextStyle(
+                    fontSize: 14,
+                    color: appColors.textSecondary,
+                    fontStyle: FontStyle.italic),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollocationItem(
+      Map<dynamic, dynamic> col, AppColorsExtension appColors) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              col['phrase']?.toString() ?? '',
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            col['meaning']?.toString() ?? '',
+            style: TextStyle(color: appColors.textSecondary, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListLike(dynamic data, AppColorsExtension appColors) {
+    if (data is String) return Text(data);
+    if (data is List) {
+      return Column(
+        children: data.map((item) {
+          if (item is Map) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(item['word']?.toString() ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(item['meaning']?.toString() ?? '',
+                      style: TextStyle(
+                          color: appColors.textSecondary, fontSize: 14)),
+                ],
+              ),
+            );
+          }
+          return Text(item.toString());
+        }).toList(),
+      );
+    }
+    return Text(data.toString());
   }
 }
 
@@ -902,7 +1158,7 @@ class _SegmentedProgressPainter extends CustomPainter {
       ..strokeCap = StrokeCap.butt;
 
     var startAngle = -math.pi / 2;
-    final gap = (totalSegments > 1) ? 0.2 : 0;
+    const gap = 0.2;
     final totalGap = gap * totalSegments;
     final segmentAngle = (2 * math.pi - totalGap) / totalSegments;
 

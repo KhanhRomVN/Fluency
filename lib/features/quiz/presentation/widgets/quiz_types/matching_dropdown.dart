@@ -190,30 +190,12 @@ class _MatchingDropdownState extends State<MatchingDropdown>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Instruction
-            if (widget.quiz.instruction.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: DefaultTextStyle(
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 16),
-                  child: Text.rich(
-                    TextSpan(
-                      children: RichTextParser.buildTextSpans(
-                        context,
-                        widget.quiz.instruction,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
 
             // Dashed Border Card
             Expanded(
               child: Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: GestureDetector(
                   onHorizontalDragUpdate: _onHorizontalDragUpdate,
                   onHorizontalDragEnd: _onHorizontalDragEnd,

@@ -100,30 +100,12 @@ class _GapFillTypingState extends State<GapFillTyping> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Instruction (Fixed at top, outside text)
-            if (widget.instruction != null && widget.instruction!.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: DefaultTextStyle(
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 16),
-                  child: Text.rich(
-                    TextSpan(
-                      children: RichTextParser.buildTextSpans(
-                        context,
-                        widget.instruction!,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
 
             // 2. Question Card (Takes remaining space)
             Expanded(
               child: Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Container(
                   width: double.infinity,
                   height: double.infinity,

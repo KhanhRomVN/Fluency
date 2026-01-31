@@ -273,30 +273,11 @@ class _ErrorCorrectionState extends State<ErrorCorrection>
     return Column(
       children: [
         // 1. Instruction (Rich Text)
-        if (widget.quiz.instruction.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                children: RichTextParser.buildRichText(
-                  context,
-                  widget.quiz.instruction,
-                  onWordLongPress: widget.onWordLongPress,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: appColors.textPrimary,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ),
-          ),
 
         // 2. The Card Area
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: GestureDetector(
               onHorizontalDragUpdate: _onHorizontalDragUpdate,
               onHorizontalDragEnd: _onHorizontalDragEnd,

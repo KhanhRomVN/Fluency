@@ -8,10 +8,12 @@ import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/builder.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/chatting_speech.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/free_chat.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/scripted_chat.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation_audio.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/error_correction.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/flashcard.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill_dropdown.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill_typing.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_dropdown.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
@@ -227,17 +229,21 @@ class _QuizPageState extends State<QuizPage> {
                                 });
                               },
                               borderRadius: BorderRadius.circular(8),
-                              child: Padding(
-                                padding: const EdgeInsets.all(6),
-                                child: SvgPicture.asset(
-                                  'assets/icons/circle_dot_dashed.svg',
-                                  width: 18,
-                                  height: 18,
-                                  colorFilter: ColorFilter.mode(
-                                    _showTutorialDrawer
-                                        ? appColors.primary
-                                        : appColors.textPrimary,
-                                    BlendMode.srcIn,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: appColors.primary,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'Must read',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),
@@ -411,6 +417,22 @@ class _QuizPageState extends State<QuizPage> {
     }
 
     switch (type) {
+      case 'gap-fill-dropdown':
+        return GapFillDropdown(
+          question: quiz.question ?? question,
+          answers: quiz.answers,
+          title: quiz.title,
+          instruction: quiz.instruction,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
+          onShowExplain: (String explanation) {
+            setState(() {
+              _currentExplanation = explanation;
+              _showExplainDrawer = true;
+            });
+          },
+          onWordLongPress: _onWordLongPress,
+        );
       case 'multiple-choice':
         return MultipleChoice(
           quiz: quiz,
@@ -451,8 +473,18 @@ class _QuizPageState extends State<QuizPage> {
           },
           onWordLongPress: _onWordLongPress,
         );
-      case 'chatting-speech':
-        return ChattingSpeech(
+      case 'free-chat':
+        return FreeChat(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'scripted-chat':
+        return ScriptedChat(
+          quiz: quiz,
+          onWordLongPress: _onWordLongPress,
+        );
+      case 'chatting-speech': // Legacy support
+        return ScriptedChat(
           quiz: quiz,
           onWordLongPress: _onWordLongPress,
         );
@@ -571,14 +603,10 @@ class _QuizPageState extends State<QuizPage> {
         label = 'Multiple Choice';
         color = Colors.blue;
       case 'gap-fill':
-        label = 'Gap Fill';
-        color = Colors.green;
       case 'gap-fill-typing':
-        label = 'Gap Fill';
-        color = Colors.green;
       case 'gap-fill-dropdown':
         label = 'Gap Fill';
-        color = Colors.lightGreen;
+        color = Colors.green;
       case 'matching-dropdown':
         label = 'Matching';
         color = Colors.purple;
@@ -586,17 +614,24 @@ class _QuizPageState extends State<QuizPage> {
         label = 'Writing';
         color = Colors.orange;
       case 'speaking-essay':
+      case 'speaking':
         label = 'Speaking';
         color = Colors.pink;
-      case 'chatting-speech':
-        label = 'Chatting';
+      case 'free-chat':
+      case 'free-typing-chat':
+        label = 'Free Chat';
         color = Colors.cyan;
+      case 'scripted-chat':
+      case 'chatting-speech':
+        label = 'Scripted Chat';
+        color = Colors.blueAccent;
       case 'pronunciation-drill':
+      case 'pronunciation':
         label = 'Pronunciation';
         color = Colors.teal;
       case 'dictation':
       case 'dictation-audio':
-        label = 'Dictation Audio';
+        label = 'Dictation';
         color = Colors.pink;
       case 'builder':
         label = 'Builder';
@@ -607,6 +642,12 @@ class _QuizPageState extends State<QuizPage> {
       case 'error-correction':
         label = 'Error Correction';
         color = Colors.redAccent;
+      case 'flashcard':
+        label = 'Flashcard';
+        color = Colors.indigo;
+      case 'speech-builder':
+        label = 'Speech Builder';
+        color = Colors.blueGrey;
       default:
         label = 'Quiz';
         color = Colors.grey;

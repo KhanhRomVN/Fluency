@@ -60,4 +60,18 @@ class CourseProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  Future<void> deleteCourse(Course course) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _repository.deleteCourse(course);
+      await loadCourses();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
 }

@@ -174,30 +174,11 @@ class _SpeechBuilderState extends State<SpeechBuilder>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Instruction (Outer)
-        if (widget.quiz.instruction.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: DefaultTextStyle(
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium!
-                  .copyWith(fontSize: 16),
-              child: Text.rich(
-                TextSpan(
-                  children: RichTextParser.buildTextSpans(
-                    context,
-                    widget.quiz.instruction,
-                    onWordLongPress: widget.onWordLongPress,
-                  ),
-                ),
-              ),
-            ),
-          ),
 
         // Main Card Area
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: GestureDetector(
               onHorizontalDragUpdate: _onHorizontalDragUpdate,
               onHorizontalDragEnd: _onHorizontalDragEnd,

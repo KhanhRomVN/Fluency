@@ -15,29 +15,31 @@ class Course {
     required this.targetAudience,
     required this.lessons,
     this.completedLessons = 0,
+    this.version = 1,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      imageUrl: json['imageUrl'] as String? ?? '',
-      author: json['author'] as String? ?? '',
-      translator: json['translator'] as String? ?? '',
-      adapter: json['adapter'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      imageUrl: json['imageUrl']?.toString() ?? '',
+      author: json['author']?.toString() ?? '',
+      translator: json['translator']?.toString() ?? '',
+      adapter: json['adapter']?.toString() ?? '',
       pageCount: json['pageCount'] as int? ?? 0,
-      publisher: json['publisher'] as String? ?? '',
+      publisher: json['publisher']?.toString() ?? '',
       publicationYear: json['publicationYear'] as int? ?? 0,
-      skill: (json['skill'] as List?)?.map((e) => e as String).toList() ??
+      skill: (json['skill'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
-      shortDescription: json['shortDescription'] as String? ?? '',
-      fullDescription: json['fullDescription'] as String? ?? '',
-      targetAudience: json['targetAudience'] as String? ?? '',
+      shortDescription: json['shortDescription']?.toString() ?? '',
+      fullDescription: json['fullDescription']?.toString() ?? '',
+      targetAudience: json['targetAudience']?.toString() ?? '',
       lessons: (json['lessons'] as List?)
               ?.map((e) => Lesson.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       completedLessons: json['completedLessons'] as int? ?? 0,
+      version: json['version'] as int? ?? 1,
     );
   }
   final String id;
@@ -56,6 +58,7 @@ class Course {
       targetAudience; // 'Vietnamese' -> has answers/explanations in Vietnamese
   final List<Lesson> lessons;
   final int completedLessons;
+  final int version;
 
   Course copyWith({
     String? id,
@@ -73,6 +76,7 @@ class Course {
     String? targetAudience,
     List<Lesson>? lessons,
     int? completedLessons,
+    int? version,
   }) {
     return Course(
       id: id ?? this.id,
@@ -90,6 +94,7 @@ class Course {
       targetAudience: targetAudience ?? this.targetAudience,
       lessons: lessons ?? this.lessons,
       completedLessons: completedLessons ?? this.completedLessons,
+      version: version ?? this.version,
     );
   }
 }
@@ -105,15 +110,16 @@ class Lesson {
   });
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
-    final quizzes = (json['quiz'] as List?)
+    final quizList = (json['quiz'] ?? json['quizzes']) as List?;
+    final quizzes = quizList
             ?.map((e) => Quiz.fromJson(e as Map<String, dynamic>))
             .toList() ??
         const [];
 
     return Lesson(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
       lessonNumber: json['lessonNumber'] as int? ?? 0,
       quizCount: quizzes.length,
       quizzes: quizzes,
@@ -125,6 +131,24 @@ class Lesson {
   final int lessonNumber;
   final int quizCount;
   final List<Quiz> quizzes;
+
+  Lesson copyWith({
+    String? id,
+    String? title,
+    String? description,
+    int? lessonNumber,
+    int? quizCount,
+    List<Quiz>? quizzes,
+  }) {
+    return Lesson(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      lessonNumber: lessonNumber ?? this.lessonNumber,
+      quizCount: quizCount ?? this.quizCount,
+      quizzes: quizzes ?? this.quizzes,
+    );
+  }
 }
 
 class Quiz {
@@ -141,7 +165,7 @@ class Quiz {
     this.audio,
     this.transcript,
     this.passage,
-    this.questions = const [],
+    this.questions = const <QuizQuestion>[],
     this.answersString,
     this.options,
     this.matchings,
@@ -177,7 +201,7 @@ class Quiz {
       }
     }
 
-    final type = json['type'] as String? ?? '';
+    final type = json['type']?.toString() ?? '';
 
     // Specialized parsing for mismatch definitions
     var speechBuildersList = (json['speechBuilders'] as List?)
@@ -236,8 +260,8 @@ class Quiz {
         }
 
         return QuizQuestion(
-          id: bMap['id'] as String? ?? '',
-          question: bMap['hint'] as String? ?? '',
+          id: bMap['id']?.toString() ?? '',
+          question: bMap['hint']?.toString() ?? '',
           options: items,
           answer: validAnswers.isNotEmpty ? validAnswers.first : '',
           validAnswers: validAnswers,
@@ -259,15 +283,15 @@ class Quiz {
     }
 
     return Quiz(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
       type: type,
-      instruction: json['instruction'] as String? ?? '',
+      instruction: json['instruction']?.toString() ?? '',
       quizNumber: json['quizNumber']?.toString() ?? '',
-      question: json['question'] as String? ?? '',
-      audio: json['audio'] as String?,
-      transcript: json['transcript'] as String?,
-      passage: json['passage'] as String?,
+      question: json['question']?.toString() ?? '',
+      audio: json['audio']?.toString(),
+      transcript: json['transcript']?.toString(),
+      passage: json['passage']?.toString(),
       questions: questionsList ?? const [],
       answers: quizAnswers,
       answersString: stringAnswers,
@@ -275,9 +299,9 @@ class Quiz {
       matchings: (json['matchings'] as List?)
           ?.map((e) => MatchingItem.fromJson(e as Map<String, dynamic>))
           .toList(),
-      subtype: json['subtype'] as String?,
+      subtype: json['subtype']?.toString(),
       min: json['min'] as int?,
-      example: json['example'] as String?,
+      example: json['example']?.toString(),
       chats: (json['chats'] as List?)
           ?.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -307,8 +331,6 @@ class Quiz {
   final List<QuizQuestion> questions;
   final List<QuizAnswer> answers; // For gap-fill quizzes
   final List<String>? answersString; // For multi-answer multiple choice
-
-  // Additional fields for different quiz types
   final List<String>?
       options; // For multiple choice options (simple string array)
   final List<MatchingItem>? matchings; // For matching-dropdown quizzes
@@ -323,6 +345,61 @@ class Quiz {
   final List<ErrorCorrectionItem>?
       errorCorrections; // For error correction quizzes
   final List<SentenceTransformationItem>? sentenceTransformations;
+
+  Quiz copyWith({
+    String? id,
+    String? title,
+    String? type,
+    String? instruction,
+    String? quizNumber,
+    String? question,
+    String? audio,
+    String? transcript,
+    String? passage,
+    List<QuizQuestion>? questions,
+    List<QuizAnswer>? answers,
+    List<String>? answersString,
+    List<String>? options,
+    List<MatchingItem>? matchings,
+    String? subtype,
+    int? min,
+    String? example,
+    List<ChatMessage>? chats,
+    List<FlashcardItem>? flashcards,
+    List<DictationItem>? dictations,
+    List<PronunciationItem>? pronunciations,
+    List<SpeechBuilderItem>? speechBuilders,
+    List<ErrorCorrectionItem>? errorCorrections,
+    List<SentenceTransformationItem>? sentenceTransformations,
+  }) {
+    return Quiz(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      instruction: instruction ?? this.instruction,
+      quizNumber: quizNumber ?? this.quizNumber,
+      question: question ?? this.question,
+      audio: audio ?? this.audio,
+      transcript: transcript ?? this.transcript,
+      passage: passage ?? this.passage,
+      questions: questions ?? this.questions,
+      answers: answers ?? this.answers,
+      answersString: answersString ?? this.answersString,
+      options: options ?? this.options,
+      matchings: matchings ?? this.matchings,
+      subtype: subtype ?? this.subtype,
+      min: min ?? this.min,
+      example: example ?? this.example,
+      chats: chats ?? this.chats,
+      flashcards: flashcards ?? this.flashcards,
+      dictations: dictations ?? this.dictations,
+      pronunciations: pronunciations ?? this.pronunciations,
+      speechBuilders: speechBuilders ?? this.speechBuilders,
+      errorCorrections: errorCorrections ?? this.errorCorrections,
+      sentenceTransformations:
+          sentenceTransformations ?? this.sentenceTransformations,
+    );
+  }
 }
 
 class QuizAnswer {
@@ -330,6 +407,7 @@ class QuizAnswer {
     required this.id,
     required this.answer,
     required this.explain,
+    this.options = const [],
   });
 
   factory QuizAnswer.fromJson(Map<String, dynamic> json) {
@@ -337,21 +415,24 @@ class QuizAnswer {
     List<String> parsedAnswer;
     if (json['answer'] is List) {
       parsedAnswer = (json['answer'] as List).map((e) => e.toString()).toList();
-    } else if (json['answer'] is String) {
-      parsedAnswer = [json['answer'] as String];
+    } else if (json['answer'] != null) {
+      parsedAnswer = [json['answer'].toString()];
     } else {
       parsedAnswer = [];
     }
 
     return QuizAnswer(
-      id: json['id'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
       answer: parsedAnswer,
-      explain: json['explain'] as String? ?? '',
+      explain: json['explain']?.toString() ?? '',
+      options: (json['options'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
     );
   }
   final String id;
   final List<String> answer;
   final String explain;
+  final List<String> options;
 }
 
 class QuizQuestion {
@@ -402,13 +483,13 @@ class QuizQuestion {
     }
 
     return QuizQuestion(
-      id: json['id'] as String? ?? '',
-      question: json['question'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      question: json['question']?.toString() ?? '',
       options: (json['options'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
       answer: singleAnswer,
       validAnswers: answersList,
-      explain: json['explain'] as String? ?? '',
+      explain: json['explain']?.toString() ?? '',
     );
   }
   final String id;
@@ -418,6 +499,24 @@ class QuizQuestion {
       answer; // Kept for backward compat, but use validAnswers for logic
   final List<String> validAnswers;
   final String explain;
+
+  QuizQuestion copyWith({
+    String? id,
+    String? question,
+    List<String>? options,
+    String? answer,
+    List<String>? validAnswers,
+    String? explain,
+  }) {
+    return QuizQuestion(
+      id: id ?? this.id,
+      question: question ?? this.question,
+      options: options ?? this.options,
+      answer: answer ?? this.answer,
+      validAnswers: validAnswers ?? this.validAnswers,
+      explain: explain ?? this.explain,
+    );
+  }
 }
 
 class QuizOption {
@@ -428,8 +527,8 @@ class QuizOption {
 
   factory QuizOption.fromJson(Map<String, dynamic> json) {
     return QuizOption(
-      key: json['key'] as String? ?? '',
-      text: json['text'] as String? ?? '',
+      key: json['key']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
     );
   }
   final String key;
@@ -470,18 +569,21 @@ class ChatMessage {
     this.ipa,
     this.explain,
     this.question,
+    this.translate,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
-      id: json['id'] as String? ?? '',
-      role: json['role'] as String? ?? '',
-      content: json['content'] as String? ?? json['question'] as String? ?? '',
-      name: json['name'] as String?,
-      time: json['time'] as String?,
-      ipa: json['ipa'] as String?,
-      explain: json['explain'] as String?,
-      question: json['question'] as String?,
+      id: json['id']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+      content:
+          json['content']?.toString() ?? json['question']?.toString() ?? '',
+      name: json['name']?.toString(),
+      time: json['time']?.toString(),
+      ipa: json['ipa']?.toString(),
+      explain: json['explain']?.toString(),
+      question: json['question']?.toString(),
+      translate: json['translate']?.toString(),
     );
   }
   final String id;
@@ -492,6 +594,7 @@ class ChatMessage {
   final String? ipa;
   final String? explain;
   final String? question;
+  final String? translate;
 }
 
 class FlashcardItem {
@@ -501,28 +604,55 @@ class FlashcardItem {
     required this.back,
     this.frontAudio,
     this.image,
+    this.images,
     this.backAudio,
     this.options,
+    this.optionsTrans,
+    this.score,
   });
 
   factory FlashcardItem.fromJson(Map<String, dynamic> json) {
     return FlashcardItem(
-      id: json['id'] as String? ?? '',
-      front: json['front'] as String? ?? '',
-      frontAudio: json['frontAudio'] as String?,
-      image: json['image'] as String?,
+      id: json['id']?.toString() ?? '',
+      front: json['front'], // Can be String or Map
+      frontAudio: json['frontAudio']?.toString(),
+      image: json['image']?.toString(),
+      images: (json['images'] as List?)?.map((e) => e.toString()).toList(),
       back: json['back'], // Can be String or Map
-      backAudio: json['backAudio'] as String?,
+      backAudio: json['backAudio']?.toString(),
       options: (json['options'] as List?)?.map((e) => e.toString()).toList(),
+      optionsTrans: (json['optionsTrans'] as List?)
+          ?.map((e) => QuizOptionTrans.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      score: json['score'] as int?,
     );
   }
   final String id;
-  final String front;
+  final dynamic front; // String or Map
   final String? frontAudio;
   final String? image;
+  final List<String>? images;
   final dynamic back; // String or Map (definition, example, etc.)
   final String? backAudio;
   final List<String>? options;
+  final List<QuizOptionTrans>? optionsTrans;
+  final int? score;
+}
+
+class QuizOptionTrans {
+  const QuizOptionTrans({
+    required this.text,
+    required this.isCorrect,
+  });
+
+  factory QuizOptionTrans.fromJson(Map<String, dynamic> json) {
+    return QuizOptionTrans(
+      text: json['text']?.toString() ?? '',
+      isCorrect: json['isCorrect'] as bool? ?? false,
+    );
+  }
+  final String text;
+  final bool isCorrect;
 }
 
 class DictationItem {
@@ -539,12 +669,12 @@ class DictationItem {
 
   factory DictationItem.fromJson(Map<String, dynamic> json) {
     return DictationItem(
-      id: json['id'] as String? ?? '',
-      audio: json['audio'] as String?,
-      text: json['text'] as String?, // Sometimes used as question text?
-      transcript: json['transcript'] as String?,
-      translate: json['translate'] as String?,
-      ipa: json['ipa'] as String?,
+      id: json['id']?.toString() ?? '',
+      audio: json['audio']?.toString(),
+      text: json['text']?.toString(), // Sometimes used as question text?
+      transcript: json['transcript']?.toString(),
+      translate: json['translate']?.toString(),
+      ipa: json['ipa']?.toString(),
       score: json['score'] as int?,
       speed: (json['speed'] as num?)?.toDouble(),
     );
@@ -572,11 +702,11 @@ class PronunciationItem {
 
   factory PronunciationItem.fromJson(Map<String, dynamic> json) {
     return PronunciationItem(
-      id: json['id'] as String? ?? '',
-      text: json['text'] as String? ?? '',
-      ipa: json['ipa'] as String?,
-      translate: json['translate'] as String?,
-      hiddenWord: json['hiddenWord'] as String?,
+      id: json['id']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
+      ipa: json['ipa']?.toString(),
+      translate: json['translate']?.toString(),
+      hiddenWord: json['hiddenWord']?.toString(),
     );
   }
   final String id;
@@ -598,11 +728,11 @@ class SpeechBuilderItem {
 
   factory SpeechBuilderItem.fromJson(Map<String, dynamic> json) {
     return SpeechBuilderItem(
-      id: json['id'] as String? ?? '',
-      question: json['question'] as String?,
+      id: json['id']?.toString() ?? '',
+      question: json['question']?.toString(),
       items: (json['items'] as List?)?.map((e) => e.toString()).toList(),
-      hint: json['hint'] as String?,
-      translate: json['translate'] as String?,
+      hint: json['hint']?.toString(),
+      translate: json['translate']?.toString(),
       answers: (json['answers'] as List?)
           ?.map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -769,10 +899,10 @@ class ErrorCorrectionItem {
     }
 
     return ErrorCorrectionItem(
-      id: json['id'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
       original: content.trim(), // Clean text
       errors: parsedErrors,
-      explain: json['explain'] as String?,
+      explain: json['explain']?.toString(),
     );
   }
   final String id;
@@ -790,7 +920,7 @@ class CorrectionError {
 
   factory CorrectionError.fromJson(Map<String, dynamic> json) {
     return CorrectionError(
-      id: json['id'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
       index: json['index'] as int? ?? 0,
       correct: (json['correct'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
@@ -816,17 +946,17 @@ class SentenceTransformationItem {
     var parsedAnswer = <String>[];
     if (json['answer'] is List) {
       parsedAnswer = (json['answer'] as List).map((e) => e.toString()).toList();
-    } else if (json['answer'] is String) {
-      parsedAnswer = [json['answer'] as String];
+    } else if (json['answer'] != null) {
+      parsedAnswer = [json['answer'].toString()];
     }
 
     return SentenceTransformationItem(
-      id: json['id'] as String? ?? '',
-      original: json['original'] as String?,
-      question: json['question'] as String?,
-      require: json['require'] as String?,
+      id: json['id']?.toString() ?? '',
+      original: json['original']?.toString(),
+      question: json['question']?.toString(),
+      require: json['require']?.toString(),
       answer: parsedAnswer,
-      explain: json['explain'] as String?,
+      explain: json['explain']?.toString(),
     );
   }
   final String id;

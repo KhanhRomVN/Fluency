@@ -98,6 +98,17 @@ class CourseCard extends StatelessWidget {
                             'assets/icons/lesson.svg',
                             '${course.completedLessons}/${course.lessons.length} lessons',
                           ),
+                          const SizedBox(width: 16),
+                          Text(
+                            'v${course.version}',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context)
+                                          .extension<AppColorsExtension>()
+                                          ?.textSecondary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),

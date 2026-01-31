@@ -111,7 +111,6 @@ class QuizDrawer extends StatelessWidget {
                   case 'multiple-choice':
                     typeLabel = 'MULTIPLE CHOICE';
                     typeColor = Colors.blue;
-                  case 'gap-fill':
                   case 'gap-fill-typing':
                     typeLabel = 'GAP FILL';
                     typeColor = Colors.green;
@@ -127,13 +126,15 @@ class QuizDrawer extends StatelessWidget {
                   case 'speaking-essay':
                     typeLabel = 'SPEAKING';
                     typeColor = Colors.pink;
-                  case 'chatting-speech':
-                    typeLabel = 'CHATTING';
+                  case 'free-chat':
+                    typeLabel = 'FREE CHAT';
                     typeColor = Colors.cyan;
+                  case 'scripted-chat':
+                    typeLabel = 'SCRIPTED CHAT';
+                    typeColor = Colors.blueAccent;
                   case 'pronunciation-drill':
                     typeLabel = 'PRONUNCIATION';
                     typeColor = Colors.teal;
-                  case 'dictation':
                   case 'dictation-audio':
                     typeLabel = 'DICTATION';
                     typeColor = Colors.pink;
@@ -146,6 +147,12 @@ class QuizDrawer extends StatelessWidget {
                   case 'error-correction':
                     typeLabel = 'ERROR CORRECTION';
                     typeColor = Colors.redAccent;
+                  case 'flashcard':
+                    typeLabel = 'FLASHCARD';
+                    typeColor = Colors.indigo;
+                  case 'speech-builder':
+                    typeLabel = 'SPEECH BUILDER';
+                    typeColor = Colors.blueGrey;
                   default:
                     typeLabel = 'QUIZ';
                     typeColor = Colors.grey;

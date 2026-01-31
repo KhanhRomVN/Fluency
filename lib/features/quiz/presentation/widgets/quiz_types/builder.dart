@@ -232,33 +232,12 @@ class _QuizBuilderState extends State<QuizBuilder>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Instruction (Fixed at top, outside text)
-            if (widget.quiz.instruction.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: DefaultTextStyle(
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 16),
-                  child: Wrap(
-                    children: RichTextParser.buildRichText(
-                      context,
-                      widget.quiz.instruction,
-                      onWordLongPress: widget.onWordLongPress,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium!
-                          .copyWith(fontSize: 16),
-                    ),
-                  ),
-                ),
-              ),
 
             // 2. Question Card (Takes remaining space)
             Expanded(
               child: Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: GestureDetector(
                   onHorizontalDragUpdate: _onHorizontalDragUpdate,
                   onHorizontalDragEnd: _onHorizontalDragEnd,

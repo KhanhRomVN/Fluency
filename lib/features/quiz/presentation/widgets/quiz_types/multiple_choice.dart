@@ -165,24 +165,6 @@ class _MultipleChoiceState extends State<MultipleChoice>
     return Column(
       children: [
         // 1. Instruction (Fixed height container if needed, or flexible)
-        if (widget.quiz.instruction.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                children: RichTextParser.buildRichText(
-                  context,
-                  widget.quiz.instruction,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        color: appColors.textPrimary,
-                      ),
-                  onWordLongPress: widget.onWordLongPress,
-                ),
-              ),
-            ),
-          ),
 
         // 2. Question Card Area
         Expanded(
@@ -190,7 +172,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
             onHorizontalDragUpdate: _onHorizontalDragUpdate,
             onHorizontalDragEnd: _onHorizontalDragEnd,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Stack(
                 children: [
                   // The Card

@@ -161,8 +161,10 @@ class RichTextParser {
     // Let's split the text into words using regex to keep punctuation separate or part of word?
     // Users interact with "words". Punctuation shouldn't be long-pressed usually.
 
-    // Regex to match words and non-words
-    final tokenRegex = RegExp(r'(\w+)|([^\w\s]+)|(\s+)');
+    // Regex to match words (including Unicode for Vietnamese etc) and non-words
+    // \w does not match unicode in standard Dart regex without special handling, so we define range.
+    final tokenRegex = RegExp(
+        r'([a-zA-Z0-9_\u00C0-\uFFFF]+)|([^a-zA-Z0-9_\u00C0-\uFFFF\s]+)|(\s+)');
     final spans = <InlineSpan>[];
 
     for (final match in tokenRegex.allMatches(text)) {
@@ -172,6 +174,8 @@ class RichTextParser {
       if (isWord) {
         spans.add(
           WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
             child: GestureDetector(
               onLongPress: () => onWordLongPress(token),
               child: Text(
@@ -202,6 +206,7 @@ class RichTextParser {
     bool isQuestion = false,
     Widget? Function(String id)? onGapFound,
     void Function(String word)? onWordLongPress,
+    TextStyle? style,
   }) {
     final spans = <InlineSpan>[];
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -218,14 +223,19 @@ class RichTextParser {
     double? fontSize;
 
     void addTextSpan(String text) {
-      final style = TextStyle(
+      final textStyle = (style ??
+              TextStyle(
+                fontSize: fontSize,
+                color: appColors.textPrimary,
+              ))
+          .copyWith(
         fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
         fontSize: fontSize,
         color: appColors.textPrimary,
       );
 
       if (onWordLongPress == null) {
-        spans.add(TextSpan(text: text, style: style));
+        spans.add(TextSpan(text: text, style: textStyle));
       } else {
         final tokenRegex = RegExp(r'(\w+)|([^\w\s]+)|(\s+)');
         for (final match in tokenRegex.allMatches(text)) {
@@ -236,13 +246,13 @@ class RichTextParser {
             spans.add(
               TextSpan(
                 text: token,
-                style: style,
+                style: textStyle,
                 recognizer: LongPressGestureRecognizer()
                   ..onLongPress = () => onWordLongPress(token),
               ),
             );
           } else {
-            spans.add(TextSpan(text: token, style: style));
+            spans.add(TextSpan(text: token, style: textStyle));
           }
         }
       }

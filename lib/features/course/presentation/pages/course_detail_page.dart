@@ -7,6 +7,8 @@ import 'package:fluency/features/course/presentation/widgets/lesson_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 
 class CourseDetailPage extends StatefulWidget {
   const CourseDetailPage({super.key, this.course});
@@ -148,7 +150,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'v1.0.0',
+                            'v${displayCourse.version}',
                             style: Theme.of(context)
                                 .textTheme
                                 .labelSmall
@@ -160,6 +162,24 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                           ),
                         ),
                       ],
+                    ),
+                    // Menu Icon on the far right
+                    Positioned(
+                      right: 4,
+                      child: IconButton(
+                        onPressed: () => _showActionDrawer(context, appColors),
+                        icon: SvgPicture.string(
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-end-vertical-icon lucide-align-end-vertical"><rect width="16" height="6" x="2" y="4" rx="2"/><rect width="9" height="6" x="9" y="14" rx="2"/><path d="M22 22V2"/></svg>',
+                          width: 20,
+                          height: 20,
+                          colorFilter: ColorFilter.mode(
+                            appColors.textPrimary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
                     ),
                   ],
                 ),
@@ -460,5 +480,113 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
         ),
       ],
     );
+  }
+
+  void _showActionDrawer(BuildContext context, AppColorsExtension appColors) {
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: appColors.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: appColors.textSecondary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDelete(context, appColors);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, AppColorsExtension appColors) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: appColors.background,
+        title: Text(
+          'Xác nhận xóa',
+          style: TextStyle(color: appColors.textPrimary),
+        ),
+        content: Text(
+          'Bạn có chắc chắn muốn xóa khóa học này?',
+          style: TextStyle(color: appColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteCourse();
+            },
+            child: const Text(
+              'Xóa',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteCourse() async {
+    if (_course == null) return;
+    try {
+      final provider = context.read<CourseProvider>();
+      await provider.deleteCourse(_course!);
+      if (mounted) {
+        context.pop(); // Go back after deletion using go_router
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi xóa khóa học: $e')),
+        );
+      }
+    }
   }
 }

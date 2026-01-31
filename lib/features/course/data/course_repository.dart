@@ -21,6 +21,40 @@ class CourseRepository {
         throw Exception('File not found: $path');
       }
 
+      // 1. Peek into ZIP to get course JSON
+      final extractedDir = await _zipLoader.extractZipFileFromFile(file);
+      if (extractedDir == null) {
+        throw Exception('Failed to extract ZIP file for validation.');
+      }
+
+      final newCourseJson = await _zipLoader.loadCourseJson(extractedDir);
+      if (newCourseJson == null) {
+        throw Exception('Invalid course: Course.json not found in ZIP.');
+      }
+
+      final newCourse = Course.fromJson(newCourseJson);
+      final existingCourses = await getCourses();
+      final existingCourse = existingCourses.cast<Course?>().firstWhere(
+            (c) => c?.id == newCourse.id,
+            orElse: () => null,
+          );
+
+      if (existingCourse != null) {
+        if (newCourse.version < existingCourse.version) {
+          throw Exception(
+              'Bạn đang import phiên bản cũ (v${newCourse.version}). Phiên bản hiện tại là v${existingCourse.version}.');
+        } else if (newCourse.version == existingCourse.version) {
+          debugPrint(
+              'Same version (v${newCourse.version}) already exists. Skipping import.');
+          return;
+        } else {
+          debugPrint(
+              'Newer version found (v${newCourse.version} > v${existingCourse.version}). Replacing old version.');
+          await deleteCourse(existingCourse);
+        }
+      }
+
+      // 2. Perform actual import
       final appDocDir = await getApplicationDocumentsDirectory();
       final importDir = Directory('${appDocDir.path}/imported_courses');
       if (!importDir.existsSync()) {
@@ -33,9 +67,8 @@ class CourseRepository {
       await file.copy(newPath);
       debugPrint('Copied imported course to $newPath');
 
-      // Optionally verify extraction immediately
-      final importedFile = File(newPath);
-      await _zipLoader.extractZipFileFromFile(importedFile);
+      // Extraction already happened during validation, but let's ensure it's in the right place if needed
+      // ZipCourseLoader handles caching based on name.
     } catch (e) {
       debugPrint('Error importing course: $e');
       rethrow;
@@ -338,24 +371,10 @@ class CourseRepository {
       passage = _zipLoader.resolveFilePath(extractedDir, passage);
     }
 
-    return Quiz(
-      id: quiz.id,
-      title: quiz.title,
-      type: quiz.type,
-      instruction: quiz.instruction,
-      quizNumber: quiz.quizNumber,
-      question: quiz.question,
+    return quiz.copyWith(
       audio: audio,
       transcript: transcript,
       passage: passage,
-      questions: quiz.questions,
-      answers: quiz.answers,
-      options: quiz.options,
-      matchings: quiz.matchings,
-      subtype: quiz.subtype,
-      min: quiz.min,
-      example: quiz.example,
-      chats: quiz.chats,
     );
   }
 
@@ -421,24 +440,88 @@ class CourseRepository {
       }
     }
 
-    return Quiz(
-      id: quiz.id,
-      title: quiz.title,
-      type: quiz.type,
-      instruction: quiz.instruction,
-      quizNumber: quiz.quizNumber,
-      question: quiz.question,
+    return quiz.copyWith(
       audio: audio,
       transcript: transcript,
       passage: passage,
-      questions: quiz.questions,
-      answers: quiz.answers,
-      options: quiz.options,
-      matchings: quiz.matchings,
-      subtype: quiz.subtype,
-      min: quiz.min,
-      example: quiz.example,
-      chats: quiz.chats,
     );
+  }
+
+  Future<void> deleteCourse(Course course) async {
+    if (kIsWeb) return;
+
+    try {
+      debugPrint(
+          'Attempting robust delete for course: ${course.title} (ID: ${course.id})');
+
+      final cacheDir = await getTemporaryDirectory();
+      final courseCacheDir = Directory('${cacheDir.path}/course_cache');
+      String? targetFolderName;
+
+      // 1. Scan course_cache to find the folder containing this course ID
+      if (courseCacheDir.existsSync()) {
+        final entities = courseCacheDir.listSync();
+        for (final entity in entities) {
+          if (entity is Directory) {
+            try {
+              // Read course JSON from this folder to verify ID
+              final courseJson = await _zipLoader.loadCourseJson(entity);
+              if (courseJson != null && courseJson['id'] == course.id) {
+                targetFolderName = entity.path.split('/').last;
+                debugPrint('Found matching cache folder: $targetFolderName');
+                await entity.delete(recursive: true);
+                break;
+              }
+            } catch (e) {
+              debugPrint('Error inspecting cache folder ${entity.path}: $e');
+            }
+          }
+        }
+      }
+
+      // 2. Delete ZIP file in imported_courses
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final importDir = Directory('${appDocDir.path}/imported_courses');
+
+      if (importDir.existsSync()) {
+        final zipFiles = importDir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.zip'))
+            .toList();
+
+        bool deletedZip = false;
+
+        // Strategy A: If we found targetFolderName from cache, try deleting that ZIP
+        if (targetFolderName != null) {
+          final exactZip = File('${importDir.path}/$targetFolderName.zip');
+          if (exactZip.existsSync()) {
+            await exactZip.delete();
+            debugPrint('Deleted matching ZIP file: ${exactZip.path}');
+            deletedZip = true;
+          }
+        }
+
+        // Strategy B: Fallback search within ZIPs (reading content might be too slow, so try name matching)
+        if (!deletedZip) {
+          final normalizedTitle =
+              course.title.toLowerCase().replaceAll(' ', '_');
+          for (final zip in zipFiles) {
+            final zipBaseName = zip.path.split('/').last.replaceAll('.zip', '');
+            if (zipBaseName.toLowerCase() == normalizedTitle ||
+                zipBaseName.toLowerCase().contains(normalizedTitle) ||
+                normalizedTitle.contains(zipBaseName.toLowerCase())) {
+              await zip.delete();
+              debugPrint(
+                  'Deleted likely matching ZIP file (fallback): ${zip.path}');
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error in robust deleteCourse: $e');
+      rethrow;
+    }
   }
 }
