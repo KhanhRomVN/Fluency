@@ -4,6 +4,8 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 class PronunciationDrill extends StatefulWidget {
   const PronunciationDrill({
@@ -27,6 +29,9 @@ class _PronunciationDrillState extends State<PronunciationDrill>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   bool _isRecording = false;
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  double _soundLevel = 0.0;
 
   // Map<ItemID, State>
   final Map<String, _PronunciationDrillItemState> _itemStates = {};
@@ -50,6 +55,12 @@ class _PronunciationDrillState extends State<PronunciationDrill>
         }
       });
     });
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    _speechEnabled = await _speechToText.initialize();
+    setState(() {});
   }
 
   @override
@@ -132,37 +143,80 @@ class _PronunciationDrillState extends State<PronunciationDrill>
     });
   }
 
-  void _startRecording(PronunciationItem item) {
+  void _startRecording(PronunciationItem item) async {
     if (_isRecording) return;
+    await _speechToText.listen(
+      onResult: (result) => _onSpeechResult(result, item),
+      onSoundLevelChange: (level) {
+        setState(() {
+          _soundLevel = level;
+        });
+      },
+      localeId: 'en_US',
+    );
     setState(() {
       _isRecording = true;
-    });
-    // Mock recording duration
-    Future.delayed(const Duration(seconds: 2), () {
-      _stopRecording(item);
+      _soundLevel = 0.0;
     });
   }
 
-  void _stopRecording(PronunciationItem item) {
+  void _stopRecording(PronunciationItem item) async {
     if (!_isRecording) return;
+    await _speechToText.stop();
+    setState(() {
+      _isRecording = false;
+      _soundLevel = 0.0;
+    });
+  }
 
-    // Mock result
-    final score = (DateTime.now().millisecond % 40) + 60; // 60-99
-    final passed = score >= 60;
+  void _onSpeechResult(SpeechRecognitionResult result, PronunciationItem item) {
+    debugPrint(
+        'STT Result: "${result.recognizedWords}" (Final: ${result.finalResult})');
+    if (result.finalResult) {
+      final transcript = result.recognizedWords;
+      debugPrint('STT Final Transcript for ${item.id}: "$transcript"');
+      final targetText = _getTextContent(item.text);
+      final score = _calculateScore(transcript, targetText);
+      final passed = score >= 60;
 
-    if (mounted) {
-      setState(() {
-        _isRecording = false;
-        final current = _itemStates[item.id] ?? _PronunciationDrillItemState();
-        _itemStates[item.id] = current.copyWith(
-          score: score,
-          bestScore: score > current.bestScore ? score : current.bestScore,
-          passed: passed || current.passed,
-          attempts: current.attempts + 1,
-          transcript: item.text, // Mock transcript match
-        );
-      });
+      if (mounted) {
+        setState(() {
+          _isRecording = false;
+          final current =
+              _itemStates[item.id] ?? _PronunciationDrillItemState();
+          _itemStates[item.id] = current.copyWith(
+            score: score,
+            bestScore: score > current.bestScore ? score : current.bestScore,
+            passed: passed || current.passed,
+            attempts: current.attempts + 1,
+            transcript: transcript,
+          );
+        });
+      }
     }
+  }
+
+  String _getTextContent(String html) {
+    return html.replaceAll(RegExp(r'<[^>]*>'), '');
+  }
+
+  int _calculateScore(String spoken, String target) {
+    final spokenLower = spoken.toLowerCase().trim();
+    final targetLower = target.toLowerCase().trim();
+
+    if (spokenLower == targetLower) return 100;
+
+    final spokenWords = spokenLower.split(RegExp(r'\s+'));
+    final targetWords = targetLower.split(RegExp(r'\s+'));
+
+    var matches = 0;
+    for (final word in targetWords) {
+      if (spokenWords.any((sw) => sw.contains(word) || word.contains(sw))) {
+        matches++;
+      }
+    }
+
+    return ((matches / targetWords.length) * 100).round();
   }
 
   void _retryCurrent() {
@@ -660,40 +714,80 @@ class _PronunciationDrillState extends State<PronunciationDrill>
     }
     // Initial: Record
     else {
+      if (_isRecording) {
+        return _buildWaveform(appColors, item);
+      }
+
       return InkWell(
-        onTap: () =>
-            _isRecording ? _stopRecording(item) : _startRecording(item),
+        onTap: () => _startRecording(item),
         borderRadius: BorderRadius.circular(50),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: _isRecording ? Colors.red : appColors.primary,
+            color: appColors.primary,
             shape: BoxShape.circle,
             boxShadow: [
-              if (_isRecording)
-                BoxShadow(
-                  color: Colors.red.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                )
-              else
-                BoxShadow(
-                  color: appColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
+              BoxShadow(
+                color: appColors.primary.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
             ],
           ),
-          child: Icon(
-            _isRecording ? Icons.stop : Icons.mic,
+          child: const Icon(
+            Icons.mic,
             color: Colors.white,
             size: 28,
           ),
         ),
       );
     }
+  }
+
+  Widget _buildWaveform(AppColorsExtension appColors, PronunciationItem item) {
+    return GestureDetector(
+      onTap: () => _stopRecording(item),
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(15, (index) {
+            // Randomize reactivity a bit for each bar
+            final factor = 1.0 + (math.sin(index * 0.8) * 0.3);
+            final height =
+                4.0 + (_soundLevel.abs() * 5.0 * factor).clamp(0.0, 32.0);
+            return _WaveBar(
+              height: height,
+              color: appColors.primary,
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+class _WaveBar extends StatelessWidget {
+  const _WaveBar({required this.height, required this.color});
+  final double height;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 100),
+      width: 3,
+      height: height,
+      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
   }
 }
 

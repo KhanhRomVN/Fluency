@@ -7,6 +7,8 @@ import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'package:universal_io/io.dart';
 
 class ScriptedChat extends StatefulWidget {
@@ -31,6 +33,9 @@ class _ScriptedChatState extends State<ScriptedChat> {
   final Map<String, bool> _ipaVisible = {};
   final ScrollController _scrollController = ScrollController();
   final FlutterTts _flutterTts = FlutterTts();
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  bool _isListening = false;
 
   // Sequence playback
   bool _isPlayingSequence = false;
@@ -72,15 +77,19 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
       await _flutterTts.awaitSpeakCompletion(true);
       await _flutterTts.setLanguage('en-US');
-      await _flutterTts.setSpeechRate(0.9);
+      await _flutterTts.setSpeechRate(0.5);
 
       _flutterTts.setCompletionHandler(() {
         if (_isPlayingSequence) {
           _playNextInSequence();
         }
       });
+
+      // Initialize Speech to Text
+      _speechEnabled = await _speechToText.initialize();
+      setState(() {});
     } catch (e) {
-      debugPrint('TTS Init Error: $e');
+      debugPrint('TTS/STT Init Error: $e');
     }
   }
 
@@ -377,27 +386,60 @@ class _ScriptedChatState extends State<ScriptedChat> {
     return [...feedback.whereType<_WordFeedback>(), ...extraWords];
   }
 
-  void _handleSimulateTest(String chatId, String targetText, int messageIndex) {
-    final simulatedTranscript = _simulatePronunciation(targetText);
-    final score = _calculateScore(simulatedTranscript, targetText);
-    final feedback = _analyzeWordFeedback(simulatedTranscript, targetText);
-
+  void _startListening(
+      String chatId, String targetText, int messageIndex) async {
+    await _speechToText.listen(
+      onResult: (result) =>
+          _onSpeechResult(result, chatId, targetText, messageIndex),
+      localeId: 'en_US',
+    );
     setState(() {
-      _messageScores[chatId] = _MessageScore(
-        score: score,
-        feedback: feedback,
-        transcript: simulatedTranscript,
-      );
-
-      // If score is good (>= 50%) and this was the current step, continue sequence
-      if (score >= 50 && messageIndex == _visibleCount - 1) {
-        _currentSequenceIndex = messageIndex + 1; // Move past this user message
-        setState(() {
-          _isPlayingSequence = true;
-        });
-        _playNextInSequence();
-      }
+      _isListening = true;
     });
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    setState(() {
+      _isListening = false;
+    });
+  }
+
+  void _onSpeechResult(SpeechRecognitionResult result, String chatId,
+      String targetText, int messageIndex) {
+    debugPrint(
+        'ScriptedChat STT Result: "${result.recognizedWords}" (Final: ${result.finalResult})');
+    if (result.finalResult) {
+      final transcript = result.recognizedWords;
+      debugPrint('ScriptedChat STT Final: "$transcript"');
+      final score = _calculateScore(transcript, targetText);
+      final feedback = _analyzeWordFeedback(transcript, targetText);
+
+      setState(() {
+        _isListening = false;
+        _messageScores[chatId] = _MessageScore(
+          score: score,
+          feedback: feedback,
+          transcript: transcript,
+        );
+
+        // If score is good (>= 50%) and this was the current step, continue sequence
+        if (score >= 50 && messageIndex == _visibleCount - 1) {
+          _currentSequenceIndex =
+              messageIndex + 1; // Move past this user message
+          _isPlayingSequence = true;
+          _playNextInSequence();
+        }
+      });
+    }
+  }
+
+  void _handleSimulateTest(String chatId, String targetText, int messageIndex) {
+    if (_isListening) {
+      _stopListening();
+    } else {
+      _startListening(chatId, targetText, messageIndex);
+    }
   }
 
   void _handlePointerDown(PointerDownEvent event) {
@@ -523,8 +565,8 @@ class _ScriptedChatState extends State<ScriptedChat> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.mic,
+                  child: Icon(
+                    _isListening ? Icons.stop : Icons.mic,
                     color: Colors.white,
                     size: 32,
                   ),

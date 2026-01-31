@@ -2,6 +2,8 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 class SpeakingEssay extends StatefulWidget {
   const SpeakingEssay({
@@ -27,6 +29,20 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   final Map<int, bool> _stepSubmitted = {};
 
   bool _isRecording = false;
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  String _currentTranscript = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  void _initSpeech() async {
+    _speechEnabled = await _speechToText.initialize();
+    setState(() {});
+  }
 
   // For sample answer "hint" clicks similar to TSX HintDrawer
   // We can use the existing explain/dictionary mechanism or a simple dialog
@@ -56,17 +72,43 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   }
 
   void _toggleRecording() {
-    setState(() {
-      _isRecording = !_isRecording;
+    if (_isRecording) {
+      _stopListening();
+    } else {
+      _startListening();
+    }
+  }
 
-      // Mock recording logic: in a real app this would start/stop recorder
-      if (!_isRecording && !_isCurrentSubmitted) {
-        // In TSX, toggling recording doesn't auto-submit or auto-fill text usually,
-        // but maybe it transcribes?
-        // TSX: setIsRecording(!isRecording). That's it.
-        // It doesn't auto-transcribe in the TSX snippet provided (it seems manual mock or just recording state).
-        // Left screenshot shows "Tap to speak".
-        // We will just toggle state.
+  void _startListening() async {
+    await _speechToText.listen(
+      onResult: _onSpeechResult,
+      localeId: 'en_US',
+    );
+    setState(() {
+      _isRecording = true;
+      _currentTranscript = '';
+    });
+  }
+
+  void _stopListening() async {
+    await _speechToText.stop();
+    setState(() {
+      _isRecording = false;
+    });
+  }
+
+  void _onSpeechResult(SpeechRecognitionResult result) {
+    debugPrint(
+        'SpeakingEssay STT Result: "${result.recognizedWords}" (Final: ${result.finalResult})');
+    setState(() {
+      _currentTranscript = result.recognizedWords;
+      if (result.finalResult) {
+        debugPrint('SpeakingEssay STT Final: "$_currentTranscript"');
+        final existingText = _answers[_activeIndex] ?? '';
+        final separator = existingText.isEmpty ? '' : ' ';
+        _answers[_activeIndex] = '$existingText$separator$_currentTranscript';
+        _currentTranscript = '';
+        _isRecording = false;
       }
     });
   }
@@ -223,11 +265,20 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                               ),
                             )
                           : TextField(
-                              controller:
-                                  TextEditingController(text: _currentAnswer)
-                                    ..selection = TextSelection.collapsed(
-                                      offset: _currentAnswer.length,
-                                    ),
+                              controller: TextEditingController(
+                                text: _isRecording
+                                    ? (_currentAnswer.isEmpty
+                                        ? _currentTranscript
+                                        : '$_currentAnswer $_currentTranscript')
+                                    : _currentAnswer,
+                              )..selection = TextSelection.collapsed(
+                                  offset: _isRecording
+                                      ? (_currentAnswer.isEmpty
+                                          ? _currentTranscript.length
+                                          : '$_currentAnswer $_currentTranscript'
+                                              .length)
+                                      : _currentAnswer.length,
+                                ),
                               onChanged: _handleTextChange,
                               expands: true,
                               maxLines: null,

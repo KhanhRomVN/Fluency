@@ -2,13 +2,17 @@ import 'package:fluency/core/l10n/app_localizations.dart';
 import 'package:fluency/core/themes/theme_provider.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/routes/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Application extends StatelessWidget {
-  const Application({super.key});
+  final SharedPreferences sharedPreferences;
+
+  const Application({super.key, required this.sharedPreferences});
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +21,8 @@ class Application extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
         ChangeNotifierProvider(create: (_) => CourseProvider()..loadCourses()),
         ChangeNotifierProvider(create: (_) => QuizStateProvider()),
+        ChangeNotifierProvider(
+            create: (_) => SttSettingProvider(sharedPreferences)),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

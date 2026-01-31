@@ -5,6 +5,7 @@ import 'package:fluency/core/config/environment_config.dart';
 import 'package:fluency/di/injection_container.dart' as di;
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// App runner class
 class Runner {
@@ -29,7 +30,9 @@ class Runner {
     await EnvironmentConfig.init();
     // Initialize Dependency Injection
     await di.init();
-    runApp(const Application());
+    // Initialize SharedPreferences
+    final sharedPreferences = await SharedPreferences.getInstance();
+    runApp(Application(sharedPreferences: sharedPreferences));
   }
 
   static void _initLogger() {

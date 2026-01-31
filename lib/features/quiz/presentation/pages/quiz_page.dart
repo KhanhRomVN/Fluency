@@ -19,7 +19,6 @@ import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_d
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/pronunciation_drill.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/sentence_transformation.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speaking.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speaking_essay.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speech_builder.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/writing_essay.dart';
@@ -515,12 +514,6 @@ class _QuizPageState extends State<QuizPage> {
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
-        );
-      case 'speaking':
-        return Speaking(
-          quiz: quiz,
-          onCheck: _onQuizChecked,
-          onNext: _onNextQuiz,
         );
       case 'sentence-transformation':
         return SentenceTransformation(
