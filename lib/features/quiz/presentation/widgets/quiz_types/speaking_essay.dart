@@ -1,7 +1,9 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -80,9 +82,13 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   }
 
   void _startListening() async {
+    // Get STT settings from provider
+    final sttProvider = context.read<SttSettingProvider>();
+    String localeId = 'en_US'; // default
+
     await _speechToText.listen(
       onResult: _onSpeechResult,
-      localeId: 'en_US',
+      localeId: localeId,
     );
     setState(() {
       _isRecording = true;
@@ -331,7 +337,8 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                         BoxShadow(
                           color: (_isRecording ? Colors.red : appColors.primary)
                               .withValues(alpha: 0.3),
-                          blurRadius: 10,
+                          blurRadius: _isRecording ? 12 : 10,
+                          spreadRadius: _isRecording ? 2 : 0,
                           offset: const Offset(0, 4),
                         ),
                       ],

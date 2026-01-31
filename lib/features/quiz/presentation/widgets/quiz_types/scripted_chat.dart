@@ -4,9 +4,11 @@ import 'dart:math' as math;
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:universal_io/io.dart';
@@ -388,10 +390,14 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
   void _startListening(
       String chatId, String targetText, int messageIndex) async {
+    // Get STT settings from provider
+    final sttProvider = context.read<SttSettingProvider>();
+    String localeId = 'en_US'; // default
+
     await _speechToText.listen(
       onResult: (result) =>
           _onSpeechResult(result, chatId, targetText, messageIndex),
-      localeId: 'en_US',
+      localeId: localeId,
     );
     setState(() {
       _isListening = true;
@@ -555,12 +561,14 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: appColors.primary,
+                    color: _isListening ? Colors.red : appColors.primary,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: appColors.primary.withOpacity(0.4),
-                        blurRadius: 10,
+                        color: (_isListening ? Colors.red : appColors.primary)
+                            .withValues(alpha: 0.4),
+                        blurRadius: _isListening ? 12 : 10,
+                        spreadRadius: _isListening ? 2 : 0,
                         offset: const Offset(0, 4),
                       ),
                     ],

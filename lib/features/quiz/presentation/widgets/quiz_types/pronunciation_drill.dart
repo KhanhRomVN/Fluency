@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -145,6 +147,14 @@ class _PronunciationDrillState extends State<PronunciationDrill>
 
   void _startRecording(PronunciationItem item) async {
     if (_isRecording) return;
+
+    // Get STT settings from provider
+    final sttProvider = context.read<SttSettingProvider>();
+    String localeId = 'en_US'; // default
+
+    // Note: VoskModel doesn't have locale field yet, using default
+    // In the future, we can add locale field to VoskModel
+
     await _speechToText.listen(
       onResult: (result) => _onSpeechResult(result, item),
       onSoundLevelChange: (level) {
@@ -152,7 +162,7 @@ class _PronunciationDrillState extends State<PronunciationDrill>
           _soundLevel = level;
         });
       },
-      localeId: 'en_US',
+      localeId: localeId,
     );
     setState(() {
       _isRecording = true;
@@ -714,24 +724,24 @@ class _PronunciationDrillState extends State<PronunciationDrill>
     }
     // Initial: Record
     else {
-      if (_isRecording) {
-        return _buildWaveform(appColors, item);
-      }
-
       return InkWell(
-        onTap: () => _startRecording(item),
+        onTap: _isRecording
+            ? () => _stopRecording(item)
+            : () => _startRecording(item),
         borderRadius: BorderRadius.circular(50),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: appColors.primary,
+            color: _isRecording ? Colors.red : appColors.primary,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: appColors.primary.withValues(alpha: 0.3),
-                blurRadius: 8,
+                color: (_isRecording ? Colors.red : appColors.primary)
+                    .withValues(alpha: 0.3),
+                blurRadius: _isRecording ? 12 : 8,
+                spreadRadius: _isRecording ? 2 : 0,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -744,50 +754,6 @@ class _PronunciationDrillState extends State<PronunciationDrill>
         ),
       );
     }
-  }
-
-  Widget _buildWaveform(AppColorsExtension appColors, PronunciationItem item) {
-    return GestureDetector(
-      onTap: () => _stopRecording(item),
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(15, (index) {
-            // Randomize reactivity a bit for each bar
-            final factor = 1.0 + (math.sin(index * 0.8) * 0.3);
-            final height =
-                4.0 + (_soundLevel.abs() * 5.0 * factor).clamp(0.0, 32.0);
-            return _WaveBar(
-              height: height,
-              color: appColors.primary,
-            );
-          }),
-        ),
-      ),
-    );
-  }
-}
-
-class _WaveBar extends StatelessWidget {
-  const _WaveBar({required this.height, required this.color});
-  final double height;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 100),
-      width: 3,
-      height: height,
-      margin: const EdgeInsets.symmetric(horizontal: 1.5),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
   }
 }
 

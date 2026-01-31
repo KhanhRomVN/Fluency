@@ -179,6 +179,11 @@ class Quiz {
     this.speechBuilders,
     this.errorCorrections,
     this.sentenceTransformations,
+    this.prompt,
+    this.context,
+    this.aiRole,
+    this.userRole,
+    this.minTurns,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
@@ -317,6 +322,11 @@ class Quiz {
           ?.map((e) => ErrorCorrectionItem.fromJson(e as Map<String, dynamic>))
           .toList(),
       sentenceTransformations: sentenceTransformationsList,
+      prompt: json['prompt']?.toString(),
+      context: json['context']?.toString(),
+      aiRole: json['aiRole']?.toString(),
+      userRole: json['userRole']?.toString(),
+      minTurns: json['minTurns'] as int?,
     );
   }
   final String id;
@@ -346,6 +356,13 @@ class Quiz {
       errorCorrections; // For error correction quizzes
   final List<SentenceTransformationItem>? sentenceTransformations;
 
+  // For free-chat quizzes with LLM
+  final String? prompt; // System prompt for LLM
+  final String? context; // Context of the conversation
+  final String? aiRole; // AI role name (e.g., "Alex (Friend)")
+  final String? userRole; // User role name (e.g., "You")
+  final int? minTurns; // Minimum number of conversation turns
+
   Quiz copyWith({
     String? id,
     String? title,
@@ -371,6 +388,11 @@ class Quiz {
     List<SpeechBuilderItem>? speechBuilders,
     List<ErrorCorrectionItem>? errorCorrections,
     List<SentenceTransformationItem>? sentenceTransformations,
+    String? prompt,
+    String? context,
+    String? aiRole,
+    String? userRole,
+    int? minTurns,
   }) {
     return Quiz(
       id: id ?? this.id,
@@ -398,6 +420,11 @@ class Quiz {
       errorCorrections: errorCorrections ?? this.errorCorrections,
       sentenceTransformations:
           sentenceTransformations ?? this.sentenceTransformations,
+      prompt: prompt ?? this.prompt,
+      context: context ?? this.context,
+      aiRole: aiRole ?? this.aiRole,
+      userRole: userRole ?? this.userRole,
+      minTurns: minTurns ?? this.minTurns,
     );
   }
 }

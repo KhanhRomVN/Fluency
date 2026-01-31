@@ -4,12 +4,14 @@ import 'package:fluency/core/services/tts/piper_tts_service.dart';
 import 'package:fluency/core/services/tts/system_tts_service.dart';
 import 'package:fluency/core/services/tts/tts_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:archive/archive_io.dart';
+import 'package:provider/provider.dart';
 
 class TtsSettingsPage extends StatefulWidget {
   const TtsSettingsPage({super.key});
@@ -404,6 +406,39 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
   List<PiperModelInfo> get _britishVoices =>
       _availablePiperModels.where((m) => m.code.startsWith('en_GB')).toList();
 
+  List<PiperModelInfo> get _maleVoices => _availablePiperModels.where((m) {
+        final name = m.name.toLowerCase();
+        final code = m.code.toLowerCase();
+        return name.contains('male') ||
+            code.contains('bryce') ||
+            code.contains('joe') ||
+            code.contains('john') ||
+            code.contains('kusal') ||
+            code.contains('norman') ||
+            code.contains('ryan') ||
+            code.contains('alan') ||
+            code.contains('northern_english_male') ||
+            code.contains('southern_english_male') ||
+            code.contains('hfc_male');
+      }).toList();
+
+  List<PiperModelInfo> get _femaleVoices => _availablePiperModels.where((m) {
+        final name = m.name.toLowerCase();
+        final code = m.code.toLowerCase();
+        return name.contains('female') ||
+            code.contains('arctic') ||
+            code.contains('kristin') ||
+            code.contains('l2arctic') ||
+            code.contains('lessac') ||
+            code.contains('ljspeech') ||
+            code.contains('alba') ||
+            code.contains('aru') ||
+            code.contains('cori') ||
+            code.contains('jenny_dioco') ||
+            code.contains('southern_english_female') ||
+            code.contains('hfc_female');
+      }).toList();
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -497,6 +532,36 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
                 ),
               ),
             ),
+
+            // Default Voice Selection (only if Piper selected)
+            if (_activeEngine == 'Piper') ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+                  child: Text(
+                    'Default Voices',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colors.textPrimary,
+                        ),
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Column(
+                    children: [
+                      _buildDefaultVoiceSelector(
+                          'Male', _maleVoices, colors, primary),
+                      const SizedBox(height: 12),
+                      _buildDefaultVoiceSelector(
+                          'Female', _femaleVoices, colors, primary),
+                    ],
+                  ),
+                ),
+              ),
+            ],
 
             // Voice Sections (only if Piper selected)
             if (_activeEngine == 'Piper') ...[
@@ -778,6 +843,113 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
         );
       },
     );
+  }
+
+  Widget _buildDefaultVoiceSelector(
+    String gender,
+    List<PiperModelInfo> voices,
+    AppColorsExtension colors,
+    Color primary,
+  ) {
+    final ttsProvider = context.watch<TtsProvider>();
+    final currentDefault = gender == 'Male'
+        ? ttsProvider.defaultMaleVoice
+        : ttsProvider.defaultFemaleVoice;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            gender == 'Male' ? Icons.man : Icons.woman,
+            color: colors.textSecondary,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Default $gender Voice',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                FutureBuilder<List<PiperModelInfo>>(
+                  future: _getDownloadedVoices(voices),
+                  builder: (context, snapshot) {
+                    final downloaded = snapshot.data ?? [];
+                    if (downloaded.isEmpty) {
+                      return Text(
+                        'No $gender voices downloaded',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                        ),
+                      );
+                    }
+
+                    return DropdownButton<String>(
+                      value: currentDefault,
+                      hint: Text(
+                        'Select default $gender voice',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      items: downloaded.map((voice) {
+                        return DropdownMenuItem<String>(
+                          value: voice.code,
+                          child: Text(
+                            voice.name,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          if (gender == 'Male') {
+                            ttsProvider.setDefaultMaleVoice(value);
+                          } else {
+                            ttsProvider.setDefaultFemaleVoice(value);
+                          }
+                        }
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<List<PiperModelInfo>> _getDownloadedVoices(
+      List<PiperModelInfo> voices) async {
+    final downloaded = <PiperModelInfo>[];
+    for (final voice in voices) {
+      if (await _isModelDownloaded(voice)) {
+        downloaded.add(voice);
+      }
+    }
+    return downloaded;
   }
 }
 

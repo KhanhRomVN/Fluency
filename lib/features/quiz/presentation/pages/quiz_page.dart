@@ -24,6 +24,9 @@ import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speech_bui
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/writing_essay.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart';
+import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
+import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -170,9 +173,7 @@ class _QuizPageState extends State<QuizPage> {
                       Row(
                         children: [
                           InkWell(
-                            onTap: () {
-                              Navigator.of(context).pop();
-                            },
+                            onTap: _showExitConfirmationDrawer,
                             borderRadius: BorderRadius.circular(8),
                             child: Padding(
                               padding: const EdgeInsets.all(6),
@@ -293,6 +294,24 @@ class _QuizPageState extends State<QuizPage> {
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 4),
+
+                          // Quick Settings Button
+                          InkWell(
+                            onTap: _showQuickSettingsDrawer,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: SvgPicture.string(
+                                '''<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><circle cx="12" cy="12" r="4"/></svg>''',
+                                colorFilter: ColorFilter.mode(
+                                  appColors.textPrimary,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
                             ),
                           ),
 
@@ -660,6 +679,470 @@ class _QuizPageState extends State<QuizPage> {
           fontSize: 12,
         ),
       ),
+    );
+  }
+
+  void _showQuickSettingsDrawer() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: appColors.cardBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Quick Settings',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: appColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Voice Recognition Option
+              _buildQuickSettingOption(
+                icon: Icons.mic,
+                title: 'Voice Recognition',
+                subtitle: 'Speech-to-text settings',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showVoiceRecognitionDrawer();
+                },
+                colors: appColors,
+              ),
+
+              const SizedBox(height: 12),
+
+              // Voice Settings Option
+              _buildQuickSettingOption(
+                icon: Icons.volume_up,
+                title: 'Voice Settings',
+                subtitle: 'Text-to-speech settings',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showVoiceSettingsDrawer();
+                },
+                colors: appColors,
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showVoiceRecognitionDrawer() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+        final sttProvider = context.watch<SttSettingProvider>();
+
+        return Container(
+          decoration: BoxDecoration(
+            color: appColors.cardBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Voice Recognition',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // System STT Option
+              _buildSTTOption(
+                title: 'System',
+                subtitle: 'Device built-in recognition',
+                isSelected:
+                    sttProvider.currentProviderType == SttProviderType.system,
+                onTap: () {
+                  sttProvider.setProviderType(SttProviderType.system);
+                },
+                colors: appColors,
+              ),
+
+              const SizedBox(height: 12),
+
+              // Vosk STT Option
+              _buildSTTOption(
+                title: 'Vosk (Offline)',
+                subtitle: 'Local speech recognition',
+                isSelected:
+                    sttProvider.currentProviderType == SttProviderType.vosk,
+                onTap: () {
+                  sttProvider.setProviderType(SttProviderType.vosk);
+                },
+                colors: appColors,
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showVoiceSettingsDrawer() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+        final ttsProvider = context.watch<TtsProvider>();
+
+        return Container(
+          decoration: BoxDecoration(
+            color: appColors.cardBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Voice Settings',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // System TTS Option
+              _buildTTSOption(
+                title: 'System',
+                subtitle: 'Device built-in voice',
+                isSelected: ttsProvider.activeEngine == 'System',
+                onTap: () {
+                  ttsProvider.setEngine('System');
+                },
+                colors: appColors,
+              ),
+
+              const SizedBox(height: 12),
+
+              // Piper TTS Option
+              _buildTTSOption(
+                title: 'Piper',
+                subtitle: 'High quality AI voices',
+                isSelected: ttsProvider.activeEngine == 'Piper',
+                onTap: () {
+                  ttsProvider.setEngine('Piper');
+                },
+                colors: appColors,
+              ),
+
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickSettingOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required AppColorsExtension colors,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: colors.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: colors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSTTOption({
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required AppColorsExtension colors,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? colors.primary.withValues(alpha: 0.1) : null,
+          border: Border.all(
+            color: isSelected
+                ? colors.primary
+                : colors.border.withValues(alpha: 0.5),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? colors.primary : colors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: colors.primary, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTTSOption({
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required AppColorsExtension colors,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? colors.primary.withValues(alpha: 0.1) : null,
+          border: Border.all(
+            color: isSelected
+                ? colors.primary
+                : colors.border.withValues(alpha: 0.5),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? colors.primary : colors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: colors.primary, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showExitConfirmationDrawer() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: appColors.cardBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.exit_to_app,
+                size: 48,
+                color: appColors.textSecondary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Exit Quiz?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: appColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your progress will be saved',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: appColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: appColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: appColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close drawer
+                        Navigator.of(context).pop(); // Exit quiz page
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: appColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Exit',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 }
