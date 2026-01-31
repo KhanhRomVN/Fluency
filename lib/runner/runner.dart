@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:fluency/app.dart';
 import 'package:fluency/core/config/environment_config.dart';
+import 'package:fluency/core/services/tts/voice_download_service.dart';
 import 'package:fluency/di/injection_container.dart' as di;
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sherpa_onnx/sherpa_onnx.dart';
 
 /// App runner class
 class Runner {
@@ -30,9 +32,17 @@ class Runner {
     await EnvironmentConfig.init();
     // Initialize Dependency Injection
     await di.init();
+    // Initialize Sherpa Onnx
+    initBindings();
+
     // Initialize SharedPreferences
     final sharedPreferences = await SharedPreferences.getInstance();
+
     runApp(Application(sharedPreferences: sharedPreferences));
+
+    // Start auto-download of voice models in background (non-blocking)
+    // Use unawaited to prevent blocking app startup
+    unawaited(VoiceDownloadService().startAutoDownload());
   }
 
   static void _initLogger() {

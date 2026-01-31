@@ -4,6 +4,7 @@ import 'package:fluency/features/setting/domain/entities/vosk_model.dart';
 import 'package:fluency/features/setting/data/services/vosk_model_manager.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 class SttSettingsPage extends StatefulWidget {
@@ -134,87 +135,152 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
     final sttProvider = context.watch<SttSettingProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Speech-to-Text Settings'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader(context, 'Service Provider'),
-            const SizedBox(height: 8),
-            ...SttProviderType.values.map((type) => _buildProviderTile(
-                  context,
-                  type,
-                  sttProvider.currentProviderType == type,
-                  sttProvider,
-                )),
-            const SizedBox(height: 32),
+      backgroundColor: colors?.background,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // Custom Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Back Button
+                    Positioned(
+                      left: 4,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: SvgPicture.asset(
+                          'assets/icons/chevron_left.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: ColorFilter.mode(
+                            colors?.textPrimary ?? Colors.black,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ),
+                    // Centered Title
+                    Text(
+                      'Voice Recognition',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colors?.textPrimary,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Provider Type Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: Text(
+                  'Recognition Engine',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colors?.textPrimary,
+                      ),
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final type = SttProviderType.values[index];
+                    return _buildProviderTypeTile(context, type, sttProvider);
+                  },
+                  childCount: SttProviderType.values.length,
+                ),
+              ),
+            ),
+
+            // Offline Models Section (only if Vosk selected)
             if (sttProvider.currentProviderType == SttProviderType.vosk) ...[
-              _buildSectionHeader(context, 'Offline Models'),
-              const SizedBox(height: 12),
-              _buildWarningCard(context),
-              const SizedBox(height: 12),
-              ...VoskModel.availableModels.map((model) => _buildModelTile(
-                    context,
-                    model,
-                    isDownloaded: _modelDownloaded[model.id] ?? false,
-                    progress: _downloadProgress[model.id],
-                    onDownload: () => _downloadModel(model),
-                    onDelete: () => _deleteModel(model),
-                    onCancel: () => _cancelDownload(model),
-                  )),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
+                  child: Text(
+                    'Offline Models',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colors?.textPrimary,
+                        ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final model = VoskModel.availableModels[index];
+                      final isDownloaded = _modelDownloaded[model.id] ?? false;
+                      final progress = _downloadProgress[model.id];
+
+                      return _buildModelTile(
+                        context,
+                        model,
+                        isDownloaded: isDownloaded,
+                        progress: progress,
+                        onDownload: () => _downloadModel(model),
+                        onDelete: () => _deleteModel(model),
+                        onCancel: () => _cancelDownload(model),
+                      );
+                    },
+                    childCount: VoskModel.availableModels.length,
+                  ),
+                ),
+              ),
             ],
-            const SizedBox(height: 32),
-            _buildInfoCard(context),
+
+            // Bottom spacing
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 40),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    final colors = Theme.of(context).extension<AppColorsExtension>();
-    return Text(
-      title.toUpperCase(),
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: colors?.textSecondary.withOpacity(0.7),
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  Widget _buildProviderTile(
+  Widget _buildProviderTypeTile(
     BuildContext context,
     SttProviderType type,
-    bool isSelected,
     SttSettingProvider provider,
   ) {
     final colors = Theme.of(context).extension<AppColorsExtension>();
     final primaryColor = colors?.primary ?? Theme.of(context).primaryColor;
+    final isSelected = provider.currentProviderType == type;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isSelected
             ? primaryColor.withOpacity(0.05)
-            : colors?.cardBackground.withOpacity(0.3),
+            : colors?.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isSelected
               ? primaryColor
               : colors?.divider.withOpacity(0.1) ?? Colors.transparent,
-          width: 1.5,
+          width: isSelected ? 2 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: RadioListTile<SttProviderType>(
         value: type,
@@ -255,11 +321,26 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colors?.cardBackground.withOpacity(0.3),
+        color: colors?.cardBackground,
         borderRadius: BorderRadius.circular(16),
         border: isDownloaded && isSelected
             ? Border.all(color: primaryColor, width: 2)
             : null,
+        boxShadow: isDownloaded && isSelected
+            ? [
+                BoxShadow(
+                  color: primaryColor.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                )
+              ],
       ),
       child: Column(
         children: [
@@ -376,75 +457,6 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColorsExtension>();
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, color: Colors.blue),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Offline models provide better privacy and can work without an internet connection.',
-              style: TextStyle(
-                color: colors?.textPrimary.withOpacity(0.8),
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWarningCard(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColorsExtension>();
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withOpacity(0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.orange),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Feature Under Development',
-                  style: TextStyle(
-                    color: colors?.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Offline Vosk models are currently unavailable due to package compatibility issues. The infrastructure is ready and will be activated when a compatible package becomes available.',
-                  style: TextStyle(
-                    color: colors?.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

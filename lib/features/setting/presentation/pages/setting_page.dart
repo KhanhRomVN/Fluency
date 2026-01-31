@@ -1,6 +1,6 @@
 import 'package:fluency/features/setting/presentation/pages/privacy_policy_page.dart';
 import 'package:fluency/features/setting/presentation/pages/stt_settings_page.dart';
-import 'package:fluency/features/setting/presentation/pages/mic_test_page.dart';
+import 'package:fluency/features/setting/presentation/pages/tts_settings_page.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
@@ -323,7 +323,7 @@ class SettingPage extends StatelessWidget {
               SettingTile(
                 icon: Icons.record_voice_over,
                 iconColor: primaryColor,
-                title: 'Speech-to-Text Services',
+                title: 'Voice Recognition',
                 subtitle: 'Manage STT engine and offline models',
                 onTap: () {
                   Navigator.push<void>(
@@ -334,17 +334,16 @@ class SettingPage extends StatelessWidget {
                   );
                 },
               ),
-
               SettingTile(
-                icon: Icons.mic,
+                icon: Icons.volume_up,
                 iconColor: primaryColor,
-                title: 'Microphone Test',
-                subtitle: 'Test input recording and recognition',
+                title: 'Voice Setting',
+                subtitle: 'Manage TTS engine and offline voices',
                 onTap: () {
                   Navigator.push<void>(
                     context,
                     MaterialPageRoute<void>(
-                      builder: (context) => const MicTestPage(),
+                      builder: (context) => const TtsSettingsPage(),
                     ),
                   );
                 },
