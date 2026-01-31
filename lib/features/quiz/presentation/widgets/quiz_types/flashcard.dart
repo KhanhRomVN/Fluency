@@ -4,16 +4,22 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Flashcard extends StatefulWidget {
   const Flashcard({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
 
   @override
@@ -65,6 +71,64 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
         }
       });
     });
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+
+        // Restore completed cards
+        final completed =
+            progress.data?['completedCards'] as Map<String, dynamic>?;
+        if (completed != null) {
+          completed.forEach((key, value) {
+            _completedCards[key] = value as bool;
+          });
+        }
+
+        // Restore card correctness
+        final correctness =
+            progress.data?['cardCorrectness'] as Map<String, dynamic>?;
+        if (correctness != null) {
+          correctness.forEach((key, value) {
+            _cardCorrectness[key] = value as bool;
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final totalItems = widget.quiz.flashcards?.length ?? 0;
+    final completedItems = _completedCards.length;
+    final correctItems = _cardCorrectness.values.where((v) => v).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'flashcard',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'currentIndex': _currentIndex,
+        'completedCards': _completedCards,
+        'cardCorrectness': _cardCorrectness,
+      },
+    );
   }
 
   @override
@@ -114,6 +178,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
       _completedCards[cardId] = true;
       _cardCorrectness[cardId] = isCorrect;
     });
+    _saveProgress();
   }
 
   void _showOptionsDrawer(FlashcardItem card) {
@@ -327,6 +392,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
           setState(() {
             _isTransitioning = false;
           });
+          _saveProgress();
         });
       });
     });

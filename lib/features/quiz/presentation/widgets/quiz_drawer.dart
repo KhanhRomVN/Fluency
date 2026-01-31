@@ -178,141 +178,66 @@ class QuizDrawer extends StatelessWidget {
                             )
                           : null,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        // Type and status badges
-                        Row(
-                          children: [
-                            // Type badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: typeColor.withValues(alpha: 0.1),
-                                border: Border.all(
-                                  color: typeColor.withValues(alpha: 0.3),
-                                  width: 0.5,
-                                ),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                typeLabel,
-                                style: TextStyle(
-                                  color: typeColor,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-
-                            // Status badge
-                            if (isCompleted)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Type badge
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 6,
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withValues(alpha: 0.1),
+                                  color: typeColor.withValues(alpha: 0.1),
+                                  border: Border.all(
+                                    color: typeColor.withValues(alpha: 0.3),
+                                    width: 0.5,
+                                  ),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle,
-                                      size: 9,
-                                      color: Colors.green.shade600,
-                                    ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'Done',
-                                      style: TextStyle(
-                                        color: Colors.green.shade600,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-
-                        // Title
-                        Text(
-                          '${index + 1}. ${quiz.title.isNotEmpty ? quiz.title : quiz.question.isNotEmpty ? quiz.question : 'Untitled Question'}',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: isActive
-                                        ? appColors.primary
-                                        : appColors.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.3,
+                                child: Text(
+                                  typeLabel,
+                                  style: TextStyle(
+                                    color: typeColor,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
 
-                        // Time and score info
-                        Row(
-                          children: [
-                            if (isCompleted) ...[
-                              Icon(
-                                Icons.access_time,
-                                size: 12,
-                                color: appColors.textSecondary,
-                              ),
-                              const SizedBox(width: 3),
-                              const Text(
-                                '12:30',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF6B7280),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                            ],
-                            if (isCompleted) ...[
-                              Icon(
-                                Icons.emoji_events,
-                                size: 12,
-                                color: Colors.amber.shade600,
-                              ),
-                              const SizedBox(width: 3),
+                              // Title
                               Text(
-                                '${85 + (index % 15)}%',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: appColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                '${index + 1}. ${quiz.title.isNotEmpty ? quiz.title : quiz.question.isNotEmpty ? quiz.question : 'Untitled Question'}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: isActive
+                                          ? appColors.primary
+                                          : appColors.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.3,
+                                    ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
-                            if (!isCompleted) ...[
-                              Icon(
-                                Icons.help_outline,
-                                size: 12,
-                                color: appColors.textSecondary
-                                    .withValues(alpha: 0.5),
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                '- - : - -',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: appColors.textSecondary
-                                      .withValues(alpha: 0.5),
-                                ),
-                              ),
-                            ],
-                          ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // Progress Circle
+                        _buildProgressCircle(
+                          context,
+                          lesson.id,
+                          quiz.id,
+                          quiz.type,
+                          typeColor,
+                          appColors,
                         ),
                       ],
                     ),
@@ -323,6 +248,80 @@ class QuizDrawer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProgressCircle(
+    BuildContext context,
+    String lessonId,
+    String quizId,
+    String quizType,
+    Color typeColor,
+    AppColorsExtension appColors,
+  ) {
+    final quizStateProvider = context.watch<QuizStateProvider>();
+    final progress = quizStateProvider.getQuizProgress(lessonId, quizId);
+
+    if (progress == null) {
+      // No progress yet
+      return Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            '0%',
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final progressValue = progress.completedItems / progress.totalItems;
+    final percentage = progress.progressPercentage.round();
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: CircularProgressIndicator(
+            value: progressValue,
+            backgroundColor: Colors.grey.withValues(alpha: 0.12),
+            color: Colors.redAccent,
+            strokeWidth: 2.5,
+          ),
+        ),
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: CircularProgressIndicator(
+            value: progress.correctItems / progress.totalItems,
+            backgroundColor: Colors.transparent,
+            color: Colors.green,
+            strokeWidth: 2.5,
+          ),
+        ),
+        Text(
+          '$percentage%',
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.bold,
+            color: progressValue > 0 ? typeColor : Colors.grey,
+          ),
+        ),
+      ],
     );
   }
 }

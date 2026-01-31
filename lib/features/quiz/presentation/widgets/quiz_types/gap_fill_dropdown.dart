@@ -1,12 +1,16 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class GapFillDropdown extends StatefulWidget {
   const GapFillDropdown({
     required this.question,
     required this.answers,
+    required this.lessonId,
+    required this.quizId,
     this.title,
     this.instruction,
     this.onCheck,
@@ -18,6 +22,8 @@ class GapFillDropdown extends StatefulWidget {
 
   final String question;
   final List<QuizAnswer> answers;
+  final String lessonId;
+  final String quizId;
   final String? title;
   final String? instruction;
   final VoidCallback? onCheck;
@@ -39,6 +45,69 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
   void initState() {
     super.initState();
     _initializeSelections();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _isChecked = progress.data?['isChecked'] as bool? ?? false;
+
+        // Restore selections
+        final savedSelections =
+            progress.data?['selections'] as Map<String, dynamic>?;
+        if (savedSelections != null) {
+          savedSelections.forEach((key, value) {
+            _selections[key] = value as String;
+          });
+        }
+
+        _checkIfAllGapsFilled();
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    final totalGaps = widget.answers.length;
+    final filledGaps = _selections.values.where((v) => v.isNotEmpty).length;
+
+    int correctGaps = 0;
+    if (_isChecked) {
+      for (final answer in widget.answers) {
+        final selectedValue = _selections[answer.id] ?? '';
+        final isCorrect = answer.answer.any(
+          (ans) =>
+              selectedValue.toLowerCase().trim() == ans.toLowerCase().trim(),
+        );
+        if (isCorrect) {
+          correctGaps++;
+        }
+      }
+    }
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'gap-fill-dropdown',
+      completedItems: filledGaps,
+      totalItems: totalGaps,
+      correctItems: correctGaps,
+      data: {
+        'isChecked': _isChecked,
+        'selections': _selections,
+      },
+    );
   }
 
   @override
@@ -151,6 +220,7 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
           setState(() {
             _isChecked = true;
           });
+          _saveProgress();
           widget.onCheck?.call();
         },
         style: ElevatedButton.styleFrom(
@@ -281,6 +351,7 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
           _selections[id] = val;
         });
         _checkIfAllGapsFilled();
+        _saveProgress();
       },
       appColors: appColors,
     );

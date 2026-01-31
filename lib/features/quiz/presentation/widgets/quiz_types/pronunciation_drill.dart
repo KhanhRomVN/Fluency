@@ -4,6 +4,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
@@ -12,6 +13,8 @@ import 'package:speech_to_text/speech_to_text.dart';
 class PronunciationDrill extends StatefulWidget {
   const PronunciationDrill({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
     this.onCheck,
@@ -19,6 +22,8 @@ class PronunciationDrill extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
@@ -32,8 +37,6 @@ class _PronunciationDrillState extends State<PronunciationDrill>
   int _currentIndex = 0;
   bool _isRecording = false;
   final SpeechToText _speechToText = SpeechToText();
-  bool _speechEnabled = false;
-  double _soundLevel = 0.0;
 
   // Map<ItemID, State>
   final Map<String, _PronunciationDrillItemState> _itemStates = {};
@@ -58,11 +61,77 @@ class _PronunciationDrillState extends State<PronunciationDrill>
       });
     });
     _initSpeech();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
   }
 
   void _initSpeech() async {
-    _speechEnabled = await _speechToText.initialize();
-    setState(() {});
+    await _speechToText.initialize();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+
+        final savedStates =
+            progress.data?['itemStates'] as Map<String, dynamic>?;
+        if (savedStates != null) {
+          savedStates.forEach((key, value) {
+            final data = value as Map<String, dynamic>;
+            _itemStates[key] = _PronunciationDrillItemState(
+              score: data['score'] as int? ?? 0,
+              bestScore: data['bestScore'] as int? ?? 0,
+              passed: data['passed'] as bool? ?? false,
+              attempts: data['attempts'] as int? ?? 0,
+              transcript: data['transcript'] as String?,
+            );
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Serialize states
+    final statesMap = _itemStates.map((key, value) {
+      return MapEntry(key, {
+        'score': value.score,
+        'bestScore': value.bestScore,
+        'passed': value.passed,
+        'attempts': value.attempts,
+        'transcript': value.transcript,
+      });
+    });
+
+    final totalItems = widget.quiz.pronunciations?.length ?? 0;
+    // Completed if passed (correct) OR attempts > 0 (tried)
+    final completedItems =
+        _itemStates.values.where((s) => s.attempts > 0 || s.passed).length;
+    final correctItems = _itemStates.values.where((s) => s.passed).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'pronunciation-drill',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'currentIndex': _currentIndex,
+        'itemStates': statesMap,
+      },
+    );
   }
 
   @override
@@ -117,6 +186,7 @@ class _PronunciationDrillState extends State<PronunciationDrill>
             CurvedAnimation(parent: _animController, curve: Curves.easeOut),
           );
           _animController.forward(from: 0);
+          _saveProgress();
         });
       });
     } else {
@@ -141,6 +211,7 @@ class _PronunciationDrillState extends State<PronunciationDrill>
           CurvedAnimation(parent: _animController, curve: Curves.easeOut),
         );
         _animController.forward(from: 0);
+        _saveProgress();
       });
     });
   }
@@ -157,16 +228,10 @@ class _PronunciationDrillState extends State<PronunciationDrill>
 
     await _speechToText.listen(
       onResult: (result) => _onSpeechResult(result, item),
-      onSoundLevelChange: (level) {
-        setState(() {
-          _soundLevel = level;
-        });
-      },
       localeId: localeId,
     );
     setState(() {
       _isRecording = true;
-      _soundLevel = 0.0;
     });
   }
 
@@ -175,7 +240,6 @@ class _PronunciationDrillState extends State<PronunciationDrill>
     await _speechToText.stop();
     setState(() {
       _isRecording = false;
-      _soundLevel = 0.0;
     });
   }
 
@@ -201,6 +265,7 @@ class _PronunciationDrillState extends State<PronunciationDrill>
             attempts: current.attempts + 1,
             transcript: transcript,
           );
+          _saveProgress();
         });
       }
     }
@@ -232,6 +297,7 @@ class _PronunciationDrillState extends State<PronunciationDrill>
   void _retryCurrent() {
     final item = widget.quiz.pronunciations![_currentIndex];
     _startRecording(item);
+    _saveProgress(); // Save that we are retrying (maybe not strictly needed but safe to persist current index if crashed)
   }
 
   @override

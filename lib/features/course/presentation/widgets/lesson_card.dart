@@ -1,6 +1,8 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class LessonCard extends StatelessWidget {
   const LessonCard({
@@ -24,7 +26,14 @@ class LessonCard extends StatelessWidget {
     // Calculate details
     final skills = _getSkillsList();
     final maxScore = lesson.quizzes.length * 10;
-    final progress = isCompleted ? 1.0 : 0.0;
+
+    // Get progress from QuizStateProvider
+    final quizStateProvider = context.watch<QuizStateProvider>();
+    final progressPercentage = quizStateProvider.getLessonProgressPercentage(
+      lesson.id,
+      lesson.quizzes.length,
+    );
+    final progress = progressPercentage / 100;
 
     return InkWell(
       onTap: isLocked ? null : onTap,
@@ -96,7 +105,7 @@ class LessonCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
 
-            // Right: Progress Circle with Quiz Count
+            // Right: Progress Circle with Percentage
             Stack(
               alignment: Alignment.center,
               children: [
@@ -111,11 +120,11 @@ class LessonCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${lesson.quizCount}',
+                  '${progressPercentage.round()}%',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: progress > 0 ? primaryColor : Colors.grey,
-                        fontSize: 11,
+                        fontSize: 9,
                       ),
                 ),
               ],

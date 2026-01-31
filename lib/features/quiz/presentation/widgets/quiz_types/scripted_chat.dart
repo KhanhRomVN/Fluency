@@ -5,6 +5,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -16,11 +17,15 @@ import 'package:universal_io/io.dart';
 class ScriptedChat extends StatefulWidget {
   const ScriptedChat({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
 
   @override
@@ -61,6 +66,59 @@ class _ScriptedChatState extends State<ScriptedChat> {
     super.initState();
     // Fire and forget, but it catches errors internally
     _initializeTts();
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _userRole = progress.data?['userRole'] as String?;
+        final savedVisibleCount = progress.data?['visibleCount'] as int? ?? 0;
+
+        // Restore message scores
+        final scoresMap =
+            progress.data?['messageScores'] as Map<String, dynamic>?;
+        if (scoresMap != null) {
+          scoresMap.forEach((key, value) {
+            final data = value as Map<String, dynamic>;
+            final feedbackData = data['feedback'] as List<dynamic>?;
+            final feedbackList = feedbackData?.map((f) {
+                  final fMap = f as Map<String, dynamic>;
+                  return _WordFeedback(
+                    fMap['word'] as String,
+                    _FeedbackStatus.values[fMap['status'] as int],
+                  );
+                }).toList() ??
+                [];
+
+            _messageScores[key] = _MessageScore(
+              score: data['score'] as int,
+              transcript: data['transcript'] as String,
+              feedback: feedbackList,
+            );
+          });
+        }
+
+        if (_userRole != null) {
+          // If we have progress, restore the sequence state
+          _visibleCount = savedVisibleCount;
+          _currentSequenceIndex = _visibleCount;
+          // Don't auto-play if we just restored, let user interact?
+          // Or just scrollToBottom
+          _scrollToBottom();
+        }
+      });
+    }
   }
 
   @override
@@ -100,6 +158,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
       _userRole = role;
     });
     _initializeVisibleCount();
+    _saveProgress();
   }
 
   void _initializeVisibleCount() {
@@ -437,7 +496,64 @@ class _ScriptedChatState extends State<ScriptedChat> {
           _playNextInSequence();
         }
       });
+
+      _saveProgress();
     }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Serialize message scores
+    final scoresData = <String, dynamic>{};
+    _messageScores.forEach((key, value) {
+      scoresData[key] = {
+        'score': value.score,
+        'transcript': value.transcript,
+        'feedback': value.feedback
+            .map((f) => {
+                  'word': f.word,
+                  'status': f.status.index,
+                })
+            .toList(),
+      };
+    });
+
+    final chats = widget.quiz.chats ?? [];
+    final totalItems = chats.length;
+    final completedItems = _visibleCount;
+
+    // Calculate correct items:
+    // 1. System messages that are visible (automatically correct)
+    // 2. User messages that have a passing score (>= 50)
+    var correctItems = 0;
+    for (var i = 0; i < _visibleCount; i++) {
+      if (i >= chats.length) break;
+      final chat = chats[i];
+      if (chat.role != _userRole) {
+        correctItems++;
+      } else {
+        // User role: check score
+        final scoreData = _messageScores[chat.id];
+        if (scoreData != null && scoreData.score >= 50) {
+          correctItems++;
+        }
+      }
+    }
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'scripted-chat',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'userRole': _userRole,
+        'visibleCount': _visibleCount,
+        'messageScores': scoresData,
+      },
+    );
   }
 
   void _handleSimulateTest(String chatId, String targetText, int messageIndex) {

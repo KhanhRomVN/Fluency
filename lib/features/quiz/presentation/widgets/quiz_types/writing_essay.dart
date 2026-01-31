@@ -1,11 +1,16 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class WritingEssay extends StatefulWidget {
   const WritingEssay({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
     this.onCheck,
@@ -13,6 +18,8 @@ class WritingEssay extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
@@ -30,6 +37,55 @@ class _WritingEssayState extends State<WritingEssay> {
   void initState() {
     super.initState();
     _controller.addListener(_updateWordCount);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _submitted = progress.data?['submitted'] as bool? ?? false;
+        final savedText = progress.data?['text'] as String?;
+        if (savedText != null) {
+          _controller.text = savedText;
+          _updateWordCount();
+        }
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    // Debounce saving? Or just save on submit?
+    // Autosave text is nice. But for now, let's save on submit primarily,
+    // or maybe throttling. Since there's no throttle logic here, I'll save on submit.
+    // BUT user might want to save draft.
+    // I won't implement debounce now to keep it simple, unless I see existing debounce.
+    // I'll save on submit.
+
+    final completedItems = _submitted ? 1 : 0;
+    const totalItems = 1;
+    final correctItems = _submitted ? 1 : 0;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'writing-essay',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'submitted': _submitted,
+        'text': _controller.text,
+      },
+    );
   }
 
   @override
@@ -51,7 +107,7 @@ class _WritingEssayState extends State<WritingEssay> {
     // Mock submit
     setState(() {
       _submitted = true;
-      _submitted = true;
+      _saveProgress();
     });
   }
 

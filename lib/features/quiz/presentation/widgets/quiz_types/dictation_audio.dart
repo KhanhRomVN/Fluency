@@ -4,12 +4,16 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 class DictationAudio extends StatefulWidget {
   const DictationAudio({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
     this.onCheck,
@@ -17,6 +21,8 @@ class DictationAudio extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
@@ -61,6 +67,74 @@ class _DictationAudioState extends State<DictationAudio>
         }
       }
     });
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+
+        final savedStates =
+            progress.data?['itemStates'] as Map<String, dynamic>?;
+        if (savedStates != null) {
+          savedStates.forEach((key, value) {
+            final data = value as Map<String, dynamic>;
+            _itemStates[key] = _DictationItemState(
+              score: data['score'] as int? ?? 0,
+              passed: data['passed'] as bool? ?? false,
+              attempts: data['attempts'] as int? ?? 0,
+              wordInputs: (data['wordInputs'] as Map<String, dynamic>?)?.map(
+                    (k, v) => MapEntry(int.parse(k), v as String),
+                  ) ??
+                  {},
+            );
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Serialize states
+    final statesMap = _itemStates.map((key, value) {
+      return MapEntry(key, {
+        'score': value.score,
+        'passed': value.passed,
+        'attempts': value.attempts,
+        'wordInputs': value.wordInputs.map((k, v) => MapEntry(k.toString(), v)),
+      });
+    });
+
+    final totalItems = widget.quiz.dictations?.length ?? 0;
+    final completedItems =
+        _itemStates.values.where((s) => s.attempts > 0).length;
+    final correctItems = _itemStates.values.where((s) => s.passed).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: widget.quiz.type ?? 'dictation',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'currentIndex': _currentIndex,
+        'itemStates': statesMap,
+      },
+    );
   }
 
   @override
@@ -116,6 +190,7 @@ class _DictationAudioState extends State<DictationAudio>
             CurvedAnimation(parent: _animController, curve: Curves.easeOut),
           );
           _animController.forward(from: 0);
+          _saveProgress();
         });
       });
     } else {
@@ -140,6 +215,7 @@ class _DictationAudioState extends State<DictationAudio>
           CurvedAnimation(parent: _animController, curve: Curves.easeOut),
         );
         _animController.forward(from: 0);
+        _saveProgress();
       });
     });
   }
@@ -200,6 +276,7 @@ class _DictationAudioState extends State<DictationAudio>
         passed: allCorrect,
         attempts: state.attempts + 1,
       );
+      _saveProgress();
     });
   }
 
@@ -207,6 +284,7 @@ class _DictationAudioState extends State<DictationAudio>
     final item = widget.quiz.dictations![_currentIndex];
     setState(() {
       _itemStates[item.id] = _DictationItemState();
+      _saveProgress();
     });
   }
 

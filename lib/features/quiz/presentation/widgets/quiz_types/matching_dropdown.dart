@@ -1,12 +1,14 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MatchingDropdown extends StatefulWidget {
   const MatchingDropdown({
     required this.quiz,
-    required this.isChecked,
+    required this.lessonId,
     required this.onCheck,
     super.key,
     this.onShowExplain,
@@ -15,7 +17,7 @@ class MatchingDropdown extends StatefulWidget {
   });
 
   final Quiz quiz;
-  final bool isChecked;
+  final String lessonId;
   final VoidCallback onCheck;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
@@ -28,6 +30,7 @@ class MatchingDropdown extends StatefulWidget {
 class _MatchingDropdownState extends State<MatchingDropdown>
     with SingleTickerProviderStateMixin {
   Map<String, String> _selectedAnswers = {};
+  bool _isChecked = false;
 
   // Animation variables
   late AnimationController _animController;
@@ -49,12 +52,38 @@ class _MatchingDropdownState extends State<MatchingDropdown>
         }
       });
     });
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
   }
 
   @override
   void dispose() {
     _animController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quiz.id,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _isChecked = progress.data?['isChecked'] as bool? ?? false;
+
+        // Restore selected answers
+        final savedAnswers =
+            progress.data?['selectedAnswers'] as Map<String, dynamic>?;
+        if (savedAnswers != null) {
+          _selectedAnswers = Map<String, String>.from(savedAnswers);
+        }
+      });
+    }
   }
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
@@ -98,7 +127,7 @@ class _MatchingDropdownState extends State<MatchingDropdown>
 
     if (velocity < -1000 || _dragOffset < -threshold) {
       // Swipe Left
-      if (widget.isChecked && widget.onNext != null) {
+      if (_isChecked && widget.onNext != null) {
         shouldChange = true;
       }
     }
@@ -143,6 +172,7 @@ class _MatchingDropdownState extends State<MatchingDropdown>
 
   void _resetAnswers() {
     _selectedAnswers = {};
+    _isChecked = false;
   }
 
   List<MapEntry<String, String>> get _options {
@@ -261,9 +291,15 @@ class _MatchingDropdownState extends State<MatchingDropdown>
   }
 
   Widget _buildActionButtons(AppColorsExtension appColors) {
-    if (_areAllAnswered && !widget.isChecked) {
+    if (_areAllAnswered && !_isChecked) {
       return ElevatedButton.icon(
-        onPressed: widget.onCheck,
+        onPressed: () async {
+          setState(() {
+            _isChecked = true;
+          });
+          widget.onCheck();
+          await _saveProgress();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
@@ -279,7 +315,7 @@ class _MatchingDropdownState extends State<MatchingDropdown>
       );
     }
 
-    if (widget.isChecked && widget.onNext != null) {
+    if (_isChecked && widget.onNext != null) {
       return ElevatedButton.icon(
         onPressed: widget.onNext,
         style: ElevatedButton.styleFrom(
@@ -307,8 +343,8 @@ class _MatchingDropdownState extends State<MatchingDropdown>
   ) {
     final selectedKey = _selectedAnswers[matching.id] ?? '';
     final correctKey = _getCorrectOptionKey(matching.answer);
-    final isCorrect = widget.isChecked && selectedKey == correctKey;
-    final isWrong = widget.isChecked && !isCorrect;
+    final isCorrect = _isChecked && selectedKey == correctKey;
+    final isWrong = _isChecked && !isCorrect;
 
     // Determine colors based on state
     Color borderColor;
@@ -316,7 +352,7 @@ class _MatchingDropdownState extends State<MatchingDropdown>
     Color textColor;
     Color iconColor;
 
-    if (widget.isChecked) {
+    if (_isChecked) {
       if (isCorrect) {
         borderColor = Colors.green;
         backgroundColor = Colors.green.withValues(alpha: 0.1);
@@ -422,7 +458,7 @@ class _MatchingDropdownState extends State<MatchingDropdown>
                         color: iconColor,
                         size: 24,
                       ),
-                      onSelected: widget.isChecked
+                      onSelected: _isChecked
                           ? null
                           : (value) {
                               if (value != null) {
@@ -555,6 +591,37 @@ class _MatchingDropdownState extends State<MatchingDropdown>
             ),
         ],
       ),
+    );
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Calculate correct count
+    var correctCount = 0;
+    _selectedAnswers.forEach((id, selectedKey) {
+      final matching = widget.quiz.matchings?.firstWhere((m) => m.id == id);
+      if (matching != null) {
+        final correctKey = _getCorrectOptionKey(matching.answer);
+        if (selectedKey == correctKey) {
+          correctCount++;
+        }
+      }
+    });
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quiz.id,
+      quizType: 'matching-dropdown',
+      completedItems: _selectedAnswers.length,
+      totalItems: widget.quiz.matchings?.length ?? 0,
+      correctItems: _isChecked ? correctCount : 0,
+      data: {
+        'isChecked': _isChecked,
+        'selectedAnswers': _selectedAnswers,
+        'correctCount': correctCount,
+        'totalMatchings': widget.quiz.matchings?.length ?? 0,
+      },
     );
   }
 }

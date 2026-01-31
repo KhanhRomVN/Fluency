@@ -1,8 +1,10 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/widgets/course_image.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 class CourseCard extends StatelessWidget {
   const CourseCard({
@@ -132,27 +134,49 @@ class CourseCard extends StatelessWidget {
   }
 
   Widget _buildProgressBar(BuildContext context) {
-    // Fake progress calculation
-    final progress = course.lessons.isEmpty
-        ? 0.0
-        : course.completedLessons / course.lessons.length;
     final primaryColor =
         Theme.of(context).extension<AppColorsExtension>()?.primary ??
             Theme.of(context).primaryColor;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // Calculate real progress from all lessons
+    final quizStateProvider = context.watch<QuizStateProvider>();
+    double totalProgress = 0.0;
+    int lessonCount = 0;
+
+    for (final lesson in course.lessons) {
+      final lessonProgress = quizStateProvider.getLessonProgressPercentage(
+        lesson.id,
+        lesson.quizzes.length,
+      );
+      totalProgress += lessonProgress;
+      lessonCount++;
+    }
+
+    final averageProgress = lessonCount > 0 ? totalProgress / lessonCount : 0.0;
+    final progress = averageProgress / 100;
+
+    return Row(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progress > 0
-                ? progress
-                : 0.1, // Show a bit of progress if 0 for UI demo
-            minHeight: 6,
-            backgroundColor: primaryColor.withOpacity(0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: primaryColor.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+            ),
           ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '${averageProgress.round()}%',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context)
+                    .extension<AppColorsExtension>()
+                    ?.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
         ),
       ],
     );

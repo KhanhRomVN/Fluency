@@ -1,11 +1,15 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class SentenceTransformation extends StatefulWidget {
   const SentenceTransformation({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onShowExplain,
     this.onWordLongPress,
@@ -13,6 +17,8 @@ class SentenceTransformation extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
@@ -47,6 +53,72 @@ class _SentenceTransformationState extends State<SentenceTransformation>
         }
       });
     });
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+
+        final savedStates =
+            progress.data?['cardStates'] as Map<String, dynamic>?;
+        if (savedStates != null) {
+          savedStates.forEach((key, value) {
+            final data = value as Map<String, dynamic>;
+            _cardStates[key] = _CardState(
+              isChecked: data['isChecked'] as bool? ?? false,
+              isCorrect: data['isCorrect'] as bool?,
+              gapInputs: (data['gapInputs'] as Map<String, dynamic>?)?.map(
+                    (k, v) => MapEntry(k, v as String),
+                  ) ??
+                  {},
+            );
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Serialize states
+    final statesMap = _cardStates.map((key, value) {
+      return MapEntry(key, {
+        'isChecked': value.isChecked,
+        'isCorrect': value.isCorrect,
+        'gapInputs': value.gapInputs,
+      });
+    });
+
+    final totalItems = widget.quiz.sentenceTransformations?.length ?? 0;
+    final completedItems = _cardStates.values.where((s) => s.isChecked).length;
+    final correctItems =
+        _cardStates.values.where((s) => s.isCorrect ?? false).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: widget.quiz.type ?? 'sentence-transformation',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'currentIndex': _currentIndex,
+        'cardStates': statesMap,
+      },
+    );
   }
 
   @override
@@ -101,6 +173,7 @@ class _SentenceTransformationState extends State<SentenceTransformation>
             CurvedAnimation(parent: _animController, curve: Curves.easeOut),
           );
           _animController.forward(from: 0);
+          _saveProgress();
         });
       });
     } else {
@@ -125,6 +198,7 @@ class _SentenceTransformationState extends State<SentenceTransformation>
           CurvedAnimation(parent: _animController, curve: Curves.easeOut),
         );
         _animController.forward(from: 0);
+        _saveProgress();
       });
     });
   }
@@ -149,6 +223,7 @@ class _SentenceTransformationState extends State<SentenceTransformation>
       _cardStates[itemId] = current.copyWith(
         gapInputs: {...current.gapInputs, gapId: value},
       );
+      _saveProgress();
     });
   }
 
@@ -177,6 +252,7 @@ class _SentenceTransformationState extends State<SentenceTransformation>
         isCorrect: isCorrect,
         isChecked: true,
       );
+      _saveProgress();
     });
   }
 

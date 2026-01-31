@@ -1,12 +1,14 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class ErrorCorrection extends StatefulWidget {
   const ErrorCorrection({
     required this.quiz,
+    required this.lessonId,
     super.key,
     this.onWordLongPress,
     this.onCheck,
@@ -14,6 +16,7 @@ class ErrorCorrection extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
@@ -121,6 +124,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection>
             CurvedAnimation(parent: _animController, curve: Curves.easeOut),
           );
           _animController.forward(from: 0);
+          _saveProgress();
         });
       });
     } else {
@@ -152,6 +156,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection>
           CurvedAnimation(parent: _animController, curve: Curves.easeOut),
         );
         _animController.forward(from: 0);
+        _saveProgress();
       });
     });
   }
@@ -208,6 +213,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection>
         _selectedError = null;
         _inputValue = '';
         _inputController.clear();
+        _saveProgress();
       });
       return;
     }
@@ -236,6 +242,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection>
         _selectedError = null;
         _inputValue = '';
         _inputController.clear();
+        _saveProgress();
       });
     } else {
       setState(() {
@@ -244,8 +251,52 @@ class _ErrorCorrectionState extends State<ErrorCorrection>
               'Incorrect. Correct answer: ${_selectedError!.correct.join(" / ")}',
           isCorrectFeedback: false,
         );
+        _saveProgress();
       });
     }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Serialize states
+    final statesMap = _itemStates.map((key, value) {
+      return MapEntry(key, {
+        'solvedErrorIds': value.solvedErrorIds.toList(),
+        'passed': value.passed,
+        'feedbackMessage': value.feedbackMessage,
+        'isCorrectFeedback': value.isCorrectFeedback,
+        'corrections':
+            value.corrections.map((k, v) => MapEntry(k.toString(), v)),
+      });
+    });
+
+    final totalItems = widget.quiz.errorCorrections?.length ?? 0;
+    // Count completed as items where user made any correction entry or passed
+    final completedItems = _itemStates.values
+        .where((s) => s.corrections.isNotEmpty || s.passed)
+        .length;
+    final correctItems = _itemStates.values.where((s) => s.passed).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quiz
+          .id, // ErrorCorrection widget uses quiz.id (from constructor usage generally) but let's check.
+      // Constructor: required this.quiz. No quizId param in widget?
+      // Wait, ErrorCorrection widget definition:
+      // class ErrorCorrection extends StatefulWidget { const ErrorCorrection({ required this.quiz, ... });
+      // No quizId field?
+      // Check `_loadProgress`: `widget.quiz.id`.
+      // Yes, widget.quiz.id.
+      quizType: 'error-correction',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'currentIndex': _currentIndex,
+        'itemStates': statesMap,
+      },
+    );
   }
 
   void _retryCurrent() {
@@ -256,6 +307,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection>
       _selectedError = null;
       _inputValue = '';
       _inputController.clear();
+      _saveProgress();
     });
   }
 

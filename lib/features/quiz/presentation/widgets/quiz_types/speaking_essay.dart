@@ -2,6 +2,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
@@ -10,6 +11,8 @@ import 'package:speech_to_text/speech_to_text.dart';
 class SpeakingEssay extends StatefulWidget {
   const SpeakingEssay({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
     this.onCheck,
@@ -17,6 +20,8 @@ class SpeakingEssay extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
@@ -39,11 +44,68 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   void initState() {
     super.initState();
     _initSpeech();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
   }
 
   void _initSpeech() async {
     _speechEnabled = await _speechToText.initialize();
-    setState(() {});
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _activeIndex = progress.data?['activeIndex'] as int? ?? 0;
+        final answers = progress.data?['answers'] as Map<String, dynamic>?;
+        if (answers != null) {
+          answers.forEach((key, value) {
+            _answers[int.parse(key)] = value as String;
+          });
+        }
+        final submitted =
+            progress.data?['stepSubmitted'] as Map<String, dynamic>?;
+        if (submitted != null) {
+          submitted.forEach((key, value) {
+            _stepSubmitted[int.parse(key)] = value as bool;
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    final answersMap = _answers.map((k, v) => MapEntry(k.toString(), v));
+    final submittedMap =
+        _stepSubmitted.map((k, v) => MapEntry(k.toString(), v));
+
+    final totalItems = _questions.length;
+    final completedItems = _stepSubmitted.length;
+    // For essay, we count completion as correctness/progress
+    final correctItems = completedItems;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'speaking-essay',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'activeIndex': _activeIndex,
+        'answers': answersMap,
+        'stepSubmitted': submittedMap,
+      },
+    );
   }
 
   // For sample answer "hint" clicks similar to TSX HintDrawer
@@ -115,6 +177,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
         _answers[_activeIndex] = '$existingText$separator$_currentTranscript';
         _currentTranscript = '';
         _isRecording = false;
+        _saveProgress();
       }
     });
   }
@@ -123,6 +186,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
     setState(() {
       _stepSubmitted[_activeIndex] = true;
       _isRecording = false;
+      _saveProgress();
     });
   }
 
@@ -130,7 +194,9 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
     if (_hasNext) {
       setState(() {
         _activeIndex++;
+        _activeIndex++;
         _isRecording = false;
+        _saveProgress();
       });
     } else {
       // Finish

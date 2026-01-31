@@ -3,11 +3,15 @@ import 'dart:math' as math;
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class SpeechBuilder extends StatefulWidget {
   const SpeechBuilder({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
     this.onCheck,
@@ -15,6 +19,8 @@ class SpeechBuilder extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
@@ -49,6 +55,70 @@ class _SpeechBuilderState extends State<SpeechBuilder>
         }
       });
     });
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+
+        final savedStates =
+            progress.data?['itemStates'] as Map<String, dynamic>?;
+        if (savedStates != null) {
+          savedStates.forEach((key, value) {
+            final data = value as Map<String, dynamic>;
+            _itemStates[key] = _SpeechBuilderItemState(
+              score: data['score'] as int? ?? 0,
+              bestScore: data['bestScore'] as int? ?? 0,
+              passed: data['passed'] as bool? ?? false,
+              attempts: data['attempts'] as int? ?? 0,
+              transcript: data['transcript'] as String?,
+            );
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Serialize states
+    final statesMap = _itemStates.map((key, value) {
+      return MapEntry(key, {
+        'score': value.score,
+        'bestScore': value.bestScore,
+        'passed': value.passed,
+        'attempts': value.attempts,
+        'transcript': value.transcript,
+      });
+    });
+
+    final totalItems = widget.quiz.speechBuilders?.length ?? 0;
+    final completedItems = _itemStates.values.where((s) => s.passed).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'speech-builder',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      data: {
+        'currentIndex': _currentIndex,
+        'itemStates': statesMap,
+      },
+    );
   }
 
   @override
@@ -103,6 +173,7 @@ class _SpeechBuilderState extends State<SpeechBuilder>
           setState(() {
             _isTransitioning = false;
           });
+          _saveProgress();
         });
       });
     });
@@ -149,6 +220,7 @@ class _SpeechBuilderState extends State<SpeechBuilder>
         transcript:
             passed ? targetText : 'I am trying to speak...', // Mock transcript
       );
+      _saveProgress();
     });
   }
 

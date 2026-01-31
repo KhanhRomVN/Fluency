@@ -437,7 +437,9 @@ class _QuizPageState extends State<QuizPage> {
     switch (type) {
       case 'gap-fill-dropdown':
         return GapFillDropdown(
-          question: quiz.question ?? question,
+          question: quiz.question,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           answers: quiz.answers,
           title: quiz.title,
           instruction: quiz.instruction,
@@ -454,6 +456,7 @@ class _QuizPageState extends State<QuizPage> {
       case 'multiple-choice':
         return MultipleChoice(
           quiz: quiz,
+          lessonId: widget.lesson.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onShowExplain: (String explanation) {
@@ -467,7 +470,7 @@ class _QuizPageState extends State<QuizPage> {
       case 'matching-dropdown':
         return MatchingDropdown(
           quiz: quiz,
-          isChecked: _isQuizChecked,
+          lessonId: widget.lesson.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onShowExplain: (String explanation) {
@@ -494,22 +497,30 @@ class _QuizPageState extends State<QuizPage> {
       case 'free-chat':
         return FreeChat(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
         );
       case 'scripted-chat':
         return ScriptedChat(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
         );
       case 'chatting-speech': // Legacy support
         return ScriptedChat(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
         );
       case 'dictation':
       case 'dictation-audio':
         return DictationAudio(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
@@ -517,6 +528,7 @@ class _QuizPageState extends State<QuizPage> {
       case 'error-correction':
         return ErrorCorrection(
           quiz: quiz,
+          lessonId: widget.lesson.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
@@ -524,12 +536,16 @@ class _QuizPageState extends State<QuizPage> {
       case 'flashcard':
         return Flashcard(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
         );
       case 'pronunciation':
       case 'pronunciation-drill':
         return PronunciationDrill(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
@@ -537,6 +553,8 @@ class _QuizPageState extends State<QuizPage> {
       case 'sentence-transformation':
         return SentenceTransformation(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onNext: _onNextQuiz,
           onShowExplain: (String explanation) {
             setState(() {
@@ -549,6 +567,8 @@ class _QuizPageState extends State<QuizPage> {
       case 'speaking-essay':
         return SpeakingEssay(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
@@ -556,6 +576,8 @@ class _QuizPageState extends State<QuizPage> {
       case 'speech-builder':
         return SpeechBuilder(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
@@ -563,12 +585,16 @@ class _QuizPageState extends State<QuizPage> {
       case 'writing-essay':
         return WritingEssay(
           quiz: quiz,
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
           onWordLongPress: _onWordLongPress,
         );
       default:
         return GapFillTyping(
+          lessonId: widget.lesson.id,
+          quizId: quiz.id,
           question: question,
           answers: quiz.answers,
           title: quiz.title,
@@ -1061,52 +1087,53 @@ class _QuizPageState extends State<QuizPage> {
         return Container(
           decoration: BoxDecoration(
             color: appColors.cardBackground,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.exit_to_app,
-                size: 48,
+                Icons
+                    .exit_to_app_rounded, // Use rounded icon if available for softer look
+                size: 40,
                 color: appColors.textSecondary,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
                 'Exit Quiz?',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: appColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Text(
                 'Your progress will be saved',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: appColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         side: BorderSide(color: appColors.border),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       child: Text(
                         'Cancel',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                           color: appColors.textPrimary,
                         ),
                       ),
@@ -1120,17 +1147,17 @@ class _QuizPageState extends State<QuizPage> {
                         Navigator.of(context).pop(); // Exit quiz page
                       },
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         backgroundColor: appColors.primary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Exit',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),

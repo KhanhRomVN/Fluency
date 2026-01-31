@@ -1,11 +1,15 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 class GapFillTyping extends StatefulWidget {
   const GapFillTyping({
+    required this.lessonId,
+    required this.quizId,
     required this.question,
     required this.answers,
     this.title,
@@ -18,6 +22,8 @@ class GapFillTyping extends StatefulWidget {
     super.key,
   });
 
+  final String lessonId;
+  final String quizId;
   final String question;
   final List<QuizAnswer> answers;
   final String? title;
@@ -42,6 +48,39 @@ class _GapFillTypingState extends State<GapFillTyping> {
   void initState() {
     super.initState();
     _parseGaps();
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _isChecked = progress.data?['isChecked'] as bool? ?? false;
+
+        // Restore user answers
+        final savedAnswers =
+            progress.data?['userAnswers'] as Map<String, dynamic>?;
+        if (savedAnswers != null) {
+          savedAnswers.forEach((key, value) {
+            if (_controllers.containsKey(key)) {
+              _controllers[key]!.text = value as String;
+            }
+          });
+        }
+
+        // Check if all filled based on restored data
+        _checkIfAllGapsFilled();
+      });
+    }
   }
 
   @override
@@ -164,11 +203,12 @@ class _GapFillTypingState extends State<GapFillTyping> {
     // Check Button: Show when all gaps filled AND not checked yet
     if (_areAllGapsFilled && !_isChecked) {
       return ElevatedButton.icon(
-        onPressed: () {
+        onPressed: () async {
           setState(() {
             _isChecked = true;
           });
           widget.onCheck?.call();
+          await _saveProgress();
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
@@ -362,6 +402,52 @@ class _GapFillTypingState extends State<GapFillTyping> {
           : '<p>No explanation available.</p>';
       widget.onShowExplain!(explanation);
     }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Prepare data to save
+    final userAnswers = <String, String>{};
+    _controllers.forEach((key, controller) {
+      userAnswers[key] = controller.text;
+    });
+
+    // Calculate correctness for progress
+    // Count how many gaps are correct
+    var correctCount = 0;
+    if (_isChecked) {
+      for (final answer in widget.answers) {
+        final controller = _controllers[answer.id];
+        if (controller != null) {
+          final userAnswer = controller.text;
+          final isCorrect = answer.answer.any(
+            (ans) =>
+                userAnswer.toLowerCase().trim() == ans.toLowerCase().trim(),
+          );
+          if (isCorrect) correctCount++;
+        }
+      }
+    }
+
+    final totalGaps = widget.answers.length;
+    final filledGaps =
+        _controllers.values.where((c) => c.text.isNotEmpty).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'gap-fill-typing',
+      completedItems: filledGaps,
+      totalItems: totalGaps,
+      correctItems: correctCount,
+      data: {
+        'isChecked': _isChecked,
+        'userAnswers': userAnswers,
+        'correctCount': correctCount,
+        'totalGaps': totalGaps,
+      },
+    );
   }
 }
 

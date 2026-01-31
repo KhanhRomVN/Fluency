@@ -4,6 +4,9 @@ import 'package:fluency/features/course/data/course_repository.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/widgets/course_image.dart';
 import 'package:fluency/features/course/presentation/widgets/lesson_card.dart';
+import 'package:fluency/features/quiz/domain/entities/quiz_progress.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_resume_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -309,12 +312,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       lesson: lesson,
                       isCompleted: isCompleted,
                       isLocked: isLocked,
-                      onTap: () {
-                        context.push(
-                          '${RouteConstants.course}/${RouteConstants.courseDetail}/${RouteConstants.quiz}',
-                          extra: lesson,
-                        );
-                      },
+                      onTap: () => _handleLessonTap(context, lesson),
                     );
                   },
                   childCount: displayCourse.lessons.length * 2 - 1,
@@ -587,6 +585,110 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           SnackBar(content: Text('Lỗi khi xóa khóa học: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _handleLessonTap(BuildContext context, Lesson lesson) async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    await quizStateProvider.init();
+
+    // Check if lesson has any saved progress
+    final hasProgress = quizStateProvider.hasLessonProgress(lesson.id);
+
+    if (hasProgress) {
+      // Load all progress for this lesson
+      final progressData = <String, QuizProgress>{};
+      int totalQuestions = 0;
+
+      // Calculate total questions for the entire lesson
+      for (final quiz in lesson.quizzes) {
+        int quizTotal = 0;
+        final type = quiz.type.toLowerCase();
+
+        if (type.contains('multiple-choice')) {
+          quizTotal = quiz.questions.length;
+        } else if (type.contains('dictation')) {
+          quizTotal = quiz.dictations?.length ?? 0;
+        } else if (type.contains('flashcard')) {
+          quizTotal = quiz.flashcards?.length ?? 0;
+        } else if (type.contains('sentence-transformation')) {
+          quizTotal = quiz.sentenceTransformations?.length ?? 0;
+        } else if (type.contains('speech-builder')) {
+          quizTotal = quiz.speechBuilders?.length ?? 0;
+        } else if (type.contains('pronunciation')) {
+          quizTotal = quiz.pronunciations?.length ?? 0;
+        } else if (type.contains('error-correction')) {
+          quizTotal = quiz.errorCorrections?.length ?? 0;
+        } else if (type.contains('matching')) {
+          quizTotal = quiz.matchings?.length ?? 0;
+        } else if (type.contains('gap-fill')) {
+          quizTotal = quiz.answers.length;
+          if (quizTotal == 0) quizTotal = 1;
+        } else if (type.contains('chat')) {
+          quizTotal = 1; // Chat is counted as 1 unit of progress
+        }
+
+        if (quizTotal == 0) quizTotal = 1;
+        totalQuestions += quizTotal;
+      }
+
+      for (final quiz in lesson.quizzes) {
+        final progress =
+            await quizStateProvider.loadQuizProgress(lesson.id, quiz.id);
+        if (progress != null) {
+          progressData[quiz.id] = progress;
+        }
+      }
+
+      final overallPercentage = quizStateProvider.getLessonProgressPercentage(
+        lesson.id,
+        lesson.quizzes.length,
+      );
+
+      if (progressData.isNotEmpty && mounted) {
+        // Show resume drawer
+        await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useRootNavigator: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return QuizResumeDrawer(
+              lessonTitle: lesson.title,
+              progressData: progressData,
+              overallPercentage: overallPercentage,
+              totalQuestions: totalQuestions,
+              onContinue: () {
+                Navigator.pop(context);
+                context.push(
+                  '${RouteConstants.course}/${RouteConstants.courseDetail}/${RouteConstants.quiz}',
+                  extra: lesson,
+                );
+              },
+              onReset: () async {
+                // Clear lesson progress
+                await quizStateProvider.clearLessonProgress(lesson.id);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  context.push(
+                    '${RouteConstants.course}/${RouteConstants.courseDetail}/${RouteConstants.quiz}',
+                    extra: lesson,
+                  );
+                }
+              },
+            );
+          },
+        );
+        return;
+      }
+    }
+
+    // No progress, navigate directly
+    if (mounted) {
+      context.push(
+        '${RouteConstants.course}/${RouteConstants.courseDetail}/${RouteConstants.quiz}',
+        extra: lesson,
+      );
     }
   }
 }

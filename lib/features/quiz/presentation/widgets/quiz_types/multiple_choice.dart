@@ -2,12 +2,14 @@ import 'dart:math';
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class MultipleChoice extends StatefulWidget {
   const MultipleChoice({
     required this.quiz,
+    required this.lessonId,
     this.onCheck,
     this.onNext,
     this.onShowExplain,
@@ -16,6 +18,7 @@ class MultipleChoice extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final void Function(String explanation)? onShowExplain;
@@ -58,6 +61,53 @@ class _MultipleChoiceState extends State<MultipleChoice>
         }
       });
     });
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quiz.id,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        // Restore current question index
+        _currentQuestionIndex =
+            progress.data?['currentQuestionIndex'] as int? ?? 0;
+
+        // Restore submitted questions
+        final submittedIds =
+            progress.data?['submittedQuestions'] as List<dynamic>?;
+        if (submittedIds != null) {
+          _submittedQuestions.addAll(submittedIds.cast<String>());
+        }
+
+        // Restore correctness
+        final correctness =
+            progress.data?['questionCorrectness'] as Map<String, dynamic>?;
+        if (correctness != null) {
+          correctness.forEach((key, value) {
+            _questionCorrectness[key] = value as bool;
+          });
+        }
+
+        // Restore selected options
+        final selected =
+            progress.data?['selectedOptions'] as Map<String, dynamic>?;
+        if (selected != null) {
+          selected.forEach((questionId, options) {
+            _selectedOptions[questionId] =
+                (options as List<dynamic>).cast<String>().toSet();
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -635,7 +685,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
     });
   }
 
-  void _submitAnswer(QuizQuestion question) {
+  void _submitAnswer(QuizQuestion question) async {
     if (_selectedOptions[question.id]?.isEmpty ?? true) {
       // Don't submit if nothing selected
       return;
@@ -676,6 +726,37 @@ class _MultipleChoiceState extends State<MultipleChoice>
 
       _questionCorrectness[question.id] = isCorrect;
     });
+
+    // Save progress after submit
+    await _saveProgress();
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Prepare data to save
+    final selectedOptionsData = <String, List<String>>{};
+    _selectedOptions.forEach((key, value) {
+      selectedOptionsData[key] = value.toList();
+    });
+
+    // Calculate correct items
+    final correctCount = _questionCorrectness.values.where((e) => e).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quiz.id,
+      quizType: 'multiple-choice',
+      completedItems: _submittedQuestions.length,
+      totalItems: widget.quiz.questions.length,
+      correctItems: correctCount,
+      data: {
+        'currentQuestionIndex': _currentQuestionIndex,
+        'submittedQuestions': _submittedQuestions.toList(),
+        'questionCorrectness': _questionCorrectness,
+        'selectedOptions': selectedOptionsData,
+      },
+    );
   }
 }
 

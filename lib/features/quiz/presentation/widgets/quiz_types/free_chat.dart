@@ -3,17 +3,22 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:provider/provider.dart';
 
 class FreeChat extends StatefulWidget {
   const FreeChat({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     super.key,
     this.onWordLongPress,
     this.onQuizComplete,
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onQuizComplete;
 
@@ -34,7 +39,50 @@ class _FreeChatState extends State<FreeChat> {
   void initState() {
     super.initState();
     _llmService = LlmService();
-    _initializeChat();
+
+    // Load saved progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _conversationId = progress.data?['conversationId'] as String?;
+        _isQuizEnded = progress.data?['isQuizEnded'] as bool? ?? false;
+
+        final savedMessages = progress.data?['messages'] as List<dynamic>?;
+        if (savedMessages != null) {
+          _messages.clear();
+          _messages.addAll(savedMessages.map((m) {
+            final map = m as Map<String, dynamic>;
+            return ChatBubble(
+              role: map['role'] as String,
+              content: map['content'] as String,
+              isUser: map['isUser'] as bool,
+            );
+          }));
+        }
+      });
+
+      // Scroll to bottom after restore
+      _scrollToBottom();
+
+      // Check if we should initialize chat (empty messages)
+      if (_messages.isEmpty) {
+        _initializeChat();
+      }
+    } else {
+      // No progress, start fresh
+      _initializeChat();
+    }
   }
 
   @override
@@ -77,6 +125,8 @@ class _FreeChatState extends State<FreeChat> {
         );
         _isLoading = false;
       });
+
+      _saveProgress();
 
       _scrollToBottom();
 
@@ -191,6 +241,38 @@ class _FreeChatState extends State<FreeChat> {
 
     // Gọi callback để thông báo quiz đã hoàn thành
     widget.onQuizComplete?.call();
+    _saveProgress();
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+
+    // Serialize messages
+    final messagesData = _messages
+        .map((m) => {
+              'role': m.role,
+              'content': m.content,
+              'isUser': m.isUser,
+            })
+        .toList();
+
+    // Determine completion. Maybe number of turns > 5? Or just isQuizEnded?
+    // Let's use isQuizEnded for "completion" status, but progress bar can use turns?
+    final completedItems = _isQuizEnded ? 1 : (_messages.length > 0 ? 1 : 0);
+    // Actually, "Total Items" for FreeChat is vague. Let's say 1.
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'free-chat',
+      completedItems: _isQuizEnded ? 1 : 0,
+      totalItems: 1,
+      data: {
+        'conversationId': _conversationId,
+        'isQuizEnded': _isQuizEnded,
+        'messages': messagesData,
+      },
+    );
   }
 
   void _scrollToBottom() {
