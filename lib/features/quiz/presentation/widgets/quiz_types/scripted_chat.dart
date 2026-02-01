@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'dart:math' as math;
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
@@ -54,11 +55,14 @@ class _ScriptedChatState extends State<ScriptedChat> {
   // Translation visibility set
   final Set<String> _translateVisible = {};
   final Set<String> _ipaVisible = {};
+  final Set<String> _tipsVisible = {};
 
   // Long press handling
   Timer? _longPressTimer;
   bool _isLongPress = false;
   Offset _startPos = Offset.zero;
+  bool _isTtsLoading = false;
+  String? _loadingStatus;
 
   List<_RoleInfo> get _availableRoles {
     final chats = widget.quiz.chats ?? [];
@@ -216,6 +220,15 @@ class _ScriptedChatState extends State<ScriptedChat> {
     debugPrint('ScriptedChat: Waiting for TTS initialization...');
     final ttsProvider = context.read<TtsProvider>();
 
+    if (!ttsProvider.isInitialized) {
+      if (mounted) {
+        setState(() {
+          _isTtsLoading = true;
+          _loadingStatus = 'Đang khởi tạo âm thanh offline...';
+        });
+      }
+    }
+
     // Wait for TTS initialization
     int retries = 0;
     while (!ttsProvider.isInitialized && retries < 30 && mounted) {
@@ -224,13 +237,30 @@ class _ScriptedChatState extends State<ScriptedChat> {
       if (retries % 5 == 0) {
         debugPrint(
             'ScriptedChat: Still waiting for TTS... (${retries * 200}ms)');
+        if (mounted) {
+          setState(() {
+            _loadingStatus = 'Đang nạp dữ liệu giọng nói... (${retries ~/ 5}s)';
+          });
+        }
       }
     }
 
     // If still not initialized, force init
     if (!ttsProvider.isInitialized && mounted) {
       debugPrint('ScriptedChat: Forcing TTS init before sequence');
+      if (mounted) {
+        setState(() {
+          _loadingStatus = 'Đang đồng bộ cấu hình...';
+        });
+      }
       await ttsProvider.initService();
+    }
+
+    if (mounted) {
+      setState(() {
+        _isTtsLoading = false;
+        _loadingStatus = null;
+      });
     }
 
     // Verify TTS service is available
@@ -830,7 +860,89 @@ class _ScriptedChatState extends State<ScriptedChat> {
               ),
             ),
           ),
+        if (_isTtsLoading) _buildLoadingOverlay(appColors),
       ],
+    );
+  }
+
+  Widget _buildLoadingOverlay(AppColorsExtension appColors) {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.3),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 48),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: appColors.cardBackground.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.2),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: CircularProgressIndicator(
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(appColors.primary),
+                        strokeWidth: 3,
+                      ),
+                    ),
+                    Icon(
+                      Icons.headset,
+                      color: appColors.primary,
+                      size: 28,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Chuẩn bị âm thanh',
+                  style: TextStyle(
+                    color: appColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _loadingStatus ?? 'Đang tải dữ liệu...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: appColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Vui lòng chờ trong giây lát',
+                  style: TextStyle(
+                    color: appColors.textSecondary.withValues(alpha: 0.6),
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -894,17 +1006,18 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 ),
               ),
               Flexible(
-                child: ListView.builder(
+                child: ListView.separated(
                   shrinkWrap: true,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   itemCount: _availableRoles.length,
+                  separatorBuilder: (context, index) => Divider(
+                    color: appColors.divider.withOpacity(0.5),
+                    height: 1,
+                  ),
                   itemBuilder: (context, index) {
                     final roleInfo = _availableRoles[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildRoleCard(roleInfo, appColors),
-                    );
+                    return _buildRoleCard(roleInfo, appColors);
                   },
                 ),
               ),
@@ -917,47 +1030,37 @@ class _ScriptedChatState extends State<ScriptedChat> {
   }
 
   Widget _buildRoleCard(_RoleInfo roleInfo, AppColorsExtension appColors) {
-    final genderIcon = roleInfo.gender == 'male'
-        ? Icons.male
-        : roleInfo.gender == 'female'
-            ? Icons.female
-            : Icons.person;
+    final isMale = roleInfo.gender == 'male';
+    final genderColor = isMale ? Colors.blue : Colors.pink;
+    final genderIcon = isMale
+        ? '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars-icon lucide-mars"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>'''
+        : '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-venus-icon lucide-venus"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>''';
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _onRoleSelected(roleInfo.role),
-        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            border: Border.all(
-              color: appColors.primary.withOpacity(0.3),
-              width: 1.5,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: appColors.primary.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: const BoxDecoration(
+            color: Colors.transparent,
           ),
           child: Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: appColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: genderColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
+                padding: const EdgeInsets.all(10),
+                child: SvgPicture.string(
                   genderIcon,
-                  size: 32,
-                  color: appColors.primary,
+                  colorFilter: ColorFilter.mode(
+                    genderColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -966,50 +1069,28 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      roleInfo.role,
+                      roleInfo.name ?? roleInfo.role,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: appColors.textPrimary,
                       ),
                     ),
-                    if (roleInfo.name != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        roleInfo.name!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: appColors.textSecondary,
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      roleInfo.role,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: appColors.textSecondary,
                       ),
-                    ],
-                    if (roleInfo.gender != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            genderIcon,
-                            size: 14,
-                            color: appColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            roleInfo.gender!.capitalize(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: appColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ],
                 ),
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                size: 16,
-                color: appColors.textSecondary,
+                size: 14,
+                color: appColors.textSecondary.withOpacity(0.5),
               ),
             ],
           ),
@@ -1040,32 +1121,21 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
               if (!isUserMessage) ...[
-                _buildGenderIcon(chat.gender, appColors),
-                const SizedBox(width: 6),
+                Text(
+                  chat.role,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: roleColor,
+                  ),
+                ),
                 if (chat.name != null) ...[
+                  const SizedBox(width: 6),
                   Text(
                     chat.name!,
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
                       color: appColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '(${chat.role})',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: roleColor,
-                    ),
-                  ),
-                ] else ...[
-                  Text(
-                    chat.role,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: roleColor,
                     ),
                   ),
                 ],
@@ -1083,33 +1153,22 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 ],
                 if (chat.name != null) ...[
                   Text(
-                    '(${chat.role})',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: roleColor,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
                     chat.name!,
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
                       color: appColors.textPrimary,
                     ),
                   ),
-                ] else ...[
-                  Text(
-                    chat.role,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: roleColor,
-                    ),
-                  ),
+                  const SizedBox(width: 6),
                 ],
-                const SizedBox(width: 6),
-                _buildGenderIcon(chat.gender, appColors),
+                Text(
+                  chat.role,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: roleColor,
+                  ),
+                ),
               ],
             ],
           ),
@@ -1201,7 +1260,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
                             decoration: BoxDecoration(
                               border: Border(
                                 left: BorderSide(
-                                  color: Colors.blue.shade400,
+                                  color: Colors.blue.shade600,
                                   width: 2,
                                 ),
                               ),
@@ -1221,58 +1280,70 @@ class _ScriptedChatState extends State<ScriptedChat> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontStyle: FontStyle.italic,
-                                    color: Colors.blue.shade600,
+                                    color: appColors.textSecondary,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        if (chat.tips != null && chat.tips!.isNotEmpty)
+                        if (chat.tips != null &&
+                            chat.tips!.isNotEmpty &&
+                            _tipsVisible.contains(chat.id))
                           Container(
                             margin: const EdgeInsets.only(top: 8),
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.only(left: 8),
                             decoration: BoxDecoration(
-                              color: appColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: appColors.primary.withOpacity(0.3),
-                                width: 1,
+                              border: Border(
+                                left: BorderSide(
+                                  color: Colors.amber.shade600,
+                                  width: 2,
+                                ),
                               ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.lightbulb_outline,
-                                      size: 14,
-                                      color: appColors.primary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Tips:',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: appColors.primary,
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  'Tips:',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: appColors.textSecondary,
+                                  ),
                                 ),
-                                const SizedBox(height: 6),
-                                ...chat.tips!.map((tip) {
+                                const SizedBox(height: 2),
+                                ...chat.tips!.asMap().entries.map((entry) {
+                                  final index = entry.key + 1;
+                                  final tip = entry.value;
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 4),
-                                    child: RichTextParser.buildRichText(
-                                      context,
-                                      tip,
-                                      onWordLongPress: widget.onWordLongPress,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: appColors.textSecondary,
-                                      ),
-                                    ).first,
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '$index. ',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: appColors.textSecondary,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: RichTextParser.buildRichText(
+                                            context,
+                                            tip,
+                                            onWordLongPress:
+                                                widget.onWordLongPress,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontStyle: FontStyle.italic,
+                                              color: appColors.textSecondary,
+                                              height: 1.4,
+                                            ),
+                                          ).first,
+                                        ),
+                                      ],
+                                    ),
                                   );
                                 }),
                               ],
@@ -1372,6 +1443,27 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   ),
                 ),
               ],
+              if (chat.tips != null && chat.tips!.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_tipsVisible.contains(chat.id)) {
+                        _tipsVisible.remove(chat.id);
+                      } else {
+                        _tipsVisible.add(chat.id);
+                      }
+                    });
+                  },
+                  child: Icon(
+                    Icons.lightbulb_outline,
+                    size: 16,
+                    color: _tipsVisible.contains(chat.id)
+                        ? Colors.amber.shade700
+                        : appColors.textSecondary,
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -1421,23 +1513,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
           color: appColors.textSecondary,
         ),
       ),
-    );
-  }
-
-  Widget _buildGenderIcon(String? gender, AppColorsExtension appColors) {
-    IconData icon;
-    if (gender == 'male') {
-      icon = Icons.male;
-    } else if (gender == 'female') {
-      icon = Icons.female;
-    } else {
-      icon = Icons.person;
-    }
-
-    return Icon(
-      icon,
-      size: 14,
-      color: appColors.textSecondary,
     );
   }
 }

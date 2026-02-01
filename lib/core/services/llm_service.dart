@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:fluency/core/security/api_guard.dart';
+
+import 'package:fluency/features/quiz/data/services/directory_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
@@ -77,18 +80,39 @@ class LlmService {
     }
 
     try {
+      final baseBody = {
+        'model': _model,
+        'messages': messages,
+        'conversationId': conversationId,
+        'stream': false,
+      };
+
+      // Wrap with security layer
+      final securedBody = ApiGuard.securePayload(baseBody);
+      final reqBody = jsonEncode(securedBody);
+      debugPrint('--- API REQUEST ---');
+      debugPrint('URL: $_selectedUrl');
+      // Print body in chunks to avoid truncation
+      const int chunkSize = 800;
+      for (int i = 0; i < reqBody.length; i += chunkSize) {
+        int end =
+            (i + chunkSize < reqBody.length) ? i + chunkSize : reqBody.length;
+        debugPrint(reqBody.substring(i, end));
+      }
+      debugPrint('-------------------');
+
       final response = await http.post(
         Uri.parse(_selectedUrl!),
         headers: {
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'model': _model,
-          'messages': messages,
-          'conversationId': conversationId,
-          'stream': false,
-        }),
+        body: reqBody,
       );
+
+      debugPrint('--- API RESPONSE ---');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
+      debugPrint('--------------------');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;

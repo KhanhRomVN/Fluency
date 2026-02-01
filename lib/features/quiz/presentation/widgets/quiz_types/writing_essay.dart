@@ -121,6 +121,45 @@ class _WritingEssayState extends State<WritingEssay> {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final minWords = widget.quiz.min ?? 0;
     final isEnoughWords = _wordCount >= minWords;
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    if (isMobile) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.phone_android,
+                size: 64,
+                color: appColors.textSecondary,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Mobile View Not Supported',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: appColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'This quiz type is designed for larger screens. Please use a tablet or computer for the best experience.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: appColors.textSecondary,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,

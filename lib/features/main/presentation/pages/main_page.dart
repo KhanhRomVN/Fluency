@@ -39,14 +39,14 @@ class MainPage extends StatelessWidget {
           iconSize: 22,
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
-            if (index == 2) return; // Disable Collection tab
-
             // Navigate to root route of each branch to reset navigation stack
             switch (index) {
               case 0:
                 context.go('/dashboard');
               case 1:
                 context.go('/course');
+              case 2:
+                context.go('/collection');
               case 3:
                 context.go('/setting');
               default:
@@ -91,18 +91,17 @@ class MainPage extends StatelessWidget {
               label: 'Course',
             ),
             BottomNavigationBarItem(
-              icon: Opacity(
-                opacity: 0.3, // Visual feedback for disabled item
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: SvgPicture.string(
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-library-icon lucide-library"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>',
-                    width: 22,
-                    height: 22,
-                    colorFilter: ColorFilter.mode(
-                      Theme.of(context).unselectedWidgetColor,
-                      BlendMode.srcIn,
-                    ),
+              icon: Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: SvgPicture.string(
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-library-icon lucide-library"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>',
+                  width: 22,
+                  height: 22,
+                  colorFilter: ColorFilter.mode(
+                    navigationShell.currentIndex == 2
+                        ? primaryColor
+                        : Theme.of(context).unselectedWidgetColor,
+                    BlendMode.srcIn,
                   ),
                 ),
               ),
