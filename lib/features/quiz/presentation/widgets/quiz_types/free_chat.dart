@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fluency/core/services/llm_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
@@ -194,36 +196,89 @@ class _FreeChatState extends State<FreeChat> {
   void _handleApiResponse(String content) {
     final aiRole = widget.quiz.aiRole ?? 'AI Assistant';
 
-    // Kiểm tra xem có [*END*] không
-    final hasEndMarker = content.contains('[*END*]');
+    try {
+      // Try to parse as JSON
+      final jsonResponse = json.decode(content) as Map<String, dynamic>;
 
-    // Loại bỏ [*END*] khỏi nội dung hiển thị
-    final displayContent = content.replaceAll('[*END*]', '').trim();
+      final messageContent = jsonResponse['content'] as String? ?? '';
+      final translate = jsonResponse['translate'] as String?;
+      final responseHint = jsonResponse['response_hint'] as String?;
+      final correctionData =
+          jsonResponse['correction'] as Map<String, dynamic>?;
 
-    setState(() {
-      _messages.add(
-        ChatBubble(
-          role: aiRole,
-          content: displayContent,
-          isUser: false,
-        ),
-      );
-    });
+      // Parse correction if present
+      CorrectionData? correction;
+      if (correctionData != null) {
+        correction = CorrectionData(
+          issue: correctionData['issue'] as String? ?? '',
+          feedback: correctionData['feedback'] as String? ?? '',
+          practicePhrases: (correctionData['practice_phrases'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              [],
+          encouragement: correctionData['encouragement'] as String? ?? '',
+        );
+      }
 
-    _scrollToBottom();
+      // Check for end marker
+      final hasEndMarker = messageContent.contains('[*END*]');
+      final displayContent = messageContent.replaceAll('[*END*]', '').trim();
 
-    // Auto-speak AI response
-    _speakAiMessage(displayContent);
-
-    // Nếu có [*END*], tự động kết thúc quiz
-    if (hasEndMarker) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _endQuiz();
+      setState(() {
+        _messages.add(
+          ChatBubble(
+            role: aiRole,
+            content: displayContent,
+            isUser: false,
+            translate: translate,
+            responseHint: responseHint,
+            correction: correction,
+            gender:
+                'male', // Default gender, can be extracted from AI role setup
+          ),
+        );
       });
+
+      _scrollToBottom();
+
+      // Auto-speak AI response with gender
+      _speakAiMessage(displayContent, gender: 'male');
+
+      // If has end marker, auto-end quiz
+      if (hasEndMarker) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _endQuiz();
+        });
+      }
+    } catch (e) {
+      // Fallback: treat as plain text if JSON parsing fails
+      debugPrint('Failed to parse JSON response, treating as plain text: $e');
+
+      final hasEndMarker = content.contains('[*END*]');
+      final displayContent = content.replaceAll('[*END*]', '').trim();
+
+      setState(() {
+        _messages.add(
+          ChatBubble(
+            role: aiRole,
+            content: displayContent,
+            isUser: false,
+          ),
+        );
+      });
+
+      _scrollToBottom();
+      _speakAiMessage(displayContent);
+
+      if (hasEndMarker) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _endQuiz();
+        });
+      }
     }
   }
 
-  Future<void> _speakAiMessage(String text) async {
+  Future<void> _speakAiMessage(String text, {String? gender}) async {
     try {
       final ttsProvider = context.read<TtsProvider>();
 
@@ -233,8 +288,8 @@ class _FreeChatState extends State<FreeChat> {
       }
 
       if (ttsProvider.isInitialized && text.isNotEmpty) {
-        // Use male voice as default since gender cannot be determined
-        await ttsProvider.speakWithGender(text, gender: 'male');
+        // Use provided gender or default to male
+        await ttsProvider.speakWithGender(text, gender: gender ?? 'male');
       }
     } catch (e) {
       debugPrint('TTS Error: $e');
@@ -591,9 +646,31 @@ class ChatBubble {
     required this.role,
     required this.content,
     required this.isUser,
+    this.translate,
+    this.responseHint,
+    this.correction,
+    this.gender,
   });
 
   final String role;
   final String content;
   final bool isUser;
+  final String? translate; // Vietnamese translation
+  final String? responseHint; // Suggested response for user
+  final CorrectionData? correction; // Correction feedback
+  final String? gender; // 'male' or 'female' for TTS
+}
+
+class CorrectionData {
+  CorrectionData({
+    required this.issue,
+    required this.feedback,
+    required this.practicePhrases,
+    required this.encouragement,
+  });
+
+  final String issue; // 'off-topic' | 'unclear' | 'pronunciation'
+  final String feedback; // Explanation in Vietnamese
+  final List<String> practicePhrases; // Phrases to practice
+  final String encouragement; // Positive message after practice
 }

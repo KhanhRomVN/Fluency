@@ -592,8 +592,10 @@ class ChatMessage {
     required this.role,
     required this.content,
     this.name,
+    this.gender,
     this.time,
     this.ipa,
+    this.tips,
     this.explain,
     this.question,
     this.translate,
@@ -606,8 +608,14 @@ class ChatMessage {
       content:
           json['content']?.toString() ?? json['question']?.toString() ?? '',
       name: json['name']?.toString(),
+      gender: json['gender']?.toString(),
       time: json['time']?.toString(),
       ipa: json['ipa']?.toString(),
+      tips: json['tips'] != null
+          ? List<String>.from(
+              (json['tips'] as List).map((e) => e.toString()),
+            )
+          : null,
       explain: json['explain']?.toString(),
       question: json['question']?.toString(),
       translate: json['translate']?.toString(),
@@ -617,8 +625,10 @@ class ChatMessage {
   final String role; // 'bot' | 'user'
   final String content;
   final String? name;
+  final String? gender; // 'male' | 'female'
   final String? time;
   final String? ipa;
+  final List<String>? tips; // Array of tip strings
   final String? explain;
   final String? question;
   final String? translate;

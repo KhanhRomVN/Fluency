@@ -5,6 +5,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -38,6 +39,10 @@ class _DictationAudioState extends State<DictationAudio> {
   final Map<String, _DictationItemState> _itemStates = {};
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingId;
+  final Map<String, List<FocusNode>> _focusNodesByItem =
+      {}; // FocusNodes for each item
+  final Map<String, String> _selectedVoiceByItem =
+      {}; // Cache selected voice for each item
 
   // Animation variables
   late PageController _pageController;
@@ -87,6 +92,11 @@ class _DictationAudioState extends State<DictationAudio> {
                     (k, v) => MapEntry(int.parse(k), v as String),
                   ) ??
                   {},
+              correctWords:
+                  (data['correctWords'] as Map<String, dynamic>?)?.map(
+                        (k, v) => MapEntry(int.parse(k), v as bool),
+                      ) ??
+                      {},
             );
           });
         }
@@ -104,6 +114,8 @@ class _DictationAudioState extends State<DictationAudio> {
         'passed': value.passed,
         'attempts': value.attempts,
         'wordInputs': value.wordInputs.map((k, v) => MapEntry(k.toString(), v)),
+        'correctWords':
+            value.correctWords.map((k, v) => MapEntry(k.toString(), v)),
       });
     });
 
@@ -128,8 +140,14 @@ class _DictationAudioState extends State<DictationAudio> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     _audioPlayer.dispose();
+    _pageController.dispose();
+    // Dispose all focus nodes
+    for (final nodes in _focusNodesByItem.values) {
+      for (final node in nodes) {
+        node.dispose();
+      }
+    }
     super.dispose();
   }
 
@@ -141,22 +159,80 @@ class _DictationAudioState extends State<DictationAudio> {
   }
 
   Future<void> _playAudio(DictationItem item) async {
+    // Stop if already playing
     if (_playingId == item.id) {
-      await _audioPlayer.stop();
+      final ttsProvider = context.read<TtsProvider>();
+      await ttsProvider.ttsService?.stop();
       setState(() {
         _playingId = null;
       });
       return;
     }
 
-    if (item.audio != null) {
+    // Use TTS to speak the text
+    final correctText = item.transcript ?? item.text ?? '';
+    if (correctText.isNotEmpty) {
       try {
-        await _audioPlayer.play(DeviceFileSource(item.audio!));
-        setState(() {
-          _playingId = item.id;
-        });
+        final ttsProvider = context.read<TtsProvider>();
+
+        // Initialize TTS if needed
+        if (!ttsProvider.isInitialized) {
+          await ttsProvider.initService();
+        }
+
+        if (ttsProvider.isInitialized) {
+          setState(() {
+            _playingId = item.id;
+          });
+
+          // Handle voice selection for Piper
+          String? voiceToUse;
+          if (ttsProvider.activeEngine == 'Piper') {
+            // Check if we already selected a voice for this item
+            if (_selectedVoiceByItem.containsKey(item.id)) {
+              voiceToUse = _selectedVoiceByItem[item.id];
+            } else {
+              // First time: randomly select between male and female voice
+              final random = math.Random();
+              final useMaleVoice = random.nextBool(); // 50/50 chance
+
+              voiceToUse = useMaleVoice
+                  ? ttsProvider.defaultMaleVoice
+                  : ttsProvider.defaultFemaleVoice;
+
+              // Cache the selected voice
+              if (voiceToUse != null) {
+                _selectedVoiceByItem[item.id] = voiceToUse;
+              }
+            }
+
+            // Use the selected voice
+            if (voiceToUse != null) {
+              final gender =
+                  voiceToUse.contains('male') && !voiceToUse.contains('female')
+                      ? 'male'
+                      : 'female';
+              await ttsProvider.speakWithGender(correctText, gender: gender);
+            } else {
+              await ttsProvider.speakWithGender(correctText);
+            }
+          } else {
+            // System TTS: just speak normally
+            await ttsProvider.speakWithGender(correctText);
+          }
+
+          // Reset playing state after completion
+          if (mounted) {
+            setState(() {
+              _playingId = null;
+            });
+          }
+        }
       } catch (e) {
-        debugPrint('Error playing audio: $e');
+        debugPrint('Error playing TTS: $e');
+        setState(() {
+          _playingId = null;
+        });
       }
     }
   }
@@ -190,11 +266,31 @@ class _DictationAudioState extends State<DictationAudio> {
 
     final score = (correctCount / words.length * 100).round();
 
+    // Track which words are correct for auto-fill on retry
+    final correctWordsMap = <int, bool>{};
+    final newWordInputs = Map<int, String>.from(state.wordInputs);
+
+    for (var i = 0; i < words.length; i++) {
+      final input = state.wordInputs[i] ?? '';
+      final correct = words[i].replaceAll(RegExp(r'[^\w]'), '').toLowerCase();
+      final user = input.replaceAll(RegExp(r'[^\w]'), '').toLowerCase();
+
+      final isCorrect = user == correct;
+      correctWordsMap[i] = isCorrect;
+
+      // Auto-fill correct words for next attempt
+      if (isCorrect && !allCorrect) {
+        newWordInputs[i] = words[i]; // Keep the correct word
+      }
+    }
+
     setState(() {
       _itemStates[item.id] = state.copyWith(
         score: score,
         passed: allCorrect,
         attempts: state.attempts + 1,
+        correctWords: correctWordsMap,
+        wordInputs: allCorrect ? state.wordInputs : newWordInputs,
       );
       _saveProgress();
     });
@@ -333,33 +429,13 @@ class _DictationAudioState extends State<DictationAudio> {
                                     Positioned(
                                       top: 16,
                                       left: 16,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          if (item.speed != null)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 4,
-                                              ),
-                                              child: Text(
-                                                'Speed: ${item.speed}x',
-                                                style: TextStyle(
-                                                  color: appColors.textSecondary
-                                                      .withValues(alpha: 0.7),
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ),
-                                          Text(
-                                            'Attempt ${state.attempts} / 3',
-                                            style: TextStyle(
-                                              color: appColors.textSecondary,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
+                                      child: Text(
+                                        'Attempt ${state.attempts} / 3',
+                                        style: TextStyle(
+                                          color: appColors.textSecondary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
 
@@ -404,36 +480,40 @@ class _DictationAudioState extends State<DictationAudio> {
                                                 final input =
                                                     state.wordInputs[idx] ?? '';
 
-                                                Color? textColor;
-                                                if (state.attempts > 0 ||
-                                                    state.passed) {
-                                                  final cleanWord = word
-                                                      .replaceAll(
-                                                        RegExp(r'[^\w]'),
-                                                        '',
-                                                      )
-                                                      .toLowerCase();
-                                                  final cleanInput = input
-                                                      .replaceAll(
-                                                        RegExp(r'[^\w]'),
-                                                        '',
-                                                      )
-                                                      .toLowerCase();
-                                                  if (cleanInput == cleanWord) {
-                                                    textColor =
-                                                        appColors.primary;
-                                                  } else {
-                                                    textColor = Colors.red;
-                                                  }
+                                                // Create focus nodes if not exists
+                                                if (!_focusNodesByItem
+                                                    .containsKey(item.id)) {
+                                                  _focusNodesByItem[item.id] =
+                                                      List.generate(
+                                                    words.length,
+                                                    (_) => FocusNode(),
+                                                  );
                                                 }
+
+                                                final focusNodes =
+                                                    _focusNodesByItem[item.id]!;
+                                                final nextFocusNode =
+                                                    idx < words.length - 1
+                                                        ? focusNodes[idx + 1]
+                                                        : null;
+
+                                                // Check if this word is already correct
+                                                final isCorrect =
+                                                    state.correctWords[idx] ??
+                                                        false;
 
                                                 return _WordInput(
                                                   index: idx,
                                                   correctWord: word,
                                                   currentInput: input,
-                                                  textColor: textColor,
-                                                  enabled: !state.passed,
+                                                  showColors:
+                                                      state.attempts > 0 ||
+                                                          state.passed,
+                                                  isCorrect: isCorrect,
+                                                  enabled: !state.passed &&
+                                                      !isCorrect,
                                                   appColors: appColors,
+                                                  nextFocusNode: nextFocusNode,
                                                   onChanged: (val) {
                                                     final newInputs =
                                                         Map<int, String>.from(
@@ -451,18 +531,9 @@ class _DictationAudioState extends State<DictationAudio> {
                                               }),
                                             ),
 
-                                            // Reveal Answer
+                                            // IPA and Translation (shown when passed)
                                             if (state.passed) ...[
                                               const SizedBox(height: 32),
-                                              Text(
-                                                correctText,
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: appColors.primary,
-                                                ),
-                                              ),
                                               if (item.ipa != null)
                                                 Padding(
                                                   padding:
@@ -472,7 +543,6 @@ class _DictationAudioState extends State<DictationAudio> {
                                                     item.ipa!,
                                                     style: TextStyle(
                                                       color: appColors.primary,
-                                                      fontFamily: 'monospace',
                                                       fontSize: 16,
                                                     ),
                                                   ),
@@ -581,43 +651,44 @@ class _DictationAudioState extends State<DictationAudio> {
                                     vertical: 12.5,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                               ),
                             if (state.passed)
                               Row(
                                 children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _itemStates[item.id] =
-                                            _DictationItemState();
-                                        _saveProgress();
-                                      });
-                                    },
-                                    child: Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: appColors.buttonSecondBg,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.1),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Icon(
-                                        Icons.refresh,
-                                        color: appColors.textSecondary,
-                                        size: 20,
+                                  if (!state.passed)
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _itemStates[item.id] =
+                                              _DictationItemState();
+                                          _saveProgress();
+                                        });
+                                      },
+                                      child: Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: appColors.buttonSecondBg,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.1),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Icon(
+                                          Icons.refresh,
+                                          color: appColors.textSecondary,
+                                          size: 20,
+                                        ),
                                       ),
                                     ),
-                                  ),
                                   const SizedBox(width: 16),
                                 ],
                               ),
@@ -712,19 +783,23 @@ class _WordInput extends StatefulWidget {
     required this.index,
     required this.correctWord,
     required this.currentInput,
-    required this.textColor,
+    required this.showColors,
+    required this.isCorrect,
     required this.enabled,
     required this.appColors,
     required this.onChanged,
+    this.nextFocusNode,
   });
 
   final int index;
   final String correctWord;
   final String currentInput;
-  final Color? textColor;
+  final bool showColors;
+  final bool isCorrect;
   final bool enabled;
   final AppColorsExtension appColors;
   final ValueChanged<String> onChanged;
+  final FocusNode? nextFocusNode; // Focus node of next input
 
   @override
   State<_WordInput> createState() => _WordInputState();
@@ -732,11 +807,13 @@ class _WordInput extends StatefulWidget {
 
 class _WordInputState extends State<_WordInput> {
   late TextEditingController _controller;
+  late FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.currentInput);
+    _focusNode = FocusNode();
   }
 
   @override
@@ -753,6 +830,7 @@ class _WordInputState extends State<_WordInput> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -771,23 +849,19 @@ class _WordInputState extends State<_WordInput> {
           Padding(
             padding: const EdgeInsets.only(
               bottom: 4,
-            ), // align slightly up? React mt-[-2px] means input overlaps dashes
-            // React dashes are 2px high.
+            ),
             child: Row(
               children: List.generate(widget.correctWord.length, (i) {
-                // Hide dash if character exists
                 final hideDash = i < widget.currentInput.length;
 
                 return Container(
-                  width: 10, // React w-[10px]
+                  width: 10,
                   height: 2,
-                  margin: const EdgeInsets.only(right: 2), // React gap-[2px]
+                  margin: const EdgeInsets.only(right: 2),
                   decoration: BoxDecoration(
                     color: hideDash
                         ? Colors.transparent
-                        : (widget.textColor ??
-                            widget.appColors.textSecondary
-                                .withValues(alpha: 0.4)),
+                        : widget.appColors.textSecondary.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(1),
                   ),
                 );
@@ -795,32 +869,76 @@ class _WordInputState extends State<_WordInput> {
             ),
           ),
 
-          // Input Layer (Top)
+          // Character Display Layer (with colors)
+          if (widget.showColors && widget.currentInput.isNotEmpty)
+            Positioned(
+              bottom: 4,
+              left: 0,
+              child: Row(
+                children: List.generate(widget.currentInput.length, (i) {
+                  final inputChar = widget.currentInput[i].toLowerCase();
+                  final correctChar = i < widget.correctWord.length
+                      ? widget.correctWord[i].toLowerCase()
+                      : '';
+
+                  // Determine color for this character
+                  final charColor = inputChar == correctChar
+                      ? widget.appColors.primary
+                      : Colors.red;
+
+                  return Container(
+                    width: 12,
+                    alignment: Alignment.center,
+                    child: Text(
+                      widget.currentInput[i],
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: charColor,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+
+          // Input Layer (Top) - transparent when showing colors
           TextField(
             controller: _controller,
+            focusNode: _focusNode,
             onChanged: (val) {
-              // Only notify if within limit (UI should block it via maxLength anyway)
               if (val.length <= widget.correctWord.length) {
                 widget.onChanged(val);
+
+                if (val.length == widget.correctWord.length &&
+                    widget.nextFocusNode != null) {
+                  Future.delayed(const Duration(milliseconds: 50), () {
+                    widget.nextFocusNode?.requestFocus();
+                  });
+                }
               }
             },
             inputFormatters: [
               LengthLimitingTextInputFormatter(widget.correctWord.length),
             ],
             enabled: widget.enabled,
-            textAlign: TextAlign.left, // React text-left
+            textAlign: TextAlign.left,
             style: TextStyle(
               fontFamily: 'monospace',
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              letterSpacing: 2, // Adjust to match dash spacing approx
-              color: widget.textColor ?? widget.appColors.textPrimary,
+              letterSpacing: 2,
+              color: widget.showColors
+                  ? Colors
+                      .transparent // Hide text when showing colored characters
+                  : widget.appColors.textPrimary,
             ),
             decoration: const InputDecoration(
               isDense: true,
               contentPadding: EdgeInsets.zero,
               border: InputBorder.none,
-              counterText: '', // Hide default counter
+              counterText: '',
             ),
             maxLength: widget.correctWord.length,
             maxLengthEnforcement: MaxLengthEnforcement.enforced,
@@ -837,23 +955,27 @@ class _DictationItemState {
     this.passed = false,
     this.attempts = 0,
     this.wordInputs = const {},
+    this.correctWords = const {}, // Track which words are correct
   });
   final int score;
   final bool passed;
-  final int attempts;
+  final int attempts; // Number of times answer was checked
   final Map<int, String> wordInputs;
+  final Map<int, bool> correctWords; // Map of word index -> is correct
 
   _DictationItemState copyWith({
     int? score,
     bool? passed,
     int? attempts,
     Map<int, String>? wordInputs,
+    Map<int, bool>? correctWords,
   }) {
     return _DictationItemState(
       score: score ?? this.score,
       passed: passed ?? this.passed,
       attempts: attempts ?? this.attempts,
       wordInputs: wordInputs ?? this.wordInputs,
+      correctWords: correctWords ?? this.correctWords,
     );
   }
 }

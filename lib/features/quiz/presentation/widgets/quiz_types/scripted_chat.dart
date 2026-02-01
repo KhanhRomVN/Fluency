@@ -282,8 +282,8 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
     // Play TTS
     final text = _getTextContent(nextChat.question ?? nextChat.content);
-    _speakText(
-        text); // This will trigger completion handler -> _playNextInSequence
+    _speakText(text,
+        gender: nextChat.gender); // Pass gender for voice selection
 
     _currentSequenceIndex++;
   }
@@ -341,11 +341,12 @@ class _ScriptedChatState extends State<ScriptedChat> {
     return colors[hash.abs() % colors.length];
   }
 
-  Future<void> _speakText(String text) async {
+  Future<void> _speakText(String text, {String? gender}) async {
     try {
-      debugPrint('ScriptedChat: _speakText called with text: "$text"');
-      final ttsService = context.read<TtsProvider>().ttsService;
-      if (ttsService == null) {
+      debugPrint(
+          'ScriptedChat: _speakText called with text: "$text", gender: $gender');
+      final ttsProvider = context.read<TtsProvider>();
+      if (ttsProvider.ttsService == null) {
         debugPrint('ScriptedChat: TTS Service is null, triggering fallback');
         if (_isPlayingSequence) {
           Future.delayed(const Duration(seconds: 1), () {
@@ -359,9 +360,10 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
       // Removed await ttsService.stop() to prevent emitting TtsState.stopped prematurely
       if (text.isNotEmpty) {
-        debugPrint('ScriptedChat: calling ttsService.speak');
-        await ttsService.speak(text);
-        debugPrint('ScriptedChat: ttsService.speak returned');
+        debugPrint('ScriptedChat: calling ttsProvider.speakWithGender');
+        // Use gender-based voice selection
+        await ttsProvider.speakWithGender(text, gender: gender);
+        debugPrint('ScriptedChat: ttsProvider.speakWithGender returned');
       } else {
         // If nothing to speak, manually advance
         debugPrint('ScriptedChat: empty text, manually advancing');
@@ -1035,6 +1037,57 @@ class _ScriptedChatState extends State<ScriptedChat> {
                               ],
                             ),
                           ),
+                        if (chat.tips != null && chat.tips!.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: appColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: appColors.primary.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.lightbulb_outline,
+                                      size: 14,
+                                      color: appColors.primary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Tips:',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: appColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                ...chat.tips!.map((tip) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: RichTextParser.buildRichText(
+                                      context,
+                                      tip,
+                                      onWordLongPress: widget.onWordLongPress,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: appColors.textSecondary,
+                                      ),
+                                    ).first,
+                                  );
+                                }),
+                              ],
+                            ),
+                          ),
                         if (scoreData != null && isUserMessage)
                           Container(
                             margin: const EdgeInsets.only(top: 8),
@@ -1078,7 +1131,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
               GestureDetector(
-                onTap: () => _speakText(targetText),
+                onTap: () => _speakText(targetText, gender: chat.gender),
                 child: Icon(
                   Icons.volume_up,
                   size: 16,
