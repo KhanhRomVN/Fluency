@@ -5,6 +5,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,14 +13,18 @@ class Flashcard extends StatefulWidget {
   const Flashcard({
     required this.quiz,
     required this.lessonId,
-    required this.quizId,
-    super.key,
+    required this.quizId, // Removed trailing comma
+    this.onNext,
+    this.onPrev,
     this.onWordLongPress,
+    super.key,
   });
 
   final Quiz quiz;
   final String lessonId;
   final String quizId;
+  final VoidCallback? onNext;
+  final VoidCallback? onPrev;
   final void Function(String word)? onWordLongPress;
 
   @override
@@ -29,7 +34,6 @@ class Flashcard extends StatefulWidget {
 class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   int _currentIndex = 0;
   bool _isFlipped = false;
-  bool _isAutoPlay = false;
   final Map<String, bool> _completedCards = {};
   final Map<String, bool> _cardCorrectness = {};
 
@@ -37,10 +41,8 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   late AnimationController _flipController;
   late Animation<double> _flipAnimation;
 
-  // Swipe Animation
-  double _swipeOffset = 0;
-  late AnimationController _swipeController;
-  Animation<double>? _swipeSlideAnimation;
+  // Page Controller
+  late PageController _pageController;
   bool _isTransitioning = false;
 
   // Audio
@@ -60,17 +62,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
       ),
     );
 
-    _swipeController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _swipeController.addListener(() {
-      setState(() {
-        if (_swipeSlideAnimation != null) {
-          _swipeOffset = _swipeSlideAnimation!.value;
-        }
-      });
-    });
+    _pageController = PageController(initialPage: _currentIndex);
 
     // Load saved progress
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -79,6 +71,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   }
 
   Future<void> _loadProgress() async {
+    debugPrint('Flashcard: _loadProgress called');
     final quizStateProvider = context.read<QuizStateProvider>();
     final progress = await quizStateProvider.loadQuizProgress(
       widget.lessonId,
@@ -86,6 +79,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     );
 
     if (progress != null && mounted) {
+      debugPrint('Flashcard: Progress found, restoring');
       setState(() {
         _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
 
@@ -107,6 +101,26 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
           });
         }
       });
+    }
+
+    // Auto-speak the current card after loading (whether progress exists or not)
+    debugPrint('Flashcard: About to speak, mounted=$mounted');
+    if (mounted) {
+      // Wait longer for TTS to initialize
+      // Wait for TTS to initialize (poll for up to 5 seconds)
+      final ttsProvider = context.read<TtsProvider>();
+      int retries = 0;
+      while (!ttsProvider.isInitialized && retries < 25) {
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        retries++;
+      }
+
+      // Check one last time
+      if (!ttsProvider.isInitialized) {
+        debugPrint('Flashcard: TTS not initialized after 5s, skipping speak');
+        return;
+      }
+      _speakCurrentCard();
     }
   }
 
@@ -134,9 +148,19 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   @override
   void dispose() {
     _flipController.dispose();
-    _swipeController.dispose();
+    _pageController.dispose();
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+      _isFlipped = false;
+      _flipController.reset();
+    });
+    _saveProgress();
+    _speakCurrentCard();
   }
 
   void _handleFlipRequest() {
@@ -344,74 +368,43 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     return html.replaceAll(RegExp('<[^>]*>'), '');
   }
 
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
-    if (_isTransitioning) return;
-    setState(() {
-      _swipeOffset += details.primaryDelta!;
-      _swipeOffset = _swipeOffset.clamp(-100.0, 100.0);
-    });
-  }
+  // Swipe logic removed in favor of PageView
 
-  void _onHorizontalDragEnd(DragEndDetails details) {
-    if (_isTransitioning) return;
-    const threshold = 80.0;
-
-    if (_swipeOffset < -threshold &&
-        _currentIndex < (widget.quiz.flashcards?.length ?? 0) - 1) {
-      _slideCard('left');
-    } else if (_swipeOffset > threshold && _currentIndex > 0) {
-      _slideCard('right');
-    } else {
-      _resetSwipe();
-    }
-  }
-
-  void _slideCard(String direction) {
-    setState(() {
-      _isTransitioning = true;
-    });
-
-    final endOffset = direction == 'left' ? -400.0 : 400.0;
-    _swipeSlideAnimation =
-        Tween<double>(begin: _swipeOffset, end: endOffset).animate(
-      CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
-    );
-
-    _swipeController.forward(from: 0).then((_) {
-      setState(() {
-        _isFlipped = false;
-        _flipController.reset();
-        _currentIndex += (direction == 'left' ? 1 : -1);
-        _swipeOffset = (direction == 'left' ? 400.0 : -400.0);
-
-        _swipeSlideAnimation =
-            Tween<double>(begin: _swipeOffset, end: 0).animate(
-          CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
-        );
-        _swipeController.forward(from: 0).then((_) {
-          setState(() {
-            _isTransitioning = false;
-          });
-          _saveProgress();
-        });
-      });
-    });
-  }
-
-  void _resetSwipe() {
-    _swipeSlideAnimation = Tween<double>(begin: _swipeOffset, end: 0).animate(
-      CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
-    );
-    _swipeController.forward(from: 0);
-  }
-
-  Future<void> _playAudio(String? path) async {
-    if (path == null) return;
+  Future<void> _speakCurrentCard() async {
+    debugPrint('Flashcard: _speakCurrentCard START');
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(DeviceFileSource(path));
+      final cards = widget.quiz.flashcards ?? [];
+      debugPrint(
+          'Flashcard: Total cards=${cards.length}, currentIndex=$_currentIndex');
+      if (_currentIndex >= cards.length) {
+        debugPrint('Flashcard: Index out of range, returning');
+        return;
+      }
+
+      final currentCard = cards[_currentIndex];
+      final front = currentCard.front;
+      String term = '';
+
+      if (front is Map) {
+        term = front['term']?.toString() ?? '';
+      } else {
+        term = front?.toString() ?? '';
+      }
+
+      debugPrint('Flashcard: Extracted term="$term"');
+      if (term.isNotEmpty) {
+        final ttsProvider = context.read<TtsProvider>();
+        debugPrint(
+            'Flashcard: TtsProvider initialized=${ttsProvider.isInitialized}');
+        if (ttsProvider.isInitialized) {
+          debugPrint('Flashcard: Calling speakWithGender for term="$term"');
+          // Use male voice as default since gender cannot be determined
+          await ttsProvider.speakWithGender(term, gender: 'male');
+          debugPrint('Flashcard: speakWithGender completed');
+        }
+      }
     } catch (e) {
-      debugPrint('Error playing flashcard audio: $e');
+      debugPrint('TTS Error in flashcard: $e');
     }
   }
 
@@ -431,91 +424,84 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
 
     final currentCard = cards[_currentIndex];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.quiz.instruction.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Wrap(
-              children: RichTextParser.buildRichText(
-                context,
-                widget.quiz.instruction,
-                style: TextStyle(color: appColors.textPrimary, fontSize: 16),
-              ),
-            ),
-          ),
-        Expanded(
-          child: Padding(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is OverscrollNotification) {
+          if (notification.overscroll < 0) {
+            widget.onPrev?.call();
+          } else if (notification.overscroll > 0) {
+            widget.onNext?.call();
+          }
+        }
+        return false;
+      },
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const ClampingScrollPhysics(),
+        itemCount: cards.length,
+        itemBuilder: (context, index) {
+          final card = cards[index];
+
+          return Padding(
             padding:
                 const EdgeInsets.only(left: 16, right: 16, bottom: 24, top: 8),
-            child: GestureDetector(
-              onHorizontalDragUpdate: _onHorizontalDragUpdate,
-              onHorizontalDragEnd: _onHorizontalDragEnd,
-              child: Transform.translate(
-                offset: Offset(_swipeOffset, 0),
-                child: Transform.rotate(
-                  angle: _swipeOffset * 0.0002,
-                  child: Opacity(
-                    opacity: (1 - (_swipeOffset.abs() / 400)).clamp(0.5, 1.0),
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: appColors.cardBackground,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: appColors.primary,
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
-                        ),
-                        child: Column(
-                          children: [
-                            _buildInternalHeader(context, appColors, cards),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: _handleFlipRequest,
-                                child: AnimatedBuilder(
-                                  animation: _flipAnimation,
-                                  builder: (context, child) {
-                                    final angle =
-                                        _flipAnimation.value * math.pi;
-                                    final isBack = angle > math.pi / 2;
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: appColors.cardBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: CustomPaint(
+                painter: _DashedBorderPainter(
+                  color: appColors.primary,
+                  strokeWidth: 2,
+                  gap: 4,
+                  borderRadius: 12,
+                ),
+                child: Column(
+                  children: [
+                    _buildInternalHeader(context, appColors, cards, index),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap:
+                            index == _currentIndex ? _handleFlipRequest : null,
+                        child: AnimatedBuilder(
+                          animation: _flipAnimation,
+                          builder: (context, child) {
+                            // Only animate the active card
+                            final angle = (index == _currentIndex)
+                                ? _flipAnimation.value * math.pi
+                                : 0.0;
+                            final isBack = angle > math.pi / 2;
 
-                                    return Transform(
+                            return Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.001)
+                                ..rotateY(angle),
+                              child: isBack
+                                  ? Transform(
                                       alignment: Alignment.center,
                                       transform: Matrix4.identity()
-                                        ..setEntry(3, 2, 0.001)
-                                        ..rotateY(angle),
-                                      child: isBack
-                                          ? Transform(
-                                              alignment: Alignment.center,
-                                              transform: Matrix4.identity()
-                                                ..rotateY(math.pi),
-                                              child: _buildBack(context,
-                                                  currentCard, appColors),
-                                            )
-                                          : _buildFront(
-                                              context, currentCard, appColors),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
+                                        ..rotateY(math.pi),
+                                      child:
+                                          _buildBack(context, card, appColors),
+                                    )
+                                  : _buildFront(context, card, appColors),
+                            );
+                          },
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 
@@ -523,11 +509,12 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     BuildContext context,
     AppColorsExtension appColors,
     List<FlashcardItem> questions,
+    int index,
   ) {
     final completedCount = _completedCards.length;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -539,62 +526,43 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            '${_currentIndex + 1} / ${questions.length}',
+            '${index + 1} / ${questions.length}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: appColors.textSecondary,
             ),
           ),
-          Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _isAutoPlay = !_isAutoPlay;
-                  });
-                },
-                icon: Icon(
-                  _isAutoPlay ? Icons.volume_up : Icons.volume_off,
-                  size: 20,
-                  color: appColors.textSecondary,
+          SizedBox(
+            width: 32,
+            height: 32,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(32, 32),
+                  painter: _SegmentedProgressPainter(
+                    totalSegments: questions.length,
+                    segmentStates: List.generate(questions.length, (index) {
+                      final qId = questions[index].id;
+                      if (!(_completedCards[qId] ?? false)) return 0;
+                      return (_cardCorrectness[qId] ?? true) ? 1 : 2;
+                    }),
+                    primaryColor: appColors.primary,
+                    errorColor: Colors.red,
+                    emptyColor: appColors.border.withValues(alpha: 0.5),
+                  ),
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CustomPaint(
-                      size: const Size(32, 32),
-                      painter: _SegmentedProgressPainter(
-                        totalSegments: questions.length,
-                        segmentStates: List.generate(questions.length, (index) {
-                          final qId = questions[index].id;
-                          if (!(_completedCards[qId] ?? false)) return 0;
-                          return (_cardCorrectness[qId] ?? true) ? 1 : 2;
-                        }),
-                        primaryColor: appColors.primary,
-                        errorColor: Colors.red,
-                        emptyColor: appColors.border.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    Text(
-                      '$completedCount',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textSecondary,
-                      ),
-                    ),
-                  ],
+                Text(
+                  '$completedCount',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textSecondary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -632,6 +600,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Spacer(flex: 2),
                 Text(
                   term,
                   style: TextStyle(
@@ -641,48 +610,25 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                if (ipa != null) ...[
-                  const SizedBox(height: 8),
+                if (ipa != null && ipa.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Text(
                     ipa,
                     style: TextStyle(
                       color: appColors.textSecondary,
                       fontSize: 18,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ],
-                if (audio != null) ...[
-                  const SizedBox(height: 24),
-                  InkWell(
-                    onTap: () => _playAudio(audio),
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: appColors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: appColors.primary.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(Icons.volume_up,
-                          color: Colors.white, size: 24),
                     ),
                   ),
                 ],
                 if (contextSentence != null) ...[
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
                   Container(
                     constraints: const BoxConstraints(maxWidth: 400),
                     child: _buildContextSentence(
                         context, contextSentence, term, appColors),
                   ),
                 ],
+                const Spacer(flex: 3),
               ],
             ),
           ),
@@ -948,21 +894,6 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
           if (collocations != null && collocations.isNotEmpty)
             ...collocations.map((c) =>
                 _buildCollocationItem(c as Map<dynamic, dynamic>, appColors)),
-          if (audio != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 24),
-                child: IconButton(
-                  onPressed: () => _playAudio(audio),
-                  icon: const Icon(Icons.volume_up, size: 28),
-                  color: appColors.primary,
-                  style: IconButton.styleFrom(
-                    backgroundColor: appColors.primary.withValues(alpha: 0.1),
-                    padding: const EdgeInsets.all(16),
-                  ),
-                ),
-              ),
-            ),
         ],
       );
     }

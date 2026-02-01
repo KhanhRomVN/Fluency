@@ -40,7 +40,18 @@ class MainPage extends StatelessWidget {
           currentIndex: navigationShell.currentIndex,
           onTap: (index) {
             if (index == 2) return; // Disable Collection tab
-            navigationShell.goBranch(index);
+
+            // Navigate to root route of each branch to reset navigation stack
+            switch (index) {
+              case 0:
+                context.go('/dashboard');
+              case 1:
+                context.go('/course');
+              case 3:
+                context.go('/setting');
+              default:
+                navigationShell.goBranch(index);
+            }
           },
           selectedItemColor: primaryColor,
           unselectedItemColor: Theme.of(context).unselectedWidgetColor,

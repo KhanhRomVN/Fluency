@@ -1,4 +1,5 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
+import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/domain/entities/quiz_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,6 +8,7 @@ import 'package:intl/intl.dart';
 class QuizResumeDrawer extends StatelessWidget {
   const QuizResumeDrawer({
     required this.lessonTitle,
+    required this.quizzes,
     required this.progressData,
     required this.onContinue,
     required this.onReset,
@@ -16,6 +18,7 @@ class QuizResumeDrawer extends StatelessWidget {
   });
 
   final String lessonTitle;
+  final List<Quiz> quizzes;
   final Map<String, QuizProgress> progressData;
   final VoidCallback onContinue;
   final VoidCallback onReset;
@@ -229,8 +232,10 @@ class QuizResumeDrawer extends StatelessWidget {
               itemCount: progressData.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final progress = progressData.values.elementAt(index);
-                return _buildQuizProgressItem(context, progress, appColors);
+                final quiz = quizzes[index];
+                final progress = progressData[quiz.id];
+                return _buildQuizProgressItem(
+                    context, quiz, progress, appColors);
               },
             ),
           ),
@@ -291,35 +296,67 @@ class QuizResumeDrawer extends StatelessWidget {
 
   Widget _buildQuizProgressItem(
     BuildContext context,
-    QuizProgress progress,
+    Quiz quiz,
+    QuizProgress? progress,
     AppColorsExtension appColors,
   ) {
     final String typeLabel;
     final Color typeColor;
 
-    switch (progress.quizType) {
+    switch (quiz.type) {
       case 'multiple-choice':
         typeLabel = 'MULTIPLE CHOICE';
         typeColor = Colors.blue;
       case 'gap-fill-typing':
-      case 'gap-fill-dropdown':
         typeLabel = 'GAP FILL';
         typeColor = Colors.green;
-      case 'scripted-chat':
-        typeLabel = 'SCRIPTED CHAT';
-        typeColor = Colors.blueAccent;
+      case 'gap-fill-dropdown':
+        typeLabel = 'GAP FILL';
+        typeColor = Colors.lightGreen;
+      case 'matching-dropdown':
+        typeLabel = 'MATCHING';
+        typeColor = Colors.purple;
+      case 'writing-essay':
+        typeLabel = 'WRITING';
+        typeColor = Colors.orange;
+      case 'speaking-essay':
+        typeLabel = 'SPEAKING';
+        typeColor = Colors.pink;
       case 'free-chat':
         typeLabel = 'FREE CHAT';
         typeColor = Colors.cyan;
+      case 'scripted-chat':
+        typeLabel = 'SCRIPTED CHAT';
+        typeColor = Colors.blueAccent;
+      case 'pronunciation-drill':
+        typeLabel = 'PRONUNCIATION';
+        typeColor = Colors.teal;
+      case 'dictation-audio':
+        typeLabel = 'DICTATION';
+        typeColor = Colors.pink;
+      case 'builder':
+        typeLabel = 'BUILDER';
+        typeColor = Colors.amber;
+      case 'sentence-transformation':
+        typeLabel = 'TRANSFORMATION';
+        typeColor = Colors.deepOrange;
+      case 'error-correction':
+        typeLabel = 'ERROR CORRECTION';
+        typeColor = Colors.redAccent;
+      case 'flashcard':
+        typeLabel = 'FLASHCARD';
+        typeColor = Colors.indigo;
+      case 'speech-builder':
+        typeLabel = 'SPEECH BUILDER';
+        typeColor = Colors.blueGrey;
       default:
-        typeLabel = progress.quizType.toUpperCase();
+        typeLabel = 'QUIZ';
         typeColor = Colors.grey;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: appColors.cardBackground,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: appColors.border.withValues(alpha: 0.3),
@@ -331,9 +368,10 @@ class QuizResumeDrawer extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Type badge
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
+                    horizontal: 6,
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
@@ -348,56 +386,89 @@ class QuizResumeDrawer extends StatelessWidget {
                     typeLabel,
                     style: TextStyle(
                       color: typeColor,
-                      fontSize: 8,
+                      fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
+                // Quiz title
                 Text(
-                  '${progress.completedItems}/${progress.totalItems} items',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  quiz.title.isNotEmpty
+                      ? quiz.title
+                      : quiz.question.isNotEmpty
+                          ? quiz.question
+                          : 'Untitled Question',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: appColors.textPrimary,
                         fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                        height: 1.3,
                       ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  value: progress.completedItems / progress.totalItems,
-                  backgroundColor: Colors.grey.withValues(alpha: 0.12),
-                  color: Colors.redAccent,
-                  strokeWidth: 2.5,
+          const SizedBox(width: 12),
+          // Progress Circle
+          if (progress != null)
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    value: progress.completedItems / progress.totalItems,
+                    backgroundColor: Colors.grey.withValues(alpha: 0.12),
+                    color: Colors.redAccent,
+                    strokeWidth: 2.5,
+                  ),
+                ),
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    value: progress.correctItems / progress.totalItems,
+                    backgroundColor: Colors.transparent,
+                    color: Colors.green,
+                    strokeWidth: 2.5,
+                  ),
+                ),
+                Text(
+                  '${progress.progressPercentage.round()}%',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: typeColor,
+                        fontSize: 9,
+                      ),
+                ),
+              ],
+            )
+          else
+            // No progress yet
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  width: 2,
                 ),
               ),
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  value: progress.correctItems / progress.totalItems,
-                  backgroundColor: Colors.transparent,
-                  color: Colors.green,
-                  strokeWidth: 2.5,
+              child: Center(
+                child: Text(
+                  '0%',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
-              Text(
-                '${progress.progressPercentage.round()}%',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: typeColor,
-                      fontSize: 9,
-                    ),
-              ),
-            ],
-          ),
+            ),
         ],
       ),
     );

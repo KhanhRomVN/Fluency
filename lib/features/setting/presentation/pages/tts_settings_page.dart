@@ -32,7 +32,7 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
   final List<PiperModelInfo> _availablePiperModels = [
     // US English Voices
     PiperModelInfo(
-        name: 'Arctic (Female, US)',
+        name: 'Arctic (Male, US)',
         code: 'en_US-arctic-medium',
         url:
             'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-arctic-medium.tar.bz2',
@@ -88,13 +88,6 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
         configUrl: '',
         size: '77 MB'),
     PiperModelInfo(
-        name: 'L2 Arctic (Female, US)',
-        code: 'en_US-l2arctic-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-l2arctic-medium.tar.bz2',
-        configUrl: '',
-        size: '77 MB'),
-    PiperModelInfo(
         name: 'Lessac (Female, US)',
         code: 'en_US-lessac-medium',
         url:
@@ -130,20 +123,6 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
             'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alan-medium.tar.bz2',
         configUrl: '',
         size: '65 MB'),
-    PiperModelInfo(
-        name: 'Alba (Female, British)',
-        code: 'en_GB-alba-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alba-medium.tar.bz2',
-        configUrl: '',
-        size: '65 MB'),
-    PiperModelInfo(
-        name: 'Aru (Female, British)',
-        code: 'en_GB-aru-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-aru-medium.tar.bz2',
-        configUrl: '',
-        size: '77 MB'),
     PiperModelInfo(
         name: 'Cori (Female, British)',
         code: 'en_GB-cori-medium',
@@ -192,15 +171,12 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
       'en_US-john-medium': 'assets/images/voice_avatars/john.png',
       'en_US-kristin-medium': 'assets/images/voice_avatars/kristin.png',
       'en_US-kusal-medium': 'assets/images/voice_avatars/kusal.png',
-      'en_US-l2arctic-medium': 'assets/images/voice_avatars/l2arctic.png',
       'en_US-lessac-medium': 'assets/images/voice_avatars/lessac.png',
       'en_US-ljspeech-medium': 'assets/images/voice_avatars/ljspeech.png',
       'en_US-norman-medium': 'assets/images/voice_avatars/norman.png',
       'en_US-ryan-medium': 'assets/images/voice_avatars/ryan.png',
       // British English voices
       'en_GB-alan-medium': 'assets/images/voice_avatars/alan.png',
-      'en_GB-alba-medium': 'assets/images/voice_avatars/alba.png',
-      'en_GB-aru-medium': 'assets/images/voice_avatars/aru.png',
       'en_GB-cori-medium': 'assets/images/voice_avatars/cori.png',
     };
     return avatarMap[code];
@@ -209,7 +185,15 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _initService();
+    // Load engine from provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ttsProvider = context.read<TtsProvider>();
+      setState(() {
+        _activeEngine = ttsProvider.activeEngine;
+        _activeTtsService = ttsProvider.ttsService;
+        _selectedPiperModel = ttsProvider.selectedPiperModel;
+      });
+    });
   }
 
   Future<void> _initService() async {
@@ -254,21 +238,13 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
   Future<void> _switchEngine(String engine) async {
     if (_activeEngine == engine) return;
 
-    _activeTtsService?.dispose();
+    final ttsProvider = context.read<TtsProvider>();
+    await ttsProvider.setEngine(engine);
+
     _activeEngine = engine;
+    _activeTtsService = ttsProvider.ttsService;
 
-    // Auto-select first available model for Piper if none selected
-    if (engine == 'Piper' && _selectedPiperModel == null) {
-      // Check availability
-      for (var model in _availablePiperModels) {
-        if (await _isModelDownloaded(model)) {
-          _selectedPiperModel = await _getLocalModelPath(model);
-          break;
-        }
-      }
-    }
-
-    await _initService();
+    setState(() {});
   }
 
   Future<bool> _isModelDownloaded(PiperModelInfo model) async {
@@ -410,6 +386,7 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
         final name = m.name.toLowerCase();
         final code = m.code.toLowerCase();
         return name.contains('male') ||
+            code.contains('arctic') ||
             code.contains('bryce') ||
             code.contains('joe') ||
             code.contains('john') ||
@@ -426,18 +403,45 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
         final name = m.name.toLowerCase();
         final code = m.code.toLowerCase();
         return name.contains('female') ||
-            code.contains('arctic') ||
             code.contains('kristin') ||
-            code.contains('l2arctic') ||
             code.contains('lessac') ||
             code.contains('ljspeech') ||
-            code.contains('alba') ||
-            code.contains('aru') ||
             code.contains('cori') ||
             code.contains('jenny_dioco') ||
             code.contains('southern_english_female') ||
             code.contains('hfc_female');
       }).toList();
+
+  bool _isMaleVoice(PiperModelInfo model) {
+    final name = model.name.toLowerCase();
+    final code = model.code.toLowerCase();
+
+    // Check for explicit female indicators first
+    if (name.contains('female') ||
+        code.contains('kristin') ||
+        code.contains('lessac') ||
+        code.contains('ljspeech') ||
+        code.contains('cori') ||
+        code.contains('jenny_dioco') ||
+        code.contains('southern_english_female') ||
+        code.contains('hfc_female')) {
+      return false;
+    }
+
+    // Then check for male indicators
+    return name.contains('male') ||
+        code.contains('arctic') ||
+        code.contains('bryce') ||
+        code.contains('joe') ||
+        code.contains('john') ||
+        code.contains('kusal') ||
+        code.contains('norman') ||
+        code.contains('ryan') ||
+        code.contains('alan') ||
+        code.contains('northern_english_male') ||
+        code.contains('southern_english_male') ||
+        code.contains('hfc_male');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -533,42 +537,12 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
               ),
             ),
 
-            // Default Voice Selection (only if Piper selected)
-            if (_activeEngine == 'Piper') ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
-                  child: Text(
-                    'Default Voices',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colors.textPrimary,
-                        ),
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Column(
-                    children: [
-                      _buildDefaultVoiceSelector(
-                          'Male', _maleVoices, colors, primary),
-                      const SizedBox(height: 12),
-                      _buildDefaultVoiceSelector(
-                          'Female', _femaleVoices, colors, primary),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-
             // Voice Sections (only if Piper selected)
             if (_activeEngine == 'Piper') ...[
               // US English Section
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
                   child: Text(
                     'US English',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -699,28 +673,29 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
         final isSelected = _selectedPiperModel != null &&
             _selectedPiperModel!.contains(model.code);
         final avatarPath = _getAvatarPath(model.code);
+        final isMale = _isMaleVoice(model);
+        final genderColor = isMale ? Colors.blue : Colors.pink;
+        final ttsProvider = context.watch<TtsProvider>();
+        final isDefaultVoice = isMale
+            ? ttsProvider.defaultMaleVoice == model.code
+            : ttsProvider.defaultFemaleVoice == model.code;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            color: colors.cardBackground,
             borderRadius: BorderRadius.circular(12),
-            border: isSelected ? Border.all(color: primary, width: 2) : null,
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: primary.withOpacity(0.15),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    )
-                  ],
+            border: Border.all(
+              color:
+                  isDefaultVoice ? genderColor : colors.border.withOpacity(0.3),
+              width: isDefaultVoice ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              )
+            ],
           ),
           child: ListTile(
             contentPadding:
@@ -795,6 +770,19 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Gender icon
+                SvgPicture.string(
+                  isMale
+                      ? '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars-icon lucide-mars"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>'''
+                      : '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-venus-icon lucide-venus"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>''',
+                  width: 20,
+                  height: 20,
+                  colorFilter: ColorFilter.mode(
+                    genderColor,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 if (isDownloading)
                   SizedBox(
                     width: 20,
@@ -832,6 +820,14 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
                   _selectedPiperModel = modelPath;
                 });
                 await _initService();
+
+                // Set as default voice for gender
+                if (isMale) {
+                  ttsProvider.setDefaultMaleVoice(model.code);
+                } else {
+                  ttsProvider.setDefaultFemaleVoice(model.code);
+                }
+
                 // Auto-speak to preview voice
                 _activeTtsService
                     ?.speak('Hello, this is ${model.name.split(' ')[0]}');

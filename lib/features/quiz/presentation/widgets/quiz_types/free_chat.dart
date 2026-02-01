@@ -227,7 +227,8 @@ class _FreeChatState extends State<FreeChat> {
     try {
       final ttsProvider = context.read<TtsProvider>();
       if (ttsProvider.isInitialized && text.isNotEmpty) {
-        await ttsProvider.ttsService?.speak(text);
+        // Use male voice as default since gender cannot be determined
+        await ttsProvider.speakWithGender(text, gender: 'male');
       }
     } catch (e) {
       debugPrint('TTS Error: $e');

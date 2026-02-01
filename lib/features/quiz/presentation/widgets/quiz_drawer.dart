@@ -265,8 +265,8 @@ class QuizDrawer extends StatelessWidget {
     if (progress == null) {
       // No progress yet
       return Container(
-        width: 36,
-        height: 36,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
@@ -294,8 +294,8 @@ class QuizDrawer extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         SizedBox(
-          width: 36,
-          height: 36,
+          width: 32,
+          height: 32,
           child: CircularProgressIndicator(
             value: progressValue,
             backgroundColor: Colors.grey.withValues(alpha: 0.12),
@@ -304,8 +304,8 @@ class QuizDrawer extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 36,
-          height: 36,
+          width: 32,
+          height: 32,
           child: CircularProgressIndicator(
             value: progress.correctItems / progress.totalItems,
             backgroundColor: Colors.transparent,

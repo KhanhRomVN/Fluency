@@ -18,7 +18,8 @@ class GapFillTyping extends StatefulWidget {
     this.onShowExplain,
     this.hasAudio = false,
     this.onWordLongPress,
-    this.onNext, // Support for next action if needed
+    this.onNext,
+    this.onPrev,
     super.key,
   });
 
@@ -33,6 +34,7 @@ class GapFillTyping extends StatefulWidget {
   final bool hasAudio;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
 
   @override
   State<GapFillTyping> createState() => _GapFillTypingState();
@@ -44,9 +46,13 @@ class _GapFillTypingState extends State<GapFillTyping> {
   bool _isChecked = false;
   bool _areAllGapsFilled = false;
 
+  // Animation variables
+  late PageController _pageController;
+
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _parseGaps();
 
     // Load saved progress
@@ -124,6 +130,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
     for (final controller in _controllers.values) {
       controller.dispose();
     }
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -142,47 +149,64 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
             // 2. Question Card (Takes remaining space)
             Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Theme(
-                            data: Theme.of(context).copyWith(
-                              textTheme: Theme.of(context).textTheme.copyWith(
-                                    bodyMedium: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontSize: 16),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is OverscrollNotification) {
+                    if (notification.overscroll < 0) {
+                      widget.onPrev?.call();
+                    } else if (notification.overscroll > 0) {
+                      widget.onNext?.call();
+                    }
+                  }
+                  return false;
+                },
+                child: PageView(
+                  controller: _pageController,
+                  physics: const ClampingScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: CustomPaint(
+                          painter: _DashedBorderPainter(
+                            color: borderColor,
+                            strokeWidth: 2,
+                            gap: 4,
+                            borderRadius: 12,
+                          ),
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Theme(
+                                  data: Theme.of(context).copyWith(
+                                    textTheme:
+                                        Theme.of(context).textTheme.copyWith(
+                                              bodyMedium: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(fontSize: 16),
+                                            ),
                                   ),
-                            ),
-                            child: Builder(
-                              builder: _buildContent,
+                                  child: Builder(
+                                    builder: _buildContent,
+                                  ),
+                                ),
+                                // Spacing at bottom for scrolling past floating button
+                                const SizedBox(height: 80),
+                              ],
                             ),
                           ),
-                          // Spacing at bottom for scrolling past floating button
-                          const SizedBox(height: 80),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -225,28 +249,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
       );
     }
 
-    // Next Button: Show when checked AND onNext is provided (optional, based on GapFillTyping.tsx logic)
-    // The previous implementation didn't strictly have a "Next" button inside GapFill,
-    // likely relying on the parent or just staying in checked state.
-    // However, the React code shows a "Next question" button.
-    // We will support it if onNext is passed, basically acting as a "Finish" or "Next" trigger.
-    if (_isChecked && widget.onNext != null) {
-      return ElevatedButton.icon(
-        onPressed: widget.onNext,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 4,
-        ),
-        icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text(
-          'Next question',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
-    }
+    return const SizedBox.shrink();
 
     return const SizedBox.shrink();
   }

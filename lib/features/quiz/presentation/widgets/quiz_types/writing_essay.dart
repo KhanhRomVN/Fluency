@@ -1,7 +1,6 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,6 +14,7 @@ class WritingEssay extends StatefulWidget {
     this.onWordLongPress,
     this.onCheck,
     this.onNext,
+    this.onPrev,
   });
 
   final Quiz quiz;
@@ -23,6 +23,7 @@ class WritingEssay extends StatefulWidget {
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
 
   @override
   State<WritingEssay> createState() => _WritingEssayState();
@@ -33,9 +34,12 @@ class _WritingEssayState extends State<WritingEssay> {
   int _wordCount = 0;
   bool _submitted = false;
 
+  late PageController _pageController;
+
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _controller.addListener(_updateWordCount);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProgress();
@@ -93,6 +97,7 @@ class _WritingEssayState extends State<WritingEssay> {
     _controller
       ..removeListener(_updateWordCount)
       ..dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -119,169 +124,176 @@ class _WritingEssayState extends State<WritingEssay> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // Main Content
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Question Display
-                  if (widget.quiz.question.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: RichTextParser.buildRichText(
-                          context,
-                          widget.quiz.question,
-                          onWordLongPress: widget.onWordLongPress,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.normal,
-                            color: appColors.textPrimary,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Expanded Input Card
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: appColors.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _controller,
-                              enabled: !_submitted,
-                              expands: true,
-                              maxLines: null,
-                              textAlignVertical: TextAlignVertical.top,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is OverscrollNotification) {
+            if (notification.overscroll < 0) {
+              widget.onPrev?.call();
+            } else if (notification.overscroll > 0) {
+              if (_submitted) {
+                widget.onCheck?.call();
+                widget.onNext?.call();
+              }
+            }
+          }
+          return false;
+        },
+        child: PageView(
+          controller: _pageController,
+          physics: const ClampingScrollPhysics(),
+          children: [
+            Stack(
+              children: [
+                // Main Content
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Instruction
+                        if (widget.quiz.instruction.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: RichTextParser.buildRichText(
+                              context,
+                              widget.quiz.instruction,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: appColors.textPrimary,
                                 height: 1.5,
                               ),
-                              decoration: InputDecoration(
-                                hintText: 'Type your essay here...',
-                                hintStyle: TextStyle(
-                                  color: appColors.textSecondary
-                                      .withValues(alpha: 0.7),
+                              onWordLongPress: widget.onWordLongPress,
+                            ).first,
+                          ),
+
+                        // Input Card
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: appColors.border),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
-                                filled: true,
-                                fillColor: Colors.transparent,
-                                contentPadding: EdgeInsets.zero,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                              ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _controller,
+                                    onChanged: (val) => _updateWordCount(),
+                                    enabled: !_submitted,
+                                    maxLines: null,
+                                    expands: true,
+                                    textAlignVertical: TextAlignVertical.top,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: appColors.textPrimary,
+                                      height: 1.5,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Type your essay here...',
+                                      hintStyle: TextStyle(
+                                        color: appColors.textSecondary
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                      border: InputBorder.none,
+                                    ),
+                                  ),
+                                ),
+                                const Divider(),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Words: $_wordCount',
+                                        style: TextStyle(
+                                          color: isEnoughWords
+                                              ? Colors.green
+                                              : appColors.textSecondary,
+                                          fontWeight: isEnoughWords
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                      if (minWords > 0)
+                                        Text(
+                                          'Minimum: $minWords',
+                                          style: TextStyle(
+                                            color: appColors.textSecondary,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          // Word Count
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Words: $_wordCount${minWords > 0 ? ' / $minWords' : ''}',
-                                style: TextStyle(
-                                  color: appColors.textSecondary,
-                                  fontWeight: (minWords > 0 && !isEnoughWords)
-                                      ? FontWeight.normal
-                                      : FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                        ),
+                        const SizedBox(
+                            height: 120), // Spacer for bottom buttons
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Bottom Controls
+                Positioned(
+                  bottom: 28,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!_submitted && (minWords == 0 || isEnoughWords))
+                        ElevatedButton.icon(
+                          onPressed: _submit,
+                          icon: const Icon(Icons.check_circle, size: 20),
+                          label: const Text('Submit'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: appColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30)),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      if (_submitted)
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            widget.onCheck?.call();
+                            widget.onNext?.call();
+                          },
+                          icon: const Icon(Icons.check_circle),
+                          label: const Text('Next question'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: appColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30)),
+                          ),
+                        ),
+                    ],
                   ),
-
-                  // Spacer for bottom controls
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          ),
-
-          // Bottom Controls
-          Positioned(
-            bottom: 28,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (!_submitted && (minWords == 0 || isEnoughWords))
-                  ElevatedButton.icon(
-                    onPressed: _submit,
-                    icon: const Icon(Icons.check_circle, size: 20),
-                    label: const Text('Submit'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                  )
-                else if (_submitted)
-                  // Finished State / Next
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      widget.onCheck?.call();
-                      widget.onNext?.call();
-                    },
-                    icon: const Icon(Icons.check_circle),
-                    label: const Text('Next question'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                  ),
+                ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

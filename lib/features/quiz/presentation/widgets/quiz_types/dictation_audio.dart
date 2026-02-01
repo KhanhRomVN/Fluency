@@ -14,10 +14,11 @@ class DictationAudio extends StatefulWidget {
     required this.quiz,
     required this.lessonId,
     required this.quizId,
-    super.key,
+    this.onNext,
+    this.onPrev,
     this.onWordLongPress,
     this.onCheck,
-    this.onNext,
+    super.key,
   });
 
   final Quiz quiz;
@@ -26,37 +27,25 @@ class DictationAudio extends StatefulWidget {
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
 
   @override
   State<DictationAudio> createState() => _DictationAudioState();
 }
 
-class _DictationAudioState extends State<DictationAudio>
-    with SingleTickerProviderStateMixin {
+class _DictationAudioState extends State<DictationAudio> {
   int _currentIndex = 0;
   final Map<String, _DictationItemState> _itemStates = {};
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingId;
 
   // Animation variables
-  late AnimationController _animController;
-  double _dragOffset = 0;
-  Animation<double>? _slideAnimation;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _animController.addListener(() {
-      setState(() {
-        if (_slideAnimation != null) {
-          _dragOffset = _slideAnimation!.value;
-        }
-      });
-    });
+    _pageController = PageController(initialPage: _currentIndex);
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (state == PlayerState.completed || state == PlayerState.stopped) {
@@ -126,7 +115,7 @@ class _DictationAudioState extends State<DictationAudio>
     await quizStateProvider.saveQuizProgress(
       lessonId: widget.lessonId,
       quizId: widget.quizId,
-      quizType: widget.quiz.type ?? 'dictation',
+      quizType: widget.quiz.type,
       completedItems: completedItems,
       totalItems: totalItems,
       correctItems: correctItems,
@@ -139,85 +128,16 @@ class _DictationAudioState extends State<DictationAudio>
 
   @override
   void dispose() {
-    _animController.dispose();
+    _pageController.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+  void _onPageChanged(int index) {
     setState(() {
-      _dragOffset += details.primaryDelta!;
+      _currentIndex = index;
     });
-  }
-
-  void _onHorizontalDragEnd(DragEndDetails details) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final velocity = details.primaryVelocity ?? 0;
-    final threshold = screenWidth * 0.25;
-
-    // Check if we should change question
-    var shouldChange = false;
-    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
-
-    if (velocity < -1000 || _dragOffset < -threshold) {
-      if (widget.quiz.dictations != null &&
-          _currentIndex < widget.quiz.dictations!.length - 1) {
-        shouldChange = true;
-        direction = -1;
-      }
-    } else if (velocity > 1000 || _dragOffset > threshold) {
-      if (_currentIndex > 0) {
-        shouldChange = true;
-        direction = 1;
-      }
-    }
-
-    if (shouldChange) {
-      final endX = direction == -1 ? -screenWidth : screenWidth;
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-
-      _animController.forward(from: 0).then((_) {
-        setState(() {
-          if (direction == -1) {
-            _currentIndex++;
-          } else {
-            _currentIndex--;
-          }
-          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
-          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-          );
-          _animController.forward(from: 0);
-          _saveProgress();
-        });
-      });
-    } else {
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-      _animController.forward(from: 0);
-    }
-  }
-
-  void _animateToNextQuestion() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
-
-    _animController.forward(from: 0).then((_) {
-      setState(() {
-        _currentIndex++;
-        _dragOffset = screenWidth;
-        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-        );
-        _animController.forward(from: 0);
-        _saveProgress();
-      });
-    });
+    _saveProgress();
   }
 
   Future<void> _playAudio(DictationItem item) async {
@@ -280,14 +200,6 @@ class _DictationAudioState extends State<DictationAudio>
     });
   }
 
-  void _retryCurrent() {
-    final item = widget.quiz.dictations![_currentIndex];
-    setState(() {
-      _itemStates[item.id] = _DictationItemState();
-      _saveProgress();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -345,403 +257,377 @@ class _DictationAudioState extends State<DictationAudio>
 
         // 2. Card Area
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: GestureDetector(
-              onHorizontalDragUpdate: _onHorizontalDragUpdate,
-              onHorizontalDragEnd: _onHorizontalDragEnd,
-              child: AnimatedBuilder(
-                animation: _animController,
-                builder: (context, child) {
-                  final rotateAngle = _dragOffset * 0.001;
-                  final opacity =
-                      (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
-                  return Transform.translate(
-                    offset: Offset(_dragOffset, 0),
-                    child: Transform.rotate(
-                      angle: rotateAngle,
-                      child: Opacity(opacity: opacity, child: child),
-                    ),
-                  );
-                },
-                child: Stack(
-                  children: [
-                    // Main Card Container
-                    Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: borderColor,
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is OverscrollNotification) {
+                if (notification.overscroll < 0) {
+                  widget.onPrev?.call();
+                } else if (notification.overscroll > 0) {
+                  widget.onNext?.call();
+                }
+              }
+              return false;
+            },
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              physics: const ClampingScrollPhysics(),
+              itemCount: dictations.length,
+              itemBuilder: (context, index) {
+                final item = dictations[index];
+                final state = _itemStates[item.id] ?? _DictationItemState();
+                final correctText = item.transcript ?? item.text ?? '';
+                final words = correctText.trim().split(RegExp(r'\s+'));
+
+                // Check completion
+                var allFilled = true;
+                for (var i = 0; i < words.length; i++) {
+                  final w = words[i];
+                  final input = state.wordInputs[i] ?? '';
+                  if (input.length != w.length) {
+                    allFilled = false;
+                    break;
+                  }
+                }
+
+                return Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  child: Stack(
+                    children: [
+                      // Main Card Container
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Column(
-                          children: [
-                            // HEADER (Matching multiple_choice.dart)
-                            _buildCardHeader(
-                              context,
-                              appColors,
-                              dictations,
-                              currentItem,
-                            ),
-                            Divider(
-                              height: 1,
-                              color: appColors.border.withValues(alpha: 0.5),
-                            ),
+                        child: CustomPaint(
+                          painter: _DashedBorderPainter(
+                            color: borderColor,
+                            strokeWidth: 2,
+                            gap: 4,
+                            borderRadius: 12,
+                          ),
+                          child: Column(
+                            children: [
+                              // HEADER
+                              _buildCardHeader(
+                                context,
+                                appColors,
+                                dictations,
+                                item,
+                                index,
+                              ),
+                              Divider(
+                                height: 1,
+                                color: appColors.border.withValues(alpha: 0.5),
+                              ),
 
-                            // BODY
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  // Speed & Attempt Info (Top Left of Body)
-                                  Positioned(
-                                    top: 16,
-                                    left: 16,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        if (currentItem.speed != null)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              bottom: 4,
-                                            ),
-                                            child: Text(
-                                              'Speed: ${currentItem.speed}x',
-                                              style: TextStyle(
-                                                color: appColors.textSecondary
-                                                    .withValues(alpha: 0.7),
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        Text(
-                                          'Attempt ${currentState.attempts} / 3', // Assuming max 3
-                                          style: TextStyle(
-                                            color: appColors.textSecondary,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Centered Content
-                                  Center(
-                                    child: SingleChildScrollView(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        24,
-                                        60,
-                                        24,
-                                        100,
-                                      ), // Top padding to avoid overlap with info
+                              // BODY
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    // Speed & Attempt Info
+                                    Positioned(
+                                      top: 16,
+                                      left: 16,
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          // Score
-                                          if (currentState.attempts > 0)
+                                          if (item.speed != null)
                                             Padding(
                                               padding: const EdgeInsets.only(
-                                                  bottom: 24),
+                                                bottom: 4,
+                                              ),
                                               child: Text(
-                                                '${currentState.score}%',
+                                                'Speed: ${item.speed}x',
                                                 style: TextStyle(
-                                                  fontSize: 40,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: currentState.score >=
-                                                          80
-                                                      ? Colors.yellow[
-                                                          700] // Match React yellow-500
-                                                      : Colors.red,
+                                                  color: appColors.textSecondary
+                                                      .withValues(alpha: 0.7),
+                                                  fontSize: 12,
                                                 ),
                                               ),
                                             ),
-
-                                          // Word Inputs
-                                          Wrap(
-                                            spacing: 8,
-                                            runSpacing: 16,
-                                            alignment: WrapAlignment.center,
-                                            children: List.generate(
-                                                words.length, (index) {
-                                              final word = words[index];
-                                              final input = currentState
-                                                      .wordInputs[index] ??
-                                                  '';
-
-                                              Color? textColor;
-                                              if (currentState.attempts > 0 ||
-                                                  currentState.passed) {
-                                                // Simple clean match
-                                                final cleanWord = word
-                                                    .replaceAll(
-                                                      RegExp(r'[^\w]'),
-                                                      '',
-                                                    )
-                                                    .toLowerCase();
-                                                final cleanInput = input
-                                                    .replaceAll(
-                                                      RegExp(r'[^\w]'),
-                                                      '',
-                                                    )
-                                                    .toLowerCase();
-                                                if (cleanInput == cleanWord) {
-                                                  textColor = appColors.primary;
-                                                } else {
-                                                  textColor = Colors.red;
-                                                }
-                                              }
-
-                                              return _WordInput(
-                                                index: index,
-                                                correctWord: word,
-                                                currentInput: input,
-                                                textColor: textColor,
-                                                enabled: !currentState.passed,
-                                                appColors: appColors,
-                                                onChanged: (val) {
-                                                  final newInputs =
-                                                      Map<int, String>.from(
-                                                    currentState.wordInputs,
-                                                  );
-                                                  newInputs[index] = val;
-                                                  setState(() {
-                                                    _itemStates[
-                                                            currentItem.id] =
-                                                        currentState.copyWith(
-                                                      wordInputs: newInputs,
-                                                    );
-                                                  });
-                                                },
-                                              );
-                                            }),
+                                          Text(
+                                            'Attempt ${state.attempts} / 3',
+                                            style: TextStyle(
+                                              color: appColors.textSecondary,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
-
-                                          // Reveal Answer
-                                          if (currentState.passed) ...[
-                                            const SizedBox(height: 32),
-                                            Text(
-                                              correctText,
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: appColors.primary,
-                                              ),
-                                            ),
-                                            if (currentItem.ipa != null)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 8),
-                                                child: Text(
-                                                  currentItem.ipa!,
-                                                  style: TextStyle(
-                                                    color: appColors.primary,
-                                                    fontFamily: 'monospace',
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                              ),
-                                            if (currentItem.translate != null)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 8),
-                                                child: Text(
-                                                  currentItem.translate!,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color:
-                                                        appColors.textSecondary,
-                                                    fontStyle: FontStyle.italic,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ),
-                                          ],
                                         ],
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
 
-                    // PLAY BUTTON (Centered at Bottom)
-                    if (!currentState.passed && !allFilled)
-                      Positioned(
-                        bottom: 24,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: GestureDetector(
-                            onTap: () => _playAudio(currentItem),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: _playingId == currentItem.id
-                                    ? Colors.white
-                                    : appColors.primary,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (_playingId == currentItem.id
-                                            ? Colors.red
-                                            : appColors.primary)
-                                        .withValues(alpha: 0.3),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                                border: _playingId == currentItem.id
-                                    ? Border.all(
-                                        color:
-                                            Colors.red.withValues(alpha: 0.3),
-                                        width: 3,
-                                      )
-                                    : null,
+                                    // Centered Content
+                                    Center(
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          24,
+                                          60,
+                                          24,
+                                          100,
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            // Score
+                                            if (state.attempts > 0)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 24),
+                                                child: Text(
+                                                  '${state.score}%',
+                                                  style: TextStyle(
+                                                    fontSize: 40,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: state.score >= 80
+                                                        ? Colors.yellow[700]
+                                                        : Colors.red,
+                                                  ),
+                                                ),
+                                              ),
+
+                                            // Word Inputs
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 16,
+                                              alignment: WrapAlignment.center,
+                                              children: List.generate(
+                                                  words.length, (idx) {
+                                                final word = words[idx];
+                                                final input =
+                                                    state.wordInputs[idx] ?? '';
+
+                                                Color? textColor;
+                                                if (state.attempts > 0 ||
+                                                    state.passed) {
+                                                  final cleanWord = word
+                                                      .replaceAll(
+                                                        RegExp(r'[^\w]'),
+                                                        '',
+                                                      )
+                                                      .toLowerCase();
+                                                  final cleanInput = input
+                                                      .replaceAll(
+                                                        RegExp(r'[^\w]'),
+                                                        '',
+                                                      )
+                                                      .toLowerCase();
+                                                  if (cleanInput == cleanWord) {
+                                                    textColor =
+                                                        appColors.primary;
+                                                  } else {
+                                                    textColor = Colors.red;
+                                                  }
+                                                }
+
+                                                return _WordInput(
+                                                  index: idx,
+                                                  correctWord: word,
+                                                  currentInput: input,
+                                                  textColor: textColor,
+                                                  enabled: !state.passed,
+                                                  appColors: appColors,
+                                                  onChanged: (val) {
+                                                    final newInputs =
+                                                        Map<int, String>.from(
+                                                      state.wordInputs,
+                                                    );
+                                                    newInputs[idx] = val;
+                                                    setState(() {
+                                                      _itemStates[item.id] =
+                                                          state.copyWith(
+                                                        wordInputs: newInputs,
+                                                      );
+                                                    });
+                                                  },
+                                                );
+                                              }),
+                                            ),
+
+                                            // Reveal Answer
+                                            if (state.passed) ...[
+                                              const SizedBox(height: 32),
+                                              Text(
+                                                correctText,
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: appColors.primary,
+                                                ),
+                                              ),
+                                              if (item.ipa != null)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 8),
+                                                  child: Text(
+                                                    item.ipa!,
+                                                    style: TextStyle(
+                                                      color: appColors.primary,
+                                                      fontFamily: 'monospace',
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              if (item.translate != null)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 8),
+                                                  child: Text(
+                                                    item.translate!,
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: appColors
+                                                          .textSecondary,
+                                                      fontStyle:
+                                                          FontStyle.italic,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              child: Icon(
-                                Icons.graphic_eq,
-                                color: _playingId == currentItem.id
-                                    ? Colors.red
-                                    : Colors.white,
-                                size: 24,
-                              ),
-                            ),
+                            ],
                           ),
                         ),
                       ),
 
-                    // ACTION BUTTONS (Bottom Right)
-                    Positioned(
-                      bottom: 24,
-                      right: 24,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!currentState.passed &&
-                              allFilled &&
-                              currentState.attempts < 3)
-                            ElevatedButton.icon(
-                              onPressed: () => _checkAnswer(currentItem),
-                              icon: const Icon(Icons.check, size: 18),
-                              label: Text(
-                                currentState.attempts == 0
-                                    ? 'Check Answer'
-                                    : 'Retry',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: appColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 12.5,
+                      // PLAY BUTTON (Centered at Bottom)
+                      if (!state.passed && !allFilled)
+                        Positioned(
+                          bottom: 24,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () => _playAudio(item),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: _playingId == item.id
+                                      ? Colors.white
+                                      : appColors.primary,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (_playingId == item.id
+                                              ? Colors.red
+                                              : appColors.primary)
+                                          .withValues(alpha: 0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                  border: _playingId == item.id
+                                      ? Border.all(
+                                          color:
+                                              Colors.red.withValues(alpha: 0.3),
+                                          width: 3,
+                                        )
+                                      : null,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
+                                child: Icon(
+                                  Icons.graphic_eq,
+                                  color: _playingId == item.id
+                                      ? Colors.red
+                                      : Colors.white,
+                                  size: 24,
                                 ),
                               ),
                             ),
-                          if (currentState.passed)
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: _retryCurrent,
-                                  child: Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: appColors.buttonSecondBg,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.1),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.refresh,
-                                      color: appColors.textSecondary,
-                                      size: 20,
-                                    ),
+                          ),
+                        ),
+
+                      // ACTION BUTTONS (Bottom Right)
+                      Positioned(
+                        bottom: 24,
+                        right: 24,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!state.passed &&
+                                allFilled &&
+                                state.attempts < 3)
+                              ElevatedButton.icon(
+                                onPressed: () => _checkAnswer(item),
+                                icon: const Icon(Icons.check, size: 16),
+                                label: Text(
+                                  state.attempts == 0
+                                      ? 'Check Answer'
+                                      : 'Retry',
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: appColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
                                   ),
                                 ),
-                                const SizedBox(width: 16),
-                                if (_currentIndex < dictations.length - 1)
+                              ),
+                            if (state.passed)
+                              Row(
+                                children: [
                                   GestureDetector(
-                                    onTap: _animateToNextQuestion,
+                                    onTap: () {
+                                      setState(() {
+                                        _itemStates[item.id] =
+                                            _DictationItemState();
+                                        _saveProgress();
+                                      });
+                                    },
                                     child: Container(
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: appColors.primary,
+                                        color: appColors.buttonSecondBg,
                                         shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: appColors.primary
-                                                .withValues(alpha: 0.3),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.1),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
-                                      child: const Icon(
-                                        Icons.arrow_forward_ios_rounded,
-                                        color: Colors.white,
+                                      child: Icon(
+                                        Icons.refresh,
+                                        color: appColors.textSecondary,
                                         size: 20,
                                       ),
                                     ),
-                                  )
-                                else if (widget.onNext != null)
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      widget.onCheck?.call();
-                                      widget.onNext?.call();
-                                    },
-                                    icon: const Icon(Icons.arrow_forward,
-                                        size: 18),
-                                    label: const Text(
-                                      'Next question',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: appColors.primary,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                        vertical: 12.5,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(24),
-                                      ),
-                                    ),
                                   ),
-                              ],
-                            ),
-                        ],
+                                  const SizedBox(width: 16),
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -755,6 +641,7 @@ class _DictationAudioState extends State<DictationAudio>
     AppColorsExtension appColors,
     List<DictationItem> items,
     DictationItem currentItem,
+    int index,
   ) {
     // Calculate total completed
     // We can count based on our _itemStates passed status
@@ -766,7 +653,7 @@ class _DictationAudioState extends State<DictationAudio>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            '${_currentIndex + 1} / ${items.length}',
+            '${index + 1} / ${items.length}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,

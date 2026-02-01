@@ -10,10 +10,11 @@ class MatchingDropdown extends StatefulWidget {
     required this.quiz,
     required this.lessonId,
     required this.onCheck,
-    super.key,
+    this.onNext,
+    this.onPrev,
     this.onShowExplain,
     this.onWordLongPress,
-    this.onNext,
+    super.key,
   });
 
   final Quiz quiz;
@@ -22,36 +23,24 @@ class MatchingDropdown extends StatefulWidget {
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
 
   @override
   State<MatchingDropdown> createState() => _MatchingDropdownState();
 }
 
-class _MatchingDropdownState extends State<MatchingDropdown>
-    with SingleTickerProviderStateMixin {
+class _MatchingDropdownState extends State<MatchingDropdown> {
   Map<String, String> _selectedAnswers = {};
   bool _isChecked = false;
 
   // Animation variables
-  late AnimationController _animController;
-  double _dragOffset = 0;
-  Animation<double>? _slideAnimation;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     _resetAnswers();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _animController.addListener(() {
-      setState(() {
-        if (_slideAnimation != null) {
-          _dragOffset = _slideAnimation!.value;
-        }
-      });
-    });
+    _pageController = PageController();
 
     // Load saved progress
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,7 +50,7 @@ class _MatchingDropdownState extends State<MatchingDropdown>
 
   @override
   void dispose() {
-    _animController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -86,87 +75,11 @@ class _MatchingDropdownState extends State<MatchingDropdown>
     }
   }
 
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
-    setState(() {
-      _dragOffset += details.primaryDelta!;
-    });
-  }
-
-  void _onHorizontalDragEnd(DragEndDetails details) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final velocity = details.primaryVelocity ?? 0;
-    final threshold = screenWidth * 0.25;
-
-    // MatchingDropdown might handle "Next" via button usually,
-    // but we can add swipe to next if it makes sense contextually.
-    // However, usually swipe to next happens after check.
-    // If not checked, maybe prevent swipe or just partial logic?
-    // Let's assume standard behavior: swipe changes question if applicable?
-    // MatchingDropdown seems to be ONE question (the quiz has list of matching items).
-    // But `quiz.matchings` is a list, displayed in a listview.
-    // The widget `MatchingDropdown` usually represents ONE Quiz item which contains multiple matchings.
-    // The `onNext` callback suggests there is a parent controller moving to next quiz.
-    // So swipe left -> should trigger onNext if finished?
-
-    // Logic:
-    // Swipe Left (Next):
-    //   If Checked -> trigger onNext
-    //   If Not Checked -> maybe nothing (require check first?) OR if all answered, trigger check?
-    // Swipe Right (Prev):
-    //   Usually no prev action defined in callbacks (only onNext), so maybe just bounce back?
-
-    // Let's implement:
-    // Swipe Left: If Checked -> Next.
-
-    var shouldChange = false;
-    // Only support Next via swipe if checked?
-    // Or if user insists.
-    // Given the button logic:
-    // If All Answered & !Checked -> Check
-    // If Checked -> Next
-
-    if (velocity < -1000 || _dragOffset < -threshold) {
-      // Swipe Left
-      if (_isChecked && widget.onNext != null) {
-        shouldChange = true;
-      }
-    }
-
-    if (shouldChange) {
-      final endX = -screenWidth;
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-
-      _animController.forward(from: 0).then((_) {
-        // Trigger generic next
-        widget.onNext?.call();
-        // Reset (though widget might be replaced/rebuilt)
-        setState(() {
-          _dragOffset = 0; // If we stay on same widget instance for next quiz?
-          // If widget is replaced, this doesn't matter much.
-        });
-      });
-    } else {
-      // Snap back
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-      _animController.forward(from: 0);
-    }
-  }
-
   @override
   void didUpdateWidget(MatchingDropdown oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.quiz.id != widget.quiz.id) {
       _resetAnswers();
-      // Slide in animation?
-      _dragOffset = MediaQuery.of(context).size.width;
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-      _animController.forward(from: 0);
     }
   }
 
@@ -223,57 +136,56 @@ class _MatchingDropdownState extends State<MatchingDropdown>
 
             // Dashed Border Card
             Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: GestureDetector(
-                  onHorizontalDragUpdate: _onHorizontalDragUpdate,
-                  onHorizontalDragEnd: _onHorizontalDragEnd,
-                  child: AnimatedBuilder(
-                    animation: _animController,
-                    builder: (context, child) {
-                      final rotateAngle = _dragOffset * 0.001;
-                      final opacity =
-                          (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
-                      return Transform.translate(
-                        offset: Offset(_dragOffset, 0),
-                        child: Transform.rotate(
-                          angle: rotateAngle,
-                          child: Opacity(opacity: opacity, child: child),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is OverscrollNotification) {
+                    if (notification.overscroll < 0) {
+                      widget.onPrev?.call();
+                    } else if (notification.overscroll > 0) {
+                      widget.onNext?.call();
+                    }
+                  }
+                  return false;
+                },
+                child: PageView(
+                  controller: _pageController,
+                  physics: const ClampingScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                      child: Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: borderColor,
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
-                        ),
-                        child: ListView(
-                          padding: const EdgeInsets.all(24),
-                          children: [
-                            ...matchings.map((matching) {
-                              return _buildMatchingRow(
-                                context,
-                                matching,
-                                appColors,
-                              );
-                            }),
-                            // Provide space for floating buttons
-                            const SizedBox(height: 80),
-                          ],
+                        child: CustomPaint(
+                          painter: _DashedBorderPainter(
+                            color: borderColor,
+                            strokeWidth: 2,
+                            gap: 4,
+                            borderRadius: 12,
+                          ),
+                          child: ListView(
+                            padding: const EdgeInsets.all(24),
+                            children: [
+                              ...matchings.map((matching) {
+                                return _buildMatchingRow(
+                                  context,
+                                  matching,
+                                  appColors,
+                                );
+                              }),
+                              // Provide space for floating buttons
+                              const SizedBox(height: 80),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -303,31 +215,13 @@ class _MatchingDropdownState extends State<MatchingDropdown>
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 4,
+          elevation: 0,
         ),
-        icon: const Icon(Icons.check, size: 18),
+        icon: const Icon(Icons.check, size: 16),
         label: const Text(
           'Check answers',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
-    }
-
-    if (_isChecked && widget.onNext != null) {
-      return ElevatedButton.icon(
-        onPressed: widget.onNext,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 4,
-        ),
-        icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text(
-          'Next question',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       );

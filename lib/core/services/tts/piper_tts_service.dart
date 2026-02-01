@@ -103,8 +103,23 @@ class PiperTtsService implements TtsService {
       // 2. Save to WAV
       final wavPath = await _saveToWav(generated.samples, generated.sampleRate);
 
-      // 3. Play
+      // 3. Play and wait for completion
+      final completer = Completer<void>();
+      StreamSubscription? subscription;
+
+      subscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+        if (state == PlayerState.completed || state == PlayerState.stopped) {
+          subscription?.cancel();
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        }
+      });
+
       await _audioPlayer.play(DeviceFileSource(wavPath));
+
+      // Wait for playback to complete
+      await completer.future;
     } catch (e) {
       debugPrint('Error speaking with Piper: $e');
       _stateController.add(TtsState.stopped);

@@ -655,6 +655,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           builder: (context) {
             return QuizResumeDrawer(
               lessonTitle: lesson.title,
+              quizzes: lesson.quizzes,
               progressData: progressData,
               overallPercentage: overallPercentage,
               totalQuestions: totalQuestions,
@@ -666,7 +667,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                 );
               },
               onReset: () async {
-                // Clear lesson progress
                 await quizStateProvider.clearLessonProgress(lesson.id);
                 if (context.mounted) {
                   Navigator.pop(context);

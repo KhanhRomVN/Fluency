@@ -17,6 +17,7 @@ class GapFillDropdown extends StatefulWidget {
     this.onShowExplain,
     this.onWordLongPress,
     this.onNext,
+    this.onPrev,
     super.key,
   });
 
@@ -30,6 +31,7 @@ class GapFillDropdown extends StatefulWidget {
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
 
   @override
   State<GapFillDropdown> createState() => _GapFillDropdownState();
@@ -41,9 +43,13 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
   bool _isChecked = false;
   bool _areAllGapsFilled = false;
 
+  // Animation variables
+  late PageController _pageController;
+
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _initializeSelections();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -122,6 +128,12 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
     }
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _initializeSelections() {
     _selections.clear();
     final regex = RegExp("</gap id='(.*?)'>");
@@ -157,46 +169,65 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
           children: [
             // Question Card
             Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Theme(
-                            data: Theme.of(context).copyWith(
-                              textTheme: Theme.of(context).textTheme.copyWith(
-                                    bodyMedium: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontSize: 16),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is OverscrollNotification) {
+                    if (notification.overscroll < 0) {
+                      widget.onPrev?.call();
+                    } else if (notification.overscroll > 0) {
+                      widget.onNext?.call();
+                    }
+                  }
+                  return false;
+                },
+                child: PageView(
+                  controller: _pageController,
+                  physics: const ClampingScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
+                      child: Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: CustomPaint(
+                          painter: _DashedBorderPainter(
+                            color: borderColor,
+                            strokeWidth: 2,
+                            gap: 4,
+                            borderRadius: 12,
+                          ),
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Theme(
+                                  data: Theme.of(context).copyWith(
+                                    textTheme:
+                                        Theme.of(context).textTheme.copyWith(
+                                              bodyMedium: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(fontSize: 16),
+                                            ),
                                   ),
-                            ),
-                            child: Builder(
-                              builder: _buildContent,
+                                  child: Builder(
+                                    builder: _buildContent,
+                                  ),
+                                ),
+                                const SizedBox(height: 80),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 80),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -226,11 +257,11 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 4,
+          elevation: 0,
         ),
-        icon: const Icon(Icons.check, size: 18),
+        icon: const Icon(Icons.check, size: 16),
         label: const Text(
           'Check answers',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -238,23 +269,7 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
       );
     }
 
-    if (_isChecked && widget.onNext != null) {
-      return ElevatedButton.icon(
-        onPressed: widget.onNext,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 4,
-        ),
-        icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text(
-          'Next question',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
-    }
+    return const SizedBox.shrink();
 
     return const SizedBox.shrink();
   }

@@ -10,10 +10,11 @@ class SentenceTransformation extends StatefulWidget {
     required this.quiz,
     required this.lessonId,
     required this.quizId,
-    super.key,
+    this.onNext,
+    this.onPrev,
     this.onShowExplain,
     this.onWordLongPress,
-    this.onNext,
+    super.key,
   });
 
   final Quiz quiz;
@@ -22,37 +23,25 @@ class SentenceTransformation extends StatefulWidget {
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
 
   @override
   State<SentenceTransformation> createState() => _SentenceTransformationState();
 }
 
-class _SentenceTransformationState extends State<SentenceTransformation>
-    with SingleTickerProviderStateMixin {
+class _SentenceTransformationState extends State<SentenceTransformation> {
   int _currentIndex = 0;
 
   // Map<ItemID, CardState>
   final Map<String, _CardState> _cardStates = {};
 
   // Animation variables
-  late AnimationController _animController;
-  double _dragOffset = 0;
-  Animation<double>? _slideAnimation;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _animController.addListener(() {
-      setState(() {
-        if (_slideAnimation != null) {
-          _dragOffset = _slideAnimation!.value;
-        }
-      });
-    });
+    _pageController = PageController(initialPage: _currentIndex);
 
     // Load saved progress
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -110,7 +99,7 @@ class _SentenceTransformationState extends State<SentenceTransformation>
     await quizStateProvider.saveQuizProgress(
       lessonId: widget.lessonId,
       quizId: widget.quizId,
-      quizType: widget.quiz.type ?? 'sentence-transformation',
+      quizType: widget.quiz.type,
       completedItems: completedItems,
       totalItems: totalItems,
       correctItems: correctItems,
@@ -123,84 +112,25 @@ class _SentenceTransformationState extends State<SentenceTransformation>
 
   @override
   void dispose() {
-    _animController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+  void _onPageChanged(int index) {
     setState(() {
-      _dragOffset += details.primaryDelta!;
+      _currentIndex = index;
     });
-  }
-
-  void _onHorizontalDragEnd(DragEndDetails details) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final velocity = details.primaryVelocity ?? 0;
-    final threshold = screenWidth * 0.25;
-
-    // Check if we should change question
-    var shouldChange = false;
-    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
-
-    if (velocity < -1000 || _dragOffset < -threshold) {
-      if (widget.quiz.sentenceTransformations != null &&
-          _currentIndex < widget.quiz.sentenceTransformations!.length - 1) {
-        shouldChange = true;
-        direction = -1;
-      }
-    } else if (velocity > 1000 || _dragOffset > threshold) {
-      if (_currentIndex > 0) {
-        shouldChange = true;
-        direction = 1;
-      }
-    }
-
-    if (shouldChange) {
-      final endX = direction == -1 ? -screenWidth : screenWidth;
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-
-      _animController.forward(from: 0).then((_) {
-        setState(() {
-          if (direction == -1) {
-            _currentIndex++;
-          } else {
-            _currentIndex--;
-          }
-          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
-          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-          );
-          _animController.forward(from: 0);
-          _saveProgress();
-        });
-      });
-    } else {
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-      _animController.forward(from: 0);
-    }
+    _saveProgress();
   }
 
   void _animateToNextQuestion() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
-
-    _animController.forward(from: 0).then((_) {
-      setState(() {
-        _currentIndex++;
-        _dragOffset = screenWidth;
-        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-        );
-        _animController.forward(from: 0);
-        _saveProgress();
-      });
-    });
+    if (_currentIndex <
+        (widget.quiz.sentenceTransformations?.length ?? 0) - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   SentenceTransformationItem? get _currentItem {
@@ -318,225 +248,156 @@ class _SentenceTransformationState extends State<SentenceTransformation>
     final currentItem = _currentItem!;
     final currentState = _currentState;
 
-    return Stack(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Instruction
-            if (widget.quiz.instruction.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: DefaultTextStyle(
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 16),
-                  child: Text.rich(
-                    TextSpan(
-                      children: RichTextParser.buildTextSpans(
-                        context,
-                        widget.quiz.instruction,
-                        onWordLongPress: widget.onWordLongPress,
-                      ),
-                    ),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is OverscrollNotification) {
+          if (notification.overscroll < 0) {
+            widget.onPrev?.call();
+          } else if (notification.overscroll > 0) {
+            widget.onNext?.call();
+          }
+        }
+        return false;
+      },
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const ClampingScrollPhysics(),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final state = _cardStates[item.id] ?? _CardState();
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-              ),
-
-            // Dashed Border Card
-            Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: GestureDetector(
-                  onHorizontalDragUpdate: _onHorizontalDragUpdate,
-                  onHorizontalDragEnd: _onHorizontalDragEnd,
-                  child: AnimatedBuilder(
-                    animation: _animController,
-                    builder: (context, child) {
-                      final rotateAngle = _dragOffset * 0.001;
-                      final opacity =
-                          (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
-                      return Transform.translate(
-                        offset: Offset(_dragOffset, 0),
-                        child: Transform.rotate(
-                          angle: rotateAngle,
-                          child: Opacity(opacity: opacity, child: child),
+                  child: CustomPaint(
+                    painter: _DashedBorderPainter(
+                      color: borderColor,
+                      strokeWidth: 2,
+                      gap: 4,
+                      borderRadius: 12,
+                    ),
+                    child: Column(
+                      children: [
+                        // Card Header: Counter & Progress
+                        _buildCardHeader(
+                          context,
+                          appColors,
+                          items,
+                          index,
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: borderColor,
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
-                        ),
-                        child: Column(
-                          children: [
-                            // Card Header: Counter & Progress
-                            _buildCardHeader(
-                              context,
-                              appColors,
-                              items,
-                            ),
-                            const Divider(height: 1),
+                        const Divider(height: 1),
 
-                            Expanded(
-                              child: ListView(
-                                padding: const EdgeInsets.all(24),
-                                children: [
-                                  // Requirement text
-                                  if (currentItem.require != null &&
-                                      currentItem.require!.isNotEmpty) ...[
-                                    DefaultTextStyle(
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: appColors.textSecondary,
-                                      ),
-                                      child: Text.rich(
-                                        TextSpan(
-                                          children:
-                                              RichTextParser.buildTextSpans(
-                                            context,
-                                            currentItem.require!,
-                                            onWordLongPress:
-                                                widget.onWordLongPress,
-                                          ),
-                                        ),
-                                      ),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(24),
+                            children: [
+                              // Original Sentence (bordered container)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.only(left: 16),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: appColors.primary,
+                                      width: 4,
                                     ),
-                                    const SizedBox(height: 16),
-                                  ],
-
-                                  // Original Sentence (bordered container)
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: appColors.border),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: DefaultTextStyle(
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: appColors.textPrimary,
-                                        height: 1.5,
-                                      ),
-                                      child: Text.rich(
-                                        TextSpan(
-                                          children:
-                                              RichTextParser.buildTextSpans(
-                                            context,
-                                            currentItem.original ?? '',
-                                            onWordLongPress:
-                                                widget.onWordLongPress,
-                                          ),
-                                        ),
+                                  ),
+                                ),
+                                child: DefaultTextStyle(
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: appColors.textPrimary,
+                                    height: 1.5,
+                                  ),
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: RichTextParser.buildTextSpans(
+                                        context,
+                                        item.original ?? '',
+                                        onWordLongPress: widget.onWordLongPress,
                                       ),
                                     ),
                                   ),
-
-                                  const SizedBox(height: 24),
-
-                                  // Gap-fill Input Area
-                                  _buildGapFillArea(
-                                    context,
-                                    currentItem,
-                                    currentState,
-                                    appColors,
-                                  ),
-
-                                  // Result Display
-                                  if (currentState.isChecked) ...[
-                                    const SizedBox(height: 24),
-                                    _buildResultDisplay(
-                                      context,
-                                      currentItem,
-                                      currentState,
-                                      appColors,
-                                    ),
-                                  ],
-
-                                  // Spacing for floating buttons
-                                  const SizedBox(height: 80),
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
 
-        // Floating Action Buttons
-        Positioned(
-          bottom: 28,
-          right: 36,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (!currentState.isChecked && _isInputComplete(currentItem))
-                ElevatedButton.icon(
-                  onPressed: _checkAnswer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: appColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12.5,
+                              const SizedBox(height: 24),
+
+                              // Gap-fill Input Area
+                              _buildGapFillArea(
+                                context,
+                                item,
+                                state,
+                                appColors,
+                              ),
+
+                              // Result Display
+                              if (state.isChecked) ...[
+                                const SizedBox(height: 24),
+                                _buildResultDisplay(
+                                  context,
+                                  item,
+                                  state,
+                                  appColors,
+                                ),
+                              ],
+
+                              // Spacing for floating buttons
+                              const SizedBox(height: 80),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 4,
-                  ),
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text(
-                    'Check',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              if (currentState.isChecked)
-                ElevatedButton.icon(
-                  onPressed: _goToNext,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: appColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12.5,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 4,
-                  ),
-                  icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: const Text(
-                    'Next question',
-                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-            ],
-          ),
-        ),
-      ],
+                // Floating Action Buttons
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (!state.isChecked && _isInputComplete(item))
+                        ElevatedButton.icon(
+                          onPressed: _checkAnswer,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: appColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 4,
+                          ),
+                          icon: const Icon(Icons.check, size: 16),
+                          label: const Text(
+                            'Check',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -752,6 +613,7 @@ class _SentenceTransformationState extends State<SentenceTransformation>
     BuildContext context,
     AppColorsExtension appColors,
     List<SentenceTransformationItem> questions,
+    int index,
   ) {
     // Count how many items are checked
     final completedCount = _cardStates.values.where((v) => v.isChecked).length;
@@ -763,7 +625,7 @@ class _SentenceTransformationState extends State<SentenceTransformation>
         children: [
           // Counter
           Text(
-            '${_currentIndex + 1} / ${questions.length}',
+            '${index + 1} / ${questions.length}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,

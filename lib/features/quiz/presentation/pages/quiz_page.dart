@@ -112,6 +112,16 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
+  void _onPrevQuiz() {
+    if (_activeQuizIndex > 0) {
+      _pageController.animateToPage(
+        _activeQuizIndex - 1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   void _onWordLongPress(String word) {
     setState(() {
       _selectedWord = word;
@@ -345,7 +355,7 @@ class _QuizPageState extends State<QuizPage> {
                 Expanded(
                   child: PageView.builder(
                     controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
+                    physics: const AlwaysScrollableScrollPhysics(),
                     onPageChanged: _onPageChanged,
                     itemCount: lesson.quizzes.length,
                     itemBuilder: (context, index) {
@@ -445,6 +455,7 @@ class _QuizPageState extends State<QuizPage> {
           instruction: quiz.instruction,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -459,6 +470,7 @@ class _QuizPageState extends State<QuizPage> {
           lessonId: widget.lesson.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -473,6 +485,7 @@ class _QuizPageState extends State<QuizPage> {
           lessonId: widget.lesson.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -486,6 +499,7 @@ class _QuizPageState extends State<QuizPage> {
           quiz: quiz,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -523,6 +537,7 @@ class _QuizPageState extends State<QuizPage> {
           quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'error-correction':
@@ -531,6 +546,7 @@ class _QuizPageState extends State<QuizPage> {
           lessonId: widget.lesson.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'flashcard':
@@ -538,6 +554,8 @@ class _QuizPageState extends State<QuizPage> {
           quiz: quiz,
           lessonId: widget.lesson.id,
           quizId: quiz.id,
+          onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'pronunciation':
@@ -548,6 +566,7 @@ class _QuizPageState extends State<QuizPage> {
           quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'sentence-transformation':
@@ -556,6 +575,7 @@ class _QuizPageState extends State<QuizPage> {
           lessonId: widget.lesson.id,
           quizId: quiz.id,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -571,6 +591,7 @@ class _QuizPageState extends State<QuizPage> {
           quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'speech-builder':
@@ -580,6 +601,7 @@ class _QuizPageState extends State<QuizPage> {
           quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
       case 'writing-essay':
@@ -589,6 +611,7 @@ class _QuizPageState extends State<QuizPage> {
           quizId: quiz.id,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
       default:
@@ -601,6 +624,7 @@ class _QuizPageState extends State<QuizPage> {
           instruction: quiz.instruction,
           onCheck: _onQuizChecked,
           onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
           onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;

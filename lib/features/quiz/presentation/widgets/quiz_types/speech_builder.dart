@@ -12,10 +12,11 @@ class SpeechBuilder extends StatefulWidget {
     required this.quiz,
     required this.lessonId,
     required this.quizId,
-    super.key,
+    this.onNext,
+    this.onPrev,
     this.onWordLongPress,
     this.onCheck,
-    this.onNext,
+    super.key,
   });
 
   final Quiz quiz;
@@ -24,37 +25,25 @@ class SpeechBuilder extends StatefulWidget {
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
 
   @override
   State<SpeechBuilder> createState() => _SpeechBuilderState();
 }
 
-class _SpeechBuilderState extends State<SpeechBuilder>
-    with TickerProviderStateMixin {
+class _SpeechBuilderState extends State<SpeechBuilder> {
   int _currentIndex = 0;
   bool _isRecording = false;
   final Map<String, _SpeechBuilderItemState> _itemStates = {};
 
   // Animation variables for Swipe
-  double _swipeOffset = 0;
-  late AnimationController _swipeController;
-  Animation<double>? _swipeSlideAnimation;
+  late PageController _pageController;
   bool _isTransitioning = false;
 
   @override
   void initState() {
     super.initState();
-    _swipeController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _swipeController.addListener(() {
-      setState(() {
-        if (_swipeSlideAnimation != null) {
-          _swipeOffset = _swipeSlideAnimation!.value;
-        }
-      });
-    });
+    _pageController = PageController(initialPage: _currentIndex);
 
     // Load saved progress
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -123,68 +112,18 @@ class _SpeechBuilderState extends State<SpeechBuilder>
 
   @override
   void dispose() {
-    _swipeController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
-    if (_isTransitioning) return;
+  void _onPageChanged(int index) {
     setState(() {
-      _swipeOffset += details.primaryDelta!;
-      _swipeOffset = _swipeOffset.clamp(-100.0, 100.0);
+      _currentIndex = index;
     });
+    _saveProgress();
   }
 
-  void _onHorizontalDragEnd(DragEndDetails details) {
-    if (_isTransitioning) return;
-    const threshold = 80.0;
-    final items = widget.quiz.speechBuilders ?? [];
-
-    if (_swipeOffset < -threshold && _currentIndex < items.length - 1) {
-      _slideCard('left');
-    } else if (_swipeOffset > threshold && _currentIndex > 0) {
-      _slideCard('right');
-    } else {
-      _resetSwipe();
-    }
-  }
-
-  void _slideCard(String direction) {
-    setState(() {
-      _isTransitioning = true;
-    });
-
-    final endOffset = direction == 'left' ? -400.0 : 400.0;
-    _swipeSlideAnimation =
-        Tween<double>(begin: _swipeOffset, end: endOffset).animate(
-      CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
-    );
-
-    _swipeController.forward(from: 0).then((_) {
-      setState(() {
-        _currentIndex += (direction == 'left' ? 1 : -1);
-        _swipeOffset = (direction == 'left' ? 400.0 : -400.0);
-
-        _swipeSlideAnimation =
-            Tween<double>(begin: _swipeOffset, end: 0).animate(
-          CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
-        );
-        _swipeController.forward(from: 0).then((_) {
-          setState(() {
-            _isTransitioning = false;
-          });
-          _saveProgress();
-        });
-      });
-    });
-  }
-
-  void _resetSwipe() {
-    _swipeSlideAnimation = Tween<double>(begin: _swipeOffset, end: 0).animate(
-      CurvedAnimation(parent: _swipeController, curve: Curves.easeOut),
-    );
-    _swipeController.forward(from: 0);
-  }
+  // Swipe logic removed in favor of PageView
 
   void _startRecording(SpeechBuilderItem item) {
     if (_isRecording) return;
@@ -242,114 +181,103 @@ class _SpeechBuilderState extends State<SpeechBuilder>
     final currentState =
         _itemStates[currentItem.id] ?? _SpeechBuilderItemState();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Instruction (Outer)
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is OverscrollNotification) {
+          if (notification.overscroll < 0) {
+            widget.onPrev?.call();
+          } else if (notification.overscroll > 0) {
+            widget.onNext?.call();
+          }
+        }
+        return false;
+      },
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const ClampingScrollPhysics(),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          final state = _itemStates[item.id] ?? _SpeechBuilderItemState();
 
-        // Main Card Area
-        Expanded(
-          child: Padding(
+          return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: GestureDetector(
-              onHorizontalDragUpdate: _onHorizontalDragUpdate,
-              onHorizontalDragEnd: _onHorizontalDragEnd,
-              child: Transform.translate(
-                offset: Offset(_swipeOffset, 0),
-                child: Transform.rotate(
-                  angle: _swipeOffset * 0.0002,
-                  child: Opacity(
-                    opacity: (1 - (_swipeOffset.abs() / 400)).clamp(0.5, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: appColors.cardBackground,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: appColors.primary.withValues(alpha: 0.5),
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
-                        ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: appColors.cardBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: CustomPaint(
+                painter: _DashedBorderPainter(
+                  color: appColors.primary.withValues(alpha: 0.5),
+                  strokeWidth: 2,
+                  gap: 4,
+                  borderRadius: 12,
+                ),
+                child: Column(
+                  children: [
+                    // Internal Header
+                    _buildInternalHeader(context, appColors, items, index),
+
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
                         child: Column(
                           children: [
-                            // Internal Header
-                            _buildInternalHeader(context, appColors, items),
-
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  children: [
-                                    // Hint / Translate
-                                    if (currentItem.hint != null ||
-                                        currentItem.translate != null)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 24),
-                                        child: Text.rich(
-                                          TextSpan(
-                                            children:
-                                                RichTextParser.buildTextSpans(
-                                              context,
-                                              currentItem.hint ??
-                                                  currentItem.translate ??
-                                                  '',
-                                            ),
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: appColors.textSecondary,
-                                            fontSize: 14,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ),
-
-                                    // Question Context
-                                    Expanded(
-                                      child: Center(
-                                        child: SingleChildScrollView(
-                                          child: _buildQuestionContent(
-                                            context,
-                                            currentItem,
-                                            currentState,
-                                            appColors,
-                                          ),
-                                        ),
-                                      ),
+                            // Hint / Translate
+                            if (item.hint != null || item.translate != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 24),
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: RichTextParser.buildTextSpans(
+                                      context,
+                                      item.hint ?? item.translate ?? '',
                                     ),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: appColors.textSecondary,
+                                    fontSize: 14,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
 
-                                    // Score / Feedback
-                                    if (currentState.attempts > 0 &&
-                                        !currentState.passed)
-                                      _buildFeedback(currentState, appColors),
-
-                                    const SizedBox(height: 32),
-
-                                    // Controls
-                                    _buildControls(
-                                        currentItem, currentState, appColors),
-                                  ],
+                            // Question Context
+                            Expanded(
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  child: _buildQuestionContent(
+                                    context,
+                                    item,
+                                    state,
+                                    appColors,
+                                  ),
                                 ),
                               ),
                             ),
+
+                            // Score / Feedback
+                            if (state.attempts > 0 && !state.passed)
+                              _buildFeedback(state, appColors),
+
+                            const SizedBox(height: 32),
+
+                            // Controls
+                            _buildControls(item, state, appColors),
                           ],
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ),
-
-        // Floating Next (Standard in some quizzes when passed)
-        if (currentState.passed && _currentIndex < items.length - 1)
-          _buildFloatingNextButton(appColors),
-      ],
+          );
+        },
+      ),
     );
   }
 
@@ -357,6 +285,7 @@ class _SpeechBuilderState extends State<SpeechBuilder>
     BuildContext context,
     AppColorsExtension appColors,
     List<SpeechBuilderItem> questions,
+    int index,
   ) {
     final passedCount = _itemStates.values.where((s) => s.passed).length;
 
@@ -373,7 +302,7 @@ class _SpeechBuilderState extends State<SpeechBuilder>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            '${_currentIndex + 1} / ${questions.length}',
+            '${index + 1} / ${questions.length}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -577,18 +506,6 @@ class _SpeechBuilderState extends State<SpeechBuilder>
           color: Colors.white,
           size: 28,
         ),
-      ),
-    );
-  }
-
-  Widget _buildFloatingNextButton(AppColorsExtension appColors) {
-    return Positioned(
-      bottom: 24,
-      right: 24,
-      child: FloatingActionButton(
-        onPressed: () => _slideCard('left'),
-        backgroundColor: appColors.primary,
-        child: const Icon(Icons.chevron_right, color: Colors.white, size: 32),
       ),
     );
   }

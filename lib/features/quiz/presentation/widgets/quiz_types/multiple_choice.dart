@@ -12,6 +12,7 @@ class MultipleChoice extends StatefulWidget {
     required this.lessonId,
     this.onCheck,
     this.onNext,
+    this.onPrev,
     this.onShowExplain,
     this.onWordLongPress,
     super.key,
@@ -21,6 +22,7 @@ class MultipleChoice extends StatefulWidget {
   final String lessonId;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
+  final VoidCallback? onPrev;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
 
@@ -28,8 +30,7 @@ class MultipleChoice extends StatefulWidget {
   State<MultipleChoice> createState() => _MultipleChoiceState();
 }
 
-class _MultipleChoiceState extends State<MultipleChoice>
-    with SingleTickerProviderStateMixin {
+class _MultipleChoiceState extends State<MultipleChoice> {
   // Key: Question ID, Value: Set of selected option keys
   final Map<String, Set<String>> _selectedOptions = {};
 
@@ -43,24 +44,12 @@ class _MultipleChoiceState extends State<MultipleChoice>
   int _currentQuestionIndex = 0;
 
   // Animation variables
-  late AnimationController _animController;
-  double _dragOffset = 0;
-  Animation<double>? _slideAnimation;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _animController.addListener(() {
-      setState(() {
-        if (_slideAnimation != null) {
-          _dragOffset = _slideAnimation!.value;
-        }
-      });
-    });
+    _pageController = PageController(initialPage: _currentQuestionIndex);
 
     // Load saved progress
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -112,85 +101,24 @@ class _MultipleChoiceState extends State<MultipleChoice>
 
   @override
   void dispose() {
-    _animController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+  void _onPageChanged(int index) {
     setState(() {
-      _dragOffset += details.primaryDelta!;
+      _currentQuestionIndex = index;
     });
-  }
-
-  void _onHorizontalDragEnd(DragEndDetails details) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final velocity = details.primaryVelocity ?? 0;
-    final threshold = screenWidth * 0.25;
-
-    // Check if we should change question
-    var shouldChange = false;
-    var direction = 0; // -1: Next (Swipe Left), 1: Prev (Swipe Right)
-
-    if (velocity < -1000 || _dragOffset < -threshold) {
-      if (_currentQuestionIndex < widget.quiz.questions.length - 1) {
-        shouldChange = true;
-        direction = -1;
-      }
-    } else if (velocity > 1000 || _dragOffset > threshold) {
-      if (_currentQuestionIndex > 0) {
-        shouldChange = true;
-        direction = 1;
-      }
-    }
-
-    if (shouldChange) {
-      // Animate out completely
-      final endX = direction == -1 ? -screenWidth : screenWidth;
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: endX).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-
-      _animController.forward(from: 0).then((_) {
-        // Change index
-        setState(() {
-          if (direction == -1) {
-            _currentQuestionIndex++;
-          } else {
-            _currentQuestionIndex--;
-          }
-          // Reset for slide in
-          _dragOffset = direction == -1 ? screenWidth : -screenWidth;
-          _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-            CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-          );
-          _animController.forward(from: 0);
-        });
-      });
-    } else {
-      // Snap back
-      _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-      );
-      _animController.forward(from: 0);
-    }
+    _saveProgress();
   }
 
   void _animateToNextQuestion() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    _slideAnimation = Tween<double>(begin: 0, end: -screenWidth).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
-
-    _animController.forward(from: 0).then((_) {
-      setState(() {
-        _currentQuestionIndex++;
-        _dragOffset = screenWidth;
-        _slideAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-        );
-        _animController.forward(from: 0);
-      });
-    });
+    if (_currentQuestionIndex < widget.quiz.questions.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
@@ -212,107 +140,101 @@ class _MultipleChoiceState extends State<MultipleChoice>
       borderColor = isCorrect ? appColors.primary : Colors.red;
     }
 
-    return Column(
-      children: [
-        // 1. Instruction (Fixed height container if needed, or flexible)
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is OverscrollNotification) {
+          if (notification.overscroll < 0) {
+            widget.onPrev?.call();
+          } else if (notification.overscroll > 0) {
+            widget.onNext?.call();
+          }
+        }
+        return false;
+      },
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const ClampingScrollPhysics(),
+        itemCount: questions.length,
+        itemBuilder: (context, index) {
+          final question = questions[index];
+          final isSubmitted = _submittedQuestions.contains(question.id);
 
-        // 2. Question Card Area
-        Expanded(
-          child: GestureDetector(
-            onHorizontalDragUpdate: _onHorizontalDragUpdate,
-            onHorizontalDragEnd: _onHorizontalDragEnd,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Stack(
-                children: [
-                  // The Card
-                  AnimatedBuilder(
-                    animation: _animController,
-                    builder: (context, child) {
-                      final rotateAngle = _dragOffset * 0.001; // rad
-                      final opacity =
-                          (1 - (_dragOffset.abs() / 500)).clamp(0.5, 1.0);
+          // Calculate background border color for the card based on state
+          var borderColor = Colors.grey.withValues(alpha: 0.5);
+          if (isSubmitted) {
+            final isCorrect = _questionCorrectness[question.id] ?? false;
+            borderColor = isCorrect ? appColors.primary : Colors.red;
+          }
 
-                      return Transform.translate(
-                        offset: Offset(_dragOffset, 0),
-                        child: Transform.rotate(
-                          angle: rotateAngle,
-                          child: Opacity(
-                            opacity: opacity,
-                            child: child,
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Stack(
+              children: [
+                // The Card
+                Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: CustomPaint(
+                    painter: _DashedBorderPainter(
+                      color: borderColor,
+                      strokeWidth: 2,
+                      gap: 4,
+                      borderRadius: 12,
+                    ),
+                    child: Column(
+                      children: [
+                        // Card Header
+                        _buildCardHeader(
+                          context,
+                          appColors,
+                          questions,
+                          question,
+                          index,
+                        ),
+                        const Divider(height: 1),
+
+                        // Card Content
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildQuestionContent(
+                                  context,
+                                  question,
+                                  appColors,
+                                  isSubmitted,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        // We use a CustomPainter for the dashed border below
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: borderColor,
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
-                        ),
-                        child: Column(
-                          children: [
-                            // Card Header: Counter, Score, Progress
-                            _buildCardHeader(
-                              context,
-                              appColors,
-                              questions,
-                              currentQuestion,
-                            ),
-                            const Divider(height: 1),
-
-                            // Card Content: Scrollable Question & Options
-                            Expanded(
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildQuestionContent(
-                                      context,
-                                      currentQuestion,
-                                      appColors,
-                                      isSubmitted,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                  // Floating Action Buttons
-                  Positioned(
-                    bottom: 20,
-                    right: 20,
-                    child: _buildActionButtons(
-                      context,
-                      currentQuestion,
-                      appColors,
-                      isSubmitted,
-                    ),
+                ),
+                // Floating Action Buttons
+                Positioned(
+                  bottom: 10,
+                  right: 10,
+                  child: _buildActionButtons(
+                    context,
+                    question,
+                    appColors,
+                    isSubmitted,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-        ),
-
-        // 3. Floating Action Buttons Area (Overlay or placed below)
-        // We place controls below the card or floating. The design shows floating.
-        // For simplicity in this column layout, we can put them in a dedicated area at bottom right.
-      ],
+          );
+        },
+      ),
     );
   }
 
@@ -321,6 +243,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
     AppColorsExtension appColors,
     List<QuizQuestion> questions,
     QuizQuestion currentQuestion,
+    int index,
   ) {
     final isSubmitted = _submittedQuestions.contains(currentQuestion.id);
     final isCorrect = _questionCorrectness[currentQuestion.id] ?? false;
@@ -329,13 +252,13 @@ class _MultipleChoiceState extends State<MultipleChoice>
     final completedCount = _submittedQuestions.length;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Question Counter
           Text(
-            '${_currentQuestionIndex + 1} / ${questions.length}',
+            '${index + 1} / ${questions.length}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -423,10 +346,10 @@ class _MultipleChoiceState extends State<MultipleChoice>
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: appColors.textPrimary,
-                fontSize: 18,
+                fontSize: 17,
               ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
 
         // Options List
         ...question.options.asMap().entries.map((entry) {
@@ -470,7 +393,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
           ),
 
         // Spacing for floating buttons
-        const SizedBox(height: 80),
+        const SizedBox(height: 60),
       ],
     );
   }
@@ -490,61 +413,17 @@ class _MultipleChoiceState extends State<MultipleChoice>
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        icon: const Icon(Icons.check, size: 18),
+        icon: const Icon(Icons.check, size: 16),
         label:
             const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
       );
     }
 
-    // Next Question Button
-    if (isSubmitted &&
-        _currentQuestionIndex < widget.quiz.questions.length - 1) {
-      return ElevatedButton.icon(
-        onPressed: () {
-          _animateToNextQuestion();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text(
-          'Next question',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
-    }
-
-    // Next Question Button (at the end of internal list, moves to next quiz)
-    if (isSubmitted &&
-        _currentQuestionIndex == widget.quiz.questions.length - 1 &&
-        widget.onNext != null) {
-      return ElevatedButton.icon(
-        onPressed: () {
-          widget.onCheck?.call(); // Mark current as done
-          widget.onNext?.call();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        icon: const Icon(Icons.arrow_forward, size: 18),
-        label: const Text(
-          'Next question',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
-    }
+    return const SizedBox.shrink();
 
     return const SizedBox.shrink();
   }
@@ -595,12 +474,12 @@ class _MultipleChoiceState extends State<MultipleChoice>
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         onTap: isSubmitted ? null : () => _onOptionTap(question, optionKey),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: backgroundColor,
             border: Border.all(color: borderColor),
@@ -610,8 +489,8 @@ class _MultipleChoiceState extends State<MultipleChoice>
             children: [
               // Radio/Checkbox Circle
               Container(
-                width: 24,
-                height: 24,
+                width: 22,
+                height: 22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: (isSubmitted && (icon != null))
@@ -647,7 +526,7 @@ class _MultipleChoiceState extends State<MultipleChoice>
                 child: Text(
                   optionText,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight:
                         isSelected ? FontWeight.w600 : FontWeight.normal,
                     color: textColor,

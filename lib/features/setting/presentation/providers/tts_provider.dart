@@ -37,8 +37,18 @@ class TtsProvider extends ChangeNotifier {
   Future<void> _loadSettings() async {
     _activeEngine = _prefs.getString(_engineKey) ?? 'System';
     _selectedPiperModel = _prefs.getString(_selectedModelKey);
-    _defaultMaleVoice = _prefs.getString(_defaultMaleVoiceKey);
-    _defaultFemaleVoice = _prefs.getString(_defaultFemaleVoiceKey);
+    _defaultMaleVoice =
+        _prefs.getString(_defaultMaleVoiceKey) ?? 'en_US-hfc_male-medium';
+    _defaultFemaleVoice =
+        _prefs.getString(_defaultFemaleVoiceKey) ?? 'en_US-hfc_female-medium';
+
+    // Save defaults if not set
+    if (!_prefs.containsKey(_defaultMaleVoiceKey)) {
+      await _prefs.setString(_defaultMaleVoiceKey, _defaultMaleVoice!);
+    }
+    if (!_prefs.containsKey(_defaultFemaleVoiceKey)) {
+      await _prefs.setString(_defaultFemaleVoiceKey, _defaultFemaleVoice!);
+    }
 
     await _initService();
   }
@@ -86,6 +96,46 @@ class TtsProvider extends ChangeNotifier {
     return gender.toLowerCase() == 'male'
         ? _defaultMaleVoice
         : _defaultFemaleVoice;
+  }
+
+  // Speak with gender-based voice selection
+  // If gender is null or cannot be determined, defaults to male voice
+  Future<void> speakWithGender(String text, {String? gender}) async {
+    if (!_isInitialized || _activeTtsService == null) return;
+
+    if (_activeEngine == 'Piper') {
+      // Determine which voice to use based on gender
+      // Default to male if gender is not specified
+      final voiceCode = gender != null && gender.toLowerCase() == 'female'
+          ? _defaultFemaleVoice
+          : _defaultMaleVoice;
+
+      if (voiceCode != null) {
+        // Get model path from voice code
+        final appDir = await getApplicationDocumentsDirectory();
+        final extractedFolder = 'vits-piper-$voiceCode';
+        final modelPath = path.join(
+          appDir.path,
+          'piper_models',
+          extractedFolder,
+          '$voiceCode.onnx',
+        );
+
+        if (File(modelPath).existsSync()) {
+          // Temporarily switch to this voice
+          final previousModel = _selectedPiperModel;
+          await setSelectedModel(modelPath);
+          // Use the NEW service after model switch
+          await _activeTtsService?.speak(text);
+          // Restore previous model
+          await setSelectedModel(previousModel);
+          return;
+        }
+      }
+    }
+
+    // Fallback to current voice
+    await _activeTtsService?.speak(text);
   }
 
   // Setters
