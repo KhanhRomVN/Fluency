@@ -8,8 +8,10 @@ import 'package:fluency/features/setting/presentation/providers/tts_provider.dar
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
+import 'package:fluency/core/services/stt/stt_service.dart';
+import 'package:fluency/core/services/stt/vosk_stt_service.dart';
+import 'package:fluency/core/services/stt/system_stt_service.dart';
+import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 
 class PronunciationDrill extends StatefulWidget {
   const PronunciationDrill({
@@ -38,7 +40,8 @@ class PronunciationDrill extends StatefulWidget {
 class _PronunciationDrillState extends State<PronunciationDrill> {
   int _currentIndex = 0;
   bool _isRecording = false;
-  final SpeechToText _speechToText = SpeechToText();
+  SttService? _sttService;
+  bool _speechEnabled = false;
 
   // Map<ItemID, State>
   final Map<String, _PronunciationDrillItemState> _itemStates = {};
@@ -56,9 +59,25 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     });
   }
 
-  void _initSpeech() async {
-    await _speechToText.initialize();
-    if (mounted) setState(() {});
+  Future<void> _initSpeech() async {
+    final sttProvider = context.read<SttSettingProvider>();
+    final providerType = sttProvider.currentProviderType;
+    final selectedModelId = sttProvider.selectedModelId;
+
+    debugPrint('PronunciationDrill: Initializing STT ($providerType)...');
+
+    if (providerType == SttProviderType.vosk && selectedModelId != null) {
+      _sttService = VoskSttService(selectedModelId: selectedModelId);
+    } else {
+      _sttService = SystemSttService();
+    }
+
+    final available = await _sttService!.initialize();
+    if (mounted) {
+      setState(() {
+        _speechEnabled = available;
+      });
+    }
   }
 
   Future<void> _loadProgress() async {
@@ -98,9 +117,8 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     if (mounted) {
       final ttsProvider = context.read<TtsProvider>();
       int retries = 0;
-      while (!ttsProvider.isInitialized && retries < 25) {
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-        retries++;
+      if (!ttsProvider.isInitialized) {
+        await ttsProvider.initService();
       }
 
       if (ttsProvider.isInitialized) {
@@ -146,6 +164,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   @override
   void dispose() {
     _pageController.dispose();
+    _sttService?.dispose();
     super.dispose();
   }
 
@@ -159,7 +178,9 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
 
   Future<void> _speakCurrentWord() async {
     final ttsProvider = context.read<TtsProvider>();
-    if (!ttsProvider.isInitialized) return;
+    if (!ttsProvider.isInitialized) {
+      await ttsProvider.initService();
+    }
 
     final item = (widget.quiz.pronunciations ?? [])[_currentIndex];
     final text = _getTextContent(item.text);
@@ -175,37 +196,41 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   }
 
   void _startRecording(PronunciationItem item) async {
-    if (_isRecording) return;
+    if (_isRecording || !_speechEnabled || _sttService == null) return;
 
     // Get STT settings from provider
-    final sttProvider = context.read<SttSettingProvider>();
     String localeId = 'en_US'; // default
 
-    // Note: VoskModel doesn't have locale field yet, using default
-    // In the future, we can add locale field to VoskModel
-
-    await _speechToText.listen(
-      onResult: (result) => _onSpeechResult(result, item),
-      localeId: localeId,
-    );
-    setState(() {
-      _isRecording = true;
-    });
+    try {
+      await _sttService!.startListening(
+        onResult: (text, isFinal) => _onSpeechResult(text, isFinal, item),
+        localeId: localeId,
+      );
+      setState(() {
+        _isRecording = true;
+      });
+    } catch (e) {
+      debugPrint('Error starting STT: $e');
+    }
   }
 
   void _stopRecording(PronunciationItem item) async {
-    if (!_isRecording) return;
-    await _speechToText.stop();
+    if (!_isRecording || _sttService == null) return;
+    await _sttService!.stopListening();
     setState(() {
       _isRecording = false;
     });
   }
 
-  void _onSpeechResult(SpeechRecognitionResult result, PronunciationItem item) {
-    debugPrint(
-        'STT Result: "${result.recognizedWords}" (Final: ${result.finalResult})');
-    if (result.finalResult) {
-      final transcript = result.recognizedWords;
+  void _onSpeechResult(String text, bool isFinal, PronunciationItem item) {
+    debugPrint('STT Result: "$text" (Final: $isFinal)');
+
+    // For System STT, we define "final" by the callback
+    // For Vosk, similar logic.
+    // If it's final, we process score.
+
+    if (isFinal) {
+      final transcript = text;
       debugPrint('STT Final Transcript for ${item.id}: "$transcript"');
       final targetText = _getTextContent(item.text);
       final score = _calculateScore(transcript, targetText);
@@ -246,12 +271,6 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     }
 
     return ((matches / targetWords.length) * 100).round();
-  }
-
-  void _retryCurrent() {
-    final item = widget.quiz.pronunciations![_currentIndex];
-    _startRecording(item);
-    _saveProgress(); // Save that we are retrying (maybe not strictly needed but safe to persist current index if crashed)
   }
 
   @override
@@ -643,73 +662,35 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     AppColorsExtension appColors,
     List<PronunciationItem> drills,
   ) {
-    // High Score: Retry + Next (Internal to Card)
-    if (state.attempts > 0 && state.bestScore >= 50) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Retry Button
-          InkWell(
-            onTap: _retryCurrent,
-            borderRadius: BorderRadius.circular(50),
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: appColors.buttonSecondBg,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child:
-                  Icon(Icons.refresh, color: appColors.textSecondary, size: 22),
+    return InkWell(
+      onTap: _isRecording
+          ? () => _stopRecording(item)
+          : () => _startRecording(item),
+      borderRadius: BorderRadius.circular(50),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: _isRecording ? Colors.red : appColors.primary,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: (_isRecording ? Colors.red : appColors.primary)
+                  .withValues(alpha: 0.3),
+              blurRadius: _isRecording ? 12 : 8,
+              spreadRadius: _isRecording ? 2 : 0,
+              offset: const Offset(0, 4),
             ),
-          ),
-
-          const SizedBox(width: 24),
-
-          // Next Button (if available) - Inside card logic usually, but we also have absolute button.
-          // React code shows: Retry and Next buttons next to each other in logic.
-        ],
-      );
-    }
-    // Low Score or No attempts: Show Mic button
-    else {
-      return InkWell(
-        onTap: _isRecording
-            ? () => _stopRecording(item)
-            : () => _startRecording(item),
-        borderRadius: BorderRadius.circular(50),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: _isRecording ? Colors.red : appColors.primary,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: (_isRecording ? Colors.red : appColors.primary)
-                    .withValues(alpha: 0.3),
-                blurRadius: _isRecording ? 12 : 8,
-                spreadRadius: _isRecording ? 2 : 0,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.mic,
-            color: Colors.white,
-            size: 28,
-          ),
+          ],
         ),
-      );
-    }
+        child: const Icon(
+          Icons.mic,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
   }
 }
 

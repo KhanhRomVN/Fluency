@@ -50,7 +50,8 @@ class TtsProvider extends ChangeNotifier {
       await _prefs.setString(_defaultFemaleVoiceKey, _defaultFemaleVoice!);
     }
 
-    await _initService();
+    // Removed _initService() to prevent auto-loading
+    // await _initService();
   }
 
   Future<void> initService() => _initService();

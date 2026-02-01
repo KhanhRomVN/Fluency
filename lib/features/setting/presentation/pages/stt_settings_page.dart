@@ -142,7 +142,7 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
             // Custom Header
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -167,7 +167,7 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
                     // Centered Title
                     Text(
                       'Voice Recognition',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colors?.textPrimary,
                           ),
@@ -180,10 +180,10 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
             // Provider Type Section
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                 child: Text(
                   'Recognition Engine',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colors?.textPrimary,
                       ),
@@ -207,10 +207,10 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
             if (sttProvider.currentProviderType == SttProviderType.vosk) ...[
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
+                  padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
                   child: Text(
                     'Offline Models',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colors?.textPrimary,
                         ),
@@ -262,12 +262,12 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
     final isSelected = provider.currentProviderType == type;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isSelected
             ? primaryColor.withOpacity(0.05)
             : colors?.cardBackground,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected
               ? primaryColor
@@ -289,15 +289,16 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
           if (value != null) provider.setProviderType(value);
         },
         activeColor: primaryColor,
+        dense: true,
         title: Text(
           type.label,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         subtitle: Text(
           type.description,
-          style: TextStyle(color: colors?.textSecondary, fontSize: 13),
+          style: TextStyle(color: colors?.textSecondary, fontSize: 12),
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -318,11 +319,11 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
     final isSelected = sttProvider.selectedModelId == model.id;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: colors?.cardBackground,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: isDownloaded && isSelected
             ? Border.all(color: primaryColor, width: 2)
             : null,
@@ -348,27 +349,31 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
             children: [
               // Radio button for downloaded models
               if (isDownloaded)
-                Radio<String>(
-                  value: model.id,
-                  groupValue: sttProvider.selectedModelId,
-                  onChanged: (value) {
-                    if (value != null) {
-                      sttProvider.setSelectedModel(value);
-                    }
-                  },
-                  activeColor: primaryColor,
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Radio<String>(
+                    value: model.id,
+                    groupValue: sttProvider.selectedModelId,
+                    onChanged: (value) {
+                      if (value != null) {
+                        sttProvider.setSelectedModel(value);
+                      }
+                    },
+                    activeColor: primaryColor,
+                  ),
                 )
               else
-                const SizedBox(width: 48), // Placeholder for alignment
+                const SizedBox(width: 44), // Placeholder for alignment
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.language, color: primaryColor, size: 24),
+                child: Icon(Icons.language, color: primaryColor, size: 20),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,13 +382,14 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
                       children: [
                         Text(
                           model.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         if (isDownloaded && isSelected) ...[
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
+                              horizontal: 4,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
@@ -394,7 +400,7 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
                               'ACTIVE',
                               style: TextStyle(
                                 color: primaryColor,
-                                fontSize: 10,
+                                fontSize: 9,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -405,7 +411,7 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
                     Text(
                       model.description,
                       style:
-                          TextStyle(color: colors?.textSecondary, fontSize: 12),
+                          TextStyle(color: colors?.textSecondary, fontSize: 11),
                     ),
                   ],
                 ),
@@ -414,14 +420,17 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: onDelete,
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 )
               else if (isDownloading)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     const SizedBox(width: 8),
@@ -430,7 +439,7 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
                       onPressed: onCancel,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      iconSize: 20,
+                      iconSize: 18,
                     ),
                   ],
                 )
@@ -438,6 +447,9 @@ class _SttSettingsPageState extends State<SttSettingsPage> {
                 IconButton(
                   icon: Icon(Icons.download_for_offline, color: primaryColor),
                   onPressed: onDownload,
+                  iconSize: 24,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
             ],
           ),

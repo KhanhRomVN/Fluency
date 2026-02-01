@@ -114,10 +114,8 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
       // Wait longer for TTS to initialize
       // Wait for TTS to initialize (poll for up to 5 seconds)
       final ttsProvider = context.read<TtsProvider>();
-      int retries = 0;
-      while (!ttsProvider.isInitialized && retries < 25) {
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-        retries++;
+      if (!ttsProvider.isInitialized) {
+        await ttsProvider.initService();
       }
 
       // Check one last time

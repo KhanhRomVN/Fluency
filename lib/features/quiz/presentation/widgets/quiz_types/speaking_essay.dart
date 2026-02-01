@@ -5,8 +5,10 @@ import 'package:fluency/features/setting/presentation/providers/stt_setting_prov
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
+import 'package:fluency/core/services/stt/stt_service.dart';
+import 'package:fluency/core/services/stt/vosk_stt_service.dart';
+import 'package:fluency/core/services/stt/system_stt_service.dart';
+import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 
 class SpeakingEssay extends StatefulWidget {
   const SpeakingEssay({
@@ -38,7 +40,8 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   final Map<int, bool> _stepSubmitted = {};
 
   bool _isRecording = false;
-  final SpeechToText _speechToText = SpeechToText();
+  SttService? _sttService;
+  bool _speechEnabled = false;
   // bool _speechEnabled = false; // Removed unused variable
   String _currentTranscript = '';
   late PageController _pageController;
@@ -53,9 +56,30 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
     });
   }
 
-  void _initSpeech() async {
-    await _speechToText.initialize();
-    if (mounted) setState(() {});
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _sttService?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initSpeech() async {
+    final sttProvider = context.read<SttSettingProvider>();
+    final providerType = sttProvider.currentProviderType;
+    final selectedModelId = sttProvider.selectedModelId;
+
+    if (providerType == SttProviderType.vosk && selectedModelId != null) {
+      _sttService = VoskSttService(selectedModelId: selectedModelId);
+    } else {
+      _sttService = SystemSttService();
+    }
+
+    final available = await _sttService!.initialize();
+    if (mounted) {
+      setState(() {
+        _speechEnabled = available;
+      });
+    }
   }
 
   Future<void> _loadProgress() async {
@@ -149,33 +173,38 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   }
 
   void _startListening() async {
+    if (_sttService == null || !_speechEnabled) return;
+
     // Get STT settings from provider
-    final sttProvider = context.read<SttSettingProvider>();
     String localeId = 'en_US'; // default
 
-    await _speechToText.listen(
-      onResult: _onSpeechResult,
-      localeId: localeId,
-    );
-    setState(() {
-      _isRecording = true;
-      _currentTranscript = '';
-    });
+    try {
+      await _sttService!.startListening(
+        onResult: _onSpeechResult,
+        localeId: localeId,
+      );
+      setState(() {
+        _isRecording = true;
+        _currentTranscript = '';
+      });
+    } catch (e) {
+      debugPrint('Error starting STT: $e');
+    }
   }
 
   void _stopListening() async {
-    await _speechToText.stop();
+    if (_sttService == null) return;
+    await _sttService!.stopListening();
     setState(() {
       _isRecording = false;
     });
   }
 
-  void _onSpeechResult(SpeechRecognitionResult result) {
-    debugPrint(
-        'SpeakingEssay STT Result: "${result.recognizedWords}" (Final: ${result.finalResult})');
+  void _onSpeechResult(String text, bool isFinal) {
+    debugPrint('SpeakingEssay STT Result: "$text" (Final: $isFinal)');
     setState(() {
-      _currentTranscript = result.recognizedWords;
-      if (result.finalResult) {
+      _currentTranscript = text;
+      if (isFinal) {
         debugPrint('SpeakingEssay STT Final: "$_currentTranscript"');
         final existingText = _answers[_activeIndex] ?? '';
         final separator = existingText.isEmpty ? '' : ' ';

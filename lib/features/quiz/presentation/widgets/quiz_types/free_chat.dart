@@ -228,10 +228,8 @@ class _FreeChatState extends State<FreeChat> {
       final ttsProvider = context.read<TtsProvider>();
 
       // Wait for initialization
-      int retries = 0;
-      while (!ttsProvider.isInitialized && retries < 25) {
-        await Future.delayed(const Duration(milliseconds: 200));
-        retries++;
+      if (!ttsProvider.isInitialized) {
+        await ttsProvider.initService();
       }
 
       if (ttsProvider.isInitialized && text.isNotEmpty) {
@@ -375,8 +373,15 @@ class _FreeChatState extends State<FreeChat> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
+              itemCount: _messages.length + (_isLoading ? 1 : 0) + 1,
               itemBuilder: (context, index) {
+                final contentCount = _messages.length + (_isLoading ? 1 : 0);
+
+                if (index == contentCount) {
+                  return SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.4);
+                }
+
                 if (index == _messages.length && _isLoading) {
                   return _buildLoadingIndicator(appColors);
                 }

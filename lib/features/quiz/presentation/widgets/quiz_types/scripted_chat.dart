@@ -8,12 +8,13 @@ import 'package:fluency/features/setting/presentation/providers/tts_provider.dar
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/core/services/stt/stt_service.dart';
+import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
+import 'package:fluency/core/services/stt/system_stt_service.dart';
+import 'package:fluency/core/services/stt/vosk_stt_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:universal_io/io.dart';
 
 class ScriptedChat extends StatefulWidget {
   const ScriptedChat({
@@ -38,16 +39,17 @@ class _ScriptedChatState extends State<ScriptedChat> {
   String? _activeMessageId;
   final Map<String, _MessageScore> _messageScores = {};
   int _visibleCount = 0;
-  final Map<String, bool> _ipaVisible = {};
   final ScrollController _scrollController = ScrollController();
-  final SpeechToText _speechToText = SpeechToText();
-  bool _speechEnabled = false;
+
+  SttService? _sttService;
   bool _isListening = false;
   StreamSubscription<TtsState>? _ttsSubscription;
 
   // Sequence playback
   bool _isPlayingSequence = false;
   int _currentSequenceIndex = 0;
+
+  // ... (rest)
 
   // Translation visibility set
   final Set<String> _translateVisible = {};
@@ -65,13 +67,33 @@ class _ScriptedChatState extends State<ScriptedChat> {
   @override
   void initState() {
     super.initState();
-    // Fire and forget, but it catches errors internally
     _initializeTts();
+    _initializeStt();
 
-    // Load saved progress
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProgress();
     });
+  }
+
+  Future<void> _initializeStt() async {
+    final sttProvider = context.read<SttSettingProvider>();
+    final providerType = sttProvider.currentProviderType;
+    final selectedModelId = sttProvider.selectedModelId;
+
+    debugPrint('ScriptedChat: Initializing STT ($providerType)...');
+
+    if (providerType == SttProviderType.vosk && selectedModelId != null) {
+      _sttService = VoskSttService(selectedModelId: selectedModelId);
+    } else {
+      _sttService = SystemSttService();
+    }
+
+    final available = await _sttService!.initialize();
+    if (available) {
+      debugPrint('ScriptedChat: STT Initialized successfully');
+    } else {
+      debugPrint('ScriptedChat: STT Initialization failed or unavailable');
+    }
   }
 
   Future<void> _loadProgress() async {
@@ -80,7 +102,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
       widget.lessonId,
       widget.quizId,
     );
-
+    // ... (rest of _loadProgress is fine, but I need to ensure I don't cut it off)
     if (progress != null && mounted) {
       setState(() {
         _userRole = progress.data?['userRole'] as String?;
@@ -111,9 +133,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
         }
 
         if (_userRole != null) {
-          // If we have progress, restore the sequence state
           _visibleCount = savedVisibleCount;
-
           debugPrint(
               'ScriptedChat: Restored progress. Visible=$_visibleCount, Role=$_userRole');
 
@@ -128,40 +148,30 @@ class _ScriptedChatState extends State<ScriptedChat> {
               final lastChat = chats[lastIndex];
 
               if (lastChat.role != _userRole) {
-                // Last visible was Assistant.
-                // We want to replay this assistant message to give user context.
                 restartIndex = lastIndex;
                 shouldResume = true;
                 debugPrint(
                     'ScriptedChat: Resuming at assistant message $restartIndex for context.');
               } else {
-                // Last visible was User.
                 final scoreData = _messageScores[lastChat.id];
                 if (scoreData != null && scoreData.score >= 50) {
-                  // User passed this turn previously.
-                  // Resume from the NEXT message.
                   restartIndex = _visibleCount;
                   shouldResume = true;
                   debugPrint(
                       'ScriptedChat: User passed previous, resuming at next sequence $restartIndex');
                 } else {
-                  // User FAILED or hasn't attempted yet.
-                  // Do NOT resume sequence forward. We must stop and wait for user input.
-                  // Optional: Replay the previous Assistant message (prompt) for context?
                   if (lastIndex > 0) {
                     restartIndex = lastIndex - 1;
                     shouldResume = true;
                     debugPrint(
                         'ScriptedChat: User pending/failed. Replaying previous assistant prompt at $restartIndex');
                   } else {
-                    // Very first message was user? Just stop.
                     shouldResume = false;
                   }
                 }
               }
             }
           } else {
-            // Start from beginning
             restartIndex = 0;
             shouldResume = true;
           }
@@ -170,7 +180,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
           _isPlayingSequence = shouldResume;
 
           if (shouldResume) {
-            // Use a slight delay to ensure UI builds first
+            // Use explicit type
             Future.delayed(const Duration(milliseconds: 500), () {
               if (mounted && _isPlayingSequence) {
                 _playNextInSequence();
@@ -187,6 +197,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
     _scrollController.dispose();
     _ttsSubscription?.cancel();
     context.read<TtsProvider>().ttsService?.stop();
+    _sttService?.dispose();
     _longPressTimer?.cancel();
     super.dispose();
   }
@@ -198,7 +209,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
       // Wait for initialization if needed
       int retries = 0;
       while (!ttsProvider.isInitialized && retries < 25) {
-        await Future.delayed(const Duration(milliseconds: 200));
+        await Future<void>.delayed(const Duration(milliseconds: 200));
         retries++;
       }
 
@@ -218,10 +229,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
           }
         });
       }
-
-      // Initialize Speech to Text
-      _speechEnabled = await _speechToText.initialize();
-      if (mounted) setState(() {});
+      // Removed _speechToText reference
     } catch (e) {
       debugPrint('TTS/STT Init Error: $e');
     }
@@ -396,49 +404,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
     return ((matches / targetWords.length) * 100).round();
   }
 
-  String _simulatePronunciation(String targetText) {
-    final words = targetText.split(' ');
-    final result = <String>[];
-    const errorRate = 0.3;
-
-    for (final word in words) {
-      final rand = math.Random().nextDouble();
-
-      if (rand < errorRate * 0.4) {
-        continue; // Skip word
-      } else if (rand < errorRate * 0.7) {
-        const wrongWords = [
-          'the',
-          'a',
-          'an',
-          'is',
-          'was',
-          'were',
-          'very',
-          'much',
-          'so',
-        ];
-        result.add(wrongWords[math.Random().nextInt(wrongWords.length)]);
-      } else if (rand < errorRate) {
-        final chars = word.split('');
-        final idx = math.Random().nextInt(chars.length);
-        chars[idx] = String.fromCharCode(97 + math.Random().nextInt(26));
-        result.add(chars.join());
-      } else {
-        result.add(word);
-      }
-    }
-
-    if (math.Random().nextDouble() < 0.2) {
-      const extraWords = ['um', 'uh', 'like', 'actually'];
-      final extraWord = extraWords[math.Random().nextInt(extraWords.length)];
-      final insertPos = math.Random().nextInt(result.length + 1);
-      result.insert(insertPos, extraWord);
-    }
-
-    return result.join(' ');
-  }
-
   int _levenshteinDistance(String a, String b) {
     final matrix = List.generate(
       b.length + 1,
@@ -545,13 +510,20 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
   void _startListening(
       String chatId, String targetText, int messageIndex) async {
-    // Get STT settings from provider
-    final sttProvider = context.read<SttSettingProvider>();
-    String localeId = 'en_US'; // default
+    if (_sttService == null) {
+      await _initializeStt();
+    }
 
-    await _speechToText.listen(
-      onResult: (result) =>
-          _onSpeechResult(result, chatId, targetText, messageIndex),
+    if (_sttService == null || !await _sttService!.isAvailable()) {
+      debugPrint('ScriptedChat: STT Service unavailable');
+      return;
+    }
+
+    String localeId = 'en_US';
+
+    await _sttService!.startListening(
+      onResult: (text, isFinal) =>
+          _onSpeechResult(text, isFinal, chatId, targetText, messageIndex),
       localeId: localeId,
     );
     setState(() {
@@ -560,18 +532,17 @@ class _ScriptedChatState extends State<ScriptedChat> {
   }
 
   void _stopListening() async {
-    await _speechToText.stop();
+    await _sttService?.stopListening();
     setState(() {
       _isListening = false;
     });
   }
 
-  void _onSpeechResult(SpeechRecognitionResult result, String chatId,
+  void _onSpeechResult(String transcript, bool isFinal, String chatId,
       String targetText, int messageIndex) {
-    debugPrint(
-        'ScriptedChat STT Result: "${result.recognizedWords}" (Final: ${result.finalResult})');
-    if (result.finalResult) {
-      final transcript = result.recognizedWords;
+    debugPrint('ScriptedChat STT Result: "$transcript" (Final: $isFinal)');
+
+    if (isFinal) {
       debugPrint('ScriptedChat STT Final: "$transcript"');
       final score = _calculateScore(transcript, targetText);
       final feedback = _analyzeWordFeedback(transcript, targetText);
@@ -584,10 +555,8 @@ class _ScriptedChatState extends State<ScriptedChat> {
           transcript: transcript,
         );
 
-        // If score is good (>= 50%) and this was the current step, continue sequence
         if (score >= 50 && messageIndex == _visibleCount - 1) {
-          _currentSequenceIndex =
-              messageIndex + 1; // Move past this user message
+          _currentSequenceIndex = messageIndex + 1;
           _isPlayingSequence = true;
           _playNextInSequence();
         }
@@ -600,7 +569,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
   Future<void> _saveProgress() async {
     final quizStateProvider = context.read<QuizStateProvider>();
 
-    // Serialize message scores
     final scoresData = <String, dynamic>{};
     _messageScores.forEach((key, value) {
       scoresData[key] = {
@@ -619,9 +587,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
     final totalItems = chats.length;
     final completedItems = _visibleCount;
 
-    // Calculate correct items:
-    // 1. System messages that are visible (automatically correct)
-    // 2. User messages that have a passing score (>= 50)
     var correctItems = 0;
     for (var i = 0; i < _visibleCount; i++) {
       if (i >= chats.length) break;
@@ -629,7 +594,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
       if (chat.role != _userRole) {
         correctItems++;
       } else {
-        // User role: check score
         final scoreData = _messageScores[chat.id];
         if (scoreData != null && scoreData.score >= 50) {
           correctItems++;
@@ -689,7 +653,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
       });
     }
 
-    Future.delayed(Duration.zero, () {
+    Future<void>.delayed(Duration.zero, () {
       _isLongPress = false;
     });
   }
@@ -711,10 +675,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final chats = widget.quiz.chats ?? [];
 
-    // Check if it's user's turn
-    // User turn if:
-    // 1. Last visible message is user role.
-    // 2. AND (we have no score yet OR score is < 50).
     ChatMessage? activeUserChat;
     var isUserTurn = false;
 
@@ -722,7 +682,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
       final lastVisibleChat = chats[_visibleCount - 1];
       if (lastVisibleChat.role == _userRole) {
         final scoreData = _messageScores[lastVisibleChat.id];
-        // If no score, or failed score, it's still user turn to try/retry
         if (scoreData == null || scoreData.score < 50) {
           isUserTurn = true;
           activeUserChat = lastVisibleChat;
@@ -732,7 +691,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
     return Stack(
       children: [
-        // Main chat content
         Column(
           children: [
             Expanded(
@@ -744,12 +702,13 @@ class _ScriptedChatState extends State<ScriptedChat> {
                       left: 16,
                       right: 16,
                       top: 16,
-                      bottom: isUserTurn
-                          ? 100
-                          : 16 // Add padding at bottom if button is visible
-                      ),
-                  itemCount: _visibleCount,
+                      bottom: isUserTurn ? 100 : 16),
+                  itemCount: _visibleCount + 1,
                   itemBuilder: (context, index) {
+                    if (index == _visibleCount) {
+                      return SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.4);
+                    }
                     final chat = chats[index];
                     return _buildBubble(chat, index, appColors);
                   },
@@ -758,11 +717,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
             ),
           ],
         ),
-
-        // Role Selection Drawer - Only shown when userRole is not set
         if (_userRole == null) _buildRoleSelectionDrawer(appColors),
-
-        // Floating Mic Button for User Turn
         if (isUserTurn && activeUserChat != null)
           Positioned(
             bottom: 32,
@@ -890,10 +845,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
         child: Container(
           decoration: BoxDecoration(
             color: appColors.primary.withOpacity(0.05),
-            border: Border.all(
-              color: Colors.transparent,
-              width: 2,
-            ),
+            border: Border.all(color: Colors.transparent, width: 2),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -943,8 +895,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
     final isTranslateVisible = _translateVisible.contains(chat.id);
     final scoreData = _messageScores[chat.id];
     final targetText = _getTextContent(chat.question ?? chat.content);
-
-    // Check role color
     final roleColor = _getRoleColor(chat.role, isUserMessage);
 
     return Padding(
@@ -952,8 +902,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Role information + Score (if exists and < 50 or is user message)
-          // Req 3: Display score % in label row of user message box
           Row(
             mainAxisAlignment:
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -976,7 +924,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   ),
                 ],
               ] else ...[
-                // User message: Show Score if available
                 if (scoreData != null) ...[
                   Text(
                     '${scoreData.score}%',
@@ -1008,8 +955,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
             ],
           ),
           const SizedBox(height: 4),
-
-          // Bubble Content
           Row(
             mainAxisAlignment:
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -1048,12 +993,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Message content (Target Text)
-                        // Removed RichText with feedback coloring on main text if user message?
-                        // Actually, requirement says "display user pronunciation like translate".
-                        // So the main text should probably remain clean or just target text?
-                        // "2/ ở phần hiển thị phần "phát âm của người dùng" sẽ hiển thị giống của hiển thị của translate"
-                        // imply main text is target text. User transcript is separate.
                         RichTextParser.buildRichText(
                           context,
                           chat.question ?? chat.content,
@@ -1063,8 +1002,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                             color: appColors.textPrimary,
                           ),
                         ).first,
-
-                        // Translation
                         if (translateText != null && isTranslateVisible)
                           Container(
                             margin: const EdgeInsets.only(top: 8),
@@ -1098,8 +1035,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                               ],
                             ),
                           ),
-
-                        // User Transcript (Pronunciation) - Req 2: Display like translate
                         if (scoreData != null && isUserMessage)
                           Container(
                             margin: const EdgeInsets.only(top: 8),
@@ -1107,9 +1042,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                             decoration: BoxDecoration(
                               border: Border(
                                 left: BorderSide(
-                                  // Color based on pass/fail? Or just primary like translate?
-                                  // Let's use score color or primary.
-                                  // Primary matches "like translate".
                                   color: _getScoreColor(scoreData.score),
                                   width: 2,
                                 ),
@@ -1126,20 +1058,13 @@ class _ScriptedChatState extends State<ScriptedChat> {
                                   ),
                                 ),
                                 _buildTextWithFeedback(
-                                  scoreData
-                                      .transcript, // We show what they said? Or target with coloring?
-                                  // Usually transcript is what they said. Feedback has coloring.
-                                  // But _buildTextWithFeedback uses target words usually.
-                                  // Let's just show transcript text for now as per requirement "user pronunciation".
-                                  // Actually passing feedback to _buildTextWithFeedback works if we want coloring.
+                                  scoreData.transcript,
                                   scoreData.feedback,
                                   appColors,
                                 ),
                               ],
                             ),
                           ),
-
-                        // Req 1: Removed IPA and Explain sections inside bubble.
                       ],
                     ),
                   ),
@@ -1147,113 +1072,59 @@ class _ScriptedChatState extends State<ScriptedChat> {
               ),
             ],
           ),
-
-          // Icon buttons
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment:
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
-              // For Assistant: Show TTS and Translate
-              if (!isUserMessage) ...[
-                GestureDetector(
-                  onTap: () => _speakText(targetText),
-                  child: Icon(
-                    Icons.volume_up,
-                    size: 16,
-                    color: appColors.textSecondary,
+              GestureDetector(
+                onTap: () => _speakText(targetText),
+                child: Icon(
+                  Icons.volume_up,
+                  size: 16,
+                  color: appColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isTranslateVisible) {
+                      _translateVisible.remove(chat.id);
+                    } else {
+                      _translateVisible.add(chat.id);
+                    }
+                  });
+                },
+                child: SvgPicture.string(
+                  '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>''',
+                  width: 16,
+                  height: 16,
+                  colorFilter: ColorFilter.mode(
+                    isTranslateVisible
+                        ? appColors.primary
+                        : appColors.textSecondary,
+                    BlendMode.srcIn,
                   ),
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (isTranslateVisible) {
-                        _translateVisible.remove(chat.id);
-                      } else {
-                        _translateVisible.add(chat.id);
-                      }
-                    });
-                  },
-                  child: SvgPicture.string(
-                    '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages-icon lucide-languages"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>''',
-                    width: 16,
-                    height: 16,
-                    colorFilter: ColorFilter.mode(
-                      isTranslateVisible
-                          ? appColors.primary
-                          : appColors.textSecondary,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-              ] else ...[
-                // User Message Actions
-                // TTS for target text (reference)
-                GestureDetector(
-                  onTap: () => _speakText(targetText),
-                  child: Icon(
-                    Icons.volume_up,
-                    size: 16,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (isTranslateVisible) {
-                        _translateVisible.remove(chat.id);
-                      } else {
-                        _translateVisible.add(chat.id);
-                      }
-                    });
-                  },
-                  child: SvgPicture.string(
-                    '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages-icon lucide-languages"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>''',
-                    width: 16,
-                    height: 16,
-                    colorFilter: ColorFilter.mode(
-                      isTranslateVisible
-                          ? appColors.primary
-                          : appColors.textSecondary,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ],
           ),
-
-          // REQ 1: Removed Explanation section which was here.
         ],
       ),
     );
   }
 
   Widget _buildTextWithFeedback(
-    String text, // Unused really if we use feedback items
+    String text,
     List<_WordFeedback> feedback,
     AppColorsExtension appColors,
   ) {
-    // If we want to show the USER TRANSCRIPT with coloring, we iterate feedback.
-    // Feedback matches target words.
-    // Requirement: "user pronunciation ... like translate".
-    // Usually we show what the user SAID.
-    // But feedback structure maps target words to status.
-    // Let's best effort construct a display.
-    // If the transcript is available in scoreData, maybe we strictly use scoreData.transcript for "raw"
-    // But feedback is better.
-
     final spans = <InlineSpan>[];
 
     for (var i = 0; i < feedback.length; i++) {
       final item = feedback[i];
-      if (item.status == _FeedbackStatus.missing)
-        continue; // Don't show missing in user transcript? Or show as gray?
-      // Actually usually you show what user said.
-      // If we use target-based feedback, it shows target words colored.
-      // Let's stick to existing logic but styled nicely.
+      if (item.status == _FeedbackStatus.missing) continue;
 
       Color? color;
       if (item.status == _FeedbackStatus.correct) {
