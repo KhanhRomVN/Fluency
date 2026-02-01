@@ -150,6 +150,8 @@ class TtsProvider extends ChangeNotifier {
   }
 
   Future<void> setSelectedModel(String? modelPath) async {
+    if (_selectedPiperModel == modelPath && _activeTtsService != null) return;
+
     _selectedPiperModel = modelPath;
     if (modelPath != null) {
       await _prefs.setString(_selectedModelKey, modelPath);

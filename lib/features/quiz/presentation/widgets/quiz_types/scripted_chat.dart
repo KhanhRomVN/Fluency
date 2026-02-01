@@ -53,15 +53,28 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
   // Translation visibility set
   final Set<String> _translateVisible = {};
+  final Set<String> _ipaVisible = {};
 
   // Long press handling
   Timer? _longPressTimer;
   bool _isLongPress = false;
   Offset _startPos = Offset.zero;
 
-  List<String> get _availableRoles {
+  List<_RoleInfo> get _availableRoles {
     final chats = widget.quiz.chats ?? [];
-    return chats.map((c) => c.role).toSet().toList();
+    final roleMap = <String, _RoleInfo>{};
+
+    for (final chat in chats) {
+      if (!roleMap.containsKey(chat.role)) {
+        roleMap[chat.role] = _RoleInfo(
+          role: chat.role,
+          name: chat.name,
+          gender: chat.gender,
+        );
+      }
+    }
+
+    return roleMap.values.toList();
   }
 
   @override
@@ -70,9 +83,20 @@ class _ScriptedChatState extends State<ScriptedChat> {
     _initializeTts();
     _initializeStt();
 
+    // Listen for TTS service changes (switching voices/engines)
+    context.read<TtsProvider>().addListener(_onTtsProviderChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProgress();
     });
+  }
+
+  void _onTtsProviderChanged() {
+    if (mounted) {
+      debugPrint(
+          'ScriptedChat: TtsProvider notify received, updating TTS connection');
+      _setupTtsListener();
+    }
   }
 
   Future<void> _initializeStt() async {
@@ -102,7 +126,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
       widget.lessonId,
       widget.quizId,
     );
-    // ... (rest of _loadProgress is fine, but I need to ensure I don't cut it off)
+
     if (progress != null && mounted) {
       setState(() {
         _userRole = progress.data?['userRole'] as String?;
@@ -180,15 +204,69 @@ class _ScriptedChatState extends State<ScriptedChat> {
           _isPlayingSequence = shouldResume;
 
           if (shouldResume) {
-            // Use explicit type
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (mounted && _isPlayingSequence) {
-                _playNextInSequence();
-              }
-            });
+            // Wait for TTS to be ready before starting sequence
+            _waitForTtsAndStartSequence();
           }
         }
       });
+    }
+  }
+
+  Future<void> _waitForTtsAndStartSequence() async {
+    debugPrint('ScriptedChat: Waiting for TTS initialization...');
+    final ttsProvider = context.read<TtsProvider>();
+
+    // Wait for TTS initialization
+    int retries = 0;
+    while (!ttsProvider.isInitialized && retries < 30 && mounted) {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      retries++;
+      if (retries % 5 == 0) {
+        debugPrint(
+            'ScriptedChat: Still waiting for TTS... (${retries * 200}ms)');
+      }
+    }
+
+    // If still not initialized, force init
+    if (!ttsProvider.isInitialized && mounted) {
+      debugPrint('ScriptedChat: Forcing TTS init before sequence');
+      await ttsProvider.initService();
+    }
+
+    // Verify TTS service is available
+    if (ttsProvider.ttsService == null) {
+      debugPrint('ScriptedChat: ERROR - TTS service is still null after init!');
+      return;
+    }
+
+    debugPrint(
+        'ScriptedChat: TTS is ready (service: ${ttsProvider.ttsService.runtimeType})');
+
+    // Setup listener
+    _setupTtsListener();
+
+    // Start sequence playback
+    if (mounted && _isPlayingSequence) {
+      debugPrint('ScriptedChat: Starting sequence playback');
+      _playNextInSequence();
+    }
+  }
+
+  void _setupTtsListener() {
+    if (!mounted) return;
+    final ttsProvider = context.read<TtsProvider>();
+    if (ttsProvider.ttsService != null) {
+      _ttsSubscription?.cancel();
+      _ttsSubscription = ttsProvider.ttsService!.stateStream.listen((state) {
+        debugPrint('ScriptedChat: TTS State changed to $state');
+        if (state == TtsState.stopped && _isPlayingSequence) {
+          debugPrint('ScriptedChat: TTS stopped, playing next in sequence');
+          _playNextInSequence();
+        }
+      });
+      debugPrint('ScriptedChat: TTS listener setup complete');
+    } else {
+      debugPrint('ScriptedChat: Cannot setup listener - TTS service is null');
     }
   }
 
@@ -196,7 +274,11 @@ class _ScriptedChatState extends State<ScriptedChat> {
   void dispose() {
     _scrollController.dispose();
     _ttsSubscription?.cancel();
-    context.read<TtsProvider>().ttsService?.stop();
+    // Use try-catch or null check for context in dispose if needed
+    try {
+      context.read<TtsProvider>().removeListener(_onTtsProviderChanged);
+      context.read<TtsProvider>().ttsService?.stop();
+    } catch (_) {}
     _sttService?.dispose();
     _longPressTimer?.cancel();
     super.dispose();
@@ -220,16 +302,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
         await ttsProvider.initService();
       }
 
-      if (ttsProvider.isInitialized && ttsProvider.ttsService != null) {
-        // Subscribe to state stream for sequence handling
-        _ttsSubscription?.cancel();
-        _ttsSubscription = ttsProvider.ttsService!.stateStream.listen((state) {
-          if (state == TtsState.stopped && _isPlayingSequence) {
-            _playNextInSequence();
-          }
-        });
-      }
-      // Removed _speechToText reference
+      _setupTtsListener();
     } catch (e) {
       debugPrint('TTS/STT Init Error: $e');
     }
@@ -250,7 +323,8 @@ class _ScriptedChatState extends State<ScriptedChat> {
       _isPlayingSequence = true;
       _currentSequenceIndex = 0;
     });
-    _playNextInSequence();
+    // Wait for TTS before starting
+    _waitForTtsAndStartSequence();
   }
 
   void _playNextInSequence() {
@@ -280,12 +354,12 @@ class _ScriptedChatState extends State<ScriptedChat> {
     });
     _scrollToBottom();
 
-    // Play TTS
-    final text = _getTextContent(nextChat.question ?? nextChat.content);
-    _speakText(text,
-        gender: nextChat.gender); // Pass gender for voice selection
-
+    // Increment index BEFORE playing TTS
     _currentSequenceIndex++;
+
+    // Play TTS - the TTS state listener will call _playNextInSequence again when done
+    final text = _getTextContent(nextChat.question ?? nextChat.content);
+    _speakText(text, gender: nextChat.gender);
   }
 
   void _scrollToBottom() {
@@ -358,12 +432,11 @@ class _ScriptedChatState extends State<ScriptedChat> {
         return;
       }
 
-      // Removed await ttsService.stop() to prevent emitting TtsState.stopped prematurely
       if (text.isNotEmpty) {
         debugPrint('ScriptedChat: calling ttsProvider.speakWithGender');
-        // Use gender-based voice selection
-        await ttsProvider.speakWithGender(text, gender: gender);
-        debugPrint('ScriptedChat: ttsProvider.speakWithGender returned');
+        // Don't await - let the TTS state listener handle progression
+        ttsProvider.speakWithGender(text, gender: gender);
+        debugPrint('ScriptedChat: TTS started');
       } else {
         // If nothing to speak, manually advance
         debugPrint('ScriptedChat: empty text, manually advancing');
@@ -768,6 +841,9 @@ class _ScriptedChatState extends State<ScriptedChat> {
         alignment: Alignment.bottomCenter,
         child: Container(
           width: double.infinity,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
           decoration: BoxDecoration(
             color: appColors.cardBackground,
             borderRadius: const BorderRadius.only(
@@ -782,51 +858,53 @@ class _ScriptedChatState extends State<ScriptedChat> {
               ),
             ],
           ),
-          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 48,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: appColors.textSecondary.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(3),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: appColors.textSecondary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Choose Your Role',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Select the character you want to practice as',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: appColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Choose Your Role',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Select the character you want to practice as',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: appColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: GridView.builder(
+              Flexible(
+                child: ListView.builder(
                   shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.2,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   itemCount: _availableRoles.length,
                   itemBuilder: (context, index) {
-                    final role = _availableRoles[index];
-                    return _buildRoleButton(role, appColors);
+                    final roleInfo = _availableRoles[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildRoleCard(roleInfo, appColors),
+                    );
                   },
                 ),
               ),
@@ -838,47 +916,100 @@ class _ScriptedChatState extends State<ScriptedChat> {
     );
   }
 
-  Widget _buildRoleButton(String role, AppColorsExtension appColors) {
+  Widget _buildRoleCard(_RoleInfo roleInfo, AppColorsExtension appColors) {
+    final genderIcon = roleInfo.gender == 'male'
+        ? Icons.male
+        : roleInfo.gender == 'female'
+            ? Icons.female
+            : Icons.person;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _onRoleSelected(role),
+        onTap: () => _onRoleSelected(roleInfo.role),
         borderRadius: BorderRadius.circular(16),
         child: Container(
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: appColors.primary.withOpacity(0.05),
-            border: Border.all(color: Colors.transparent, width: 2),
+            color: appColors.cardBackground,
+            border: Border.all(
+              color: appColors.primary.withOpacity(0.3),
+              width: 1.5,
+            ),
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: appColors.primary.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   color: appColors.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Text(
-                    role.isNotEmpty ? role[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.primary,
-                    ),
-                  ),
+                child: Icon(
+                  genderIcon,
+                  size: 32,
+                  color: appColors.primary,
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                role,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      roleInfo.role,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
+                    ),
+                    if (roleInfo.name != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        roleInfo.name!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: appColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    if (roleInfo.gender != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            genderIcon,
+                            size: 14,
+                            color: appColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            roleInfo.gender!.capitalize(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: appColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-                textAlign: TextAlign.center,
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: appColors.textSecondary,
               ),
             ],
           ),
@@ -909,20 +1040,33 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
               if (!isUserMessage) ...[
-                Text(
-                  chat.role,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: roleColor,
-                  ),
-                ),
+                _buildGenderIcon(chat.gender, appColors),
+                const SizedBox(width: 6),
                 if (chat.name != null) ...[
+                  Text(
+                    chat.name!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(width: 4),
                   Text(
-                    '(${chat.name})',
-                    style:
-                        TextStyle(fontSize: 12, color: appColors.textSecondary),
+                    '(${chat.role})',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: roleColor,
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    chat.role,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: roleColor,
+                    ),
                   ),
                 ],
               ] else ...[
@@ -939,20 +1083,33 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 ],
                 if (chat.name != null) ...[
                   Text(
-                    '(${chat.name})',
-                    style:
-                        TextStyle(fontSize: 12, color: appColors.textSecondary),
+                    '(${chat.role})',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: roleColor,
+                    ),
                   ),
                   const SizedBox(width: 4),
-                ],
-                Text(
-                  chat.role,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: roleColor,
+                  Text(
+                    chat.name!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: appColors.textPrimary,
+                    ),
                   ),
-                ),
+                ] else ...[
+                  Text(
+                    chat.role,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: roleColor,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 6),
+                _buildGenderIcon(chat.gender, appColors),
               ],
             ],
           ),
@@ -1032,6 +1189,39 @@ class _ScriptedChatState extends State<ScriptedChat> {
                                     fontSize: 13,
                                     fontStyle: FontStyle.italic,
                                     color: appColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (chat.ipa != null && _ipaVisible.contains(chat.id))
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.only(left: 8),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  color: Colors.blue.shade400,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'IPA:',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: appColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  chat.ipa!,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontStyle: FontStyle.italic,
+                                    color: Colors.blue.shade600,
                                   ),
                                 ),
                               ],
@@ -1138,7 +1328,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   color: appColors.textSecondary,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               GestureDetector(
                 onTap: () {
                   setState(() {
@@ -1161,6 +1351,27 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   ),
                 ),
               ),
+              if (chat.ipa != null) ...[
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_ipaVisible.contains(chat.id)) {
+                        _ipaVisible.remove(chat.id);
+                      } else {
+                        _ipaVisible.add(chat.id);
+                      }
+                    });
+                  },
+                  child: Icon(
+                    Icons.text_fields,
+                    size: 16,
+                    color: _ipaVisible.contains(chat.id)
+                        ? Colors.blue.shade600
+                        : appColors.textSecondary,
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -1212,6 +1423,23 @@ class _ScriptedChatState extends State<ScriptedChat> {
       ),
     );
   }
+
+  Widget _buildGenderIcon(String? gender, AppColorsExtension appColors) {
+    IconData icon;
+    if (gender == 'male') {
+      icon = Icons.male;
+    } else if (gender == 'female') {
+      icon = Icons.female;
+    } else {
+      icon = Icons.person;
+    }
+
+    return Icon(
+      icon,
+      size: 14,
+      color: appColors.textSecondary,
+    );
+  }
 }
 
 enum _FeedbackStatus {
@@ -1238,4 +1466,23 @@ class _MessageScore {
   final int score;
   final List<_WordFeedback> feedback;
   final String transcript;
+}
+
+class _RoleInfo {
+  _RoleInfo({
+    required this.role,
+    this.name,
+    this.gender,
+  });
+
+  final String role;
+  final String? name;
+  final String? gender;
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1).toLowerCase()}';
+  }
 }
