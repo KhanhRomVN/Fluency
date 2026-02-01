@@ -1,275 +1,217 @@
 import 'dart:convert';
+import 'dart:io';
 
-import 'package:fluency/features/collection/domain/entities/collection_item.dart';
+import 'package:csv/csv.dart';
+import 'package:fluency/features/collection/domain/entities/collection.dart';
+import 'package:fluency/features/collection/domain/entities/term.dart';
 import 'package:fluency/features/collection/domain/repositories/collection_repository.dart';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:universal_io/io.dart';
+import 'package:uuid/uuid.dart';
 
 class CollectionRepositoryImpl implements CollectionRepository {
-  static const String _fileName = 'collection.json';
-
-  // Hardcoded list for Web
-  final List<String> _webWords = [
-    'serendipity',
-    'ephemeral',
-    'oblivion',
-    'solitude',
-    'aesthetic',
-    'sonder',
-    'mellifluous',
-    'iridescent',
-    'limerence',
-    'petrichor',
-    'effervescent',
-    'ineffable',
-    'ethereal',
-    'epiphany',
-    'luminescence',
-    'hiraeth',
-    'vellichor',
-    'aquiver',
-    'nefarious',
-    'somnambulist',
-  ];
-
-  // In-memory cache for Web to avoid re-fetching constantly within session
-  List<CollectionItem>? _webCache;
+  static const String _collectionsKey = 'collections_v2';
+  final _uuid = const Uuid();
 
   @override
-  Future<List<CollectionItem>> getItems() async {
-    if (kIsWeb) {
-      return _getWebItems();
-    } else {
-      return _getMobileItems();
-    }
-  }
+  Future<List<Collection>> getCollections() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_collectionsKey);
 
-  @override
-  Future<void> saveItem(CollectionItem item) async {
-    if (kIsWeb) {
-      // In this temporary web version, we don't persist modifications
-      // but we could update the local cache
-      if (_webCache != null) {
-        _webCache = [
-          item,
-          ..._webCache!.where((i) => i.id != item.id),
-        ];
-      }
-    } else {
-      final items = await _getMobileItems();
-      final index = items.indexWhere((i) => i.id == item.id);
-      if (index >= 0) {
-        items[index] = item;
-      } else {
-        items.insert(0, item);
-      }
-      await _saveMobileItems(items);
-    }
-  }
-
-  @override
-  Future<void> deleteItem(String id) async {
-    if (kIsWeb) {
-      _webCache?.removeWhere((item) => item.id == id);
-    } else {
-      final items = await _getMobileItems();
-      items.removeWhere((item) => item.id == id);
-      await _saveMobileItems(items);
-    }
-  }
-
-  // --- Mobile Specific Methods ---
-
-  Future<File> _getFile() async {
-    final directory = await getApplicationDocumentsDirectory();
-    return File('${directory.path}/$_fileName');
-  }
-
-  Future<List<CollectionItem>> _getMobileItems() async {
-    try {
-      final file = await _getFile();
-      if (!file.existsSync()) {
-        return [];
-      }
-      final content = await file.readAsString();
-      final jsonList = jsonDecode(content) as List<dynamic>;
-      return jsonList
-          .map((json) => CollectionItem.fromJson(json as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      debugPrint('Error reading collection file: $e');
+    if (jsonString == null) {
       return [];
     }
-  }
 
-  Future<void> _saveMobileItems(List<CollectionItem> items) async {
-    try {
-      final file = await _getFile();
-      final jsonList = items.map((item) => item.toJson()).toList();
-      await file.writeAsString(jsonEncode(jsonList));
-    } catch (e) {
-      debugPrint('Error writing collection file: $e');
-    }
-  }
-
-  // --- Web Specific Methods ---
-
-  Future<List<CollectionItem>> _getWebItems() async {
-    if (_webCache != null && _webCache!.isNotEmpty) return _webCache!;
-
-    // Try loading from cache first
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final cachedString = prefs.getString('web_collection_cache');
-      if (cachedString != null) {
-        final jsonList = jsonDecode(cachedString) as List<dynamic>;
-        final cachedItems = jsonList
-            .map(
-              (json) => CollectionItem.fromJson(json as Map<String, dynamic>),
-            )
-            .toList();
-        if (cachedItems.isNotEmpty) {
-          _webCache = cachedItems;
-          return cachedItems;
-        }
-      }
-    } catch (e) {
-      debugPrint('Error loading web cache: $e');
-    }
-
-    final loadedItems = <CollectionItem>[];
-
-    // Fetch in parallel for speed
-    final futures = _webWords.map(fetchWord);
-    final results = await Future.wait(futures);
-
-    for (final item in results) {
-      if (item != null) {
-        loadedItems.add(item);
-      }
-    }
-
-    _webCache = loadedItems;
-
-    // Save to cache
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonList = loadedItems.map((item) => item.toJson()).toList();
-      await prefs.setString('web_collection_cache', jsonEncode(jsonList));
-    } catch (e) {
-      debugPrint('Error saving web cache: $e');
-    }
-
-    return loadedItems;
+    final jsonList = jsonDecode(jsonString) as List<dynamic>;
+    return jsonList
+        .map((json) => Collection.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   @override
-  Future<CollectionItem?> fetchWord(String word) async {
-    // 1. Try Primary API
+  Future<Collection?> getCollection(String id) async {
+    final collections = await getCollections();
     try {
-      final url = Uri.parse(
-        'https://freedictionaryapi.com/api/v1/entries/en/$word?translations=true',
-      );
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final dynamic data = jsonDecode(response.body);
-        if (data is Map<String, dynamic>) {
-          // Parse Primary API structure
-          final entries = data['entries'] as List?;
-          if (entries != null && entries.isNotEmpty) {
-            final firstEntry = entries[0] as Map<String, dynamic>;
-            var definition = 'No definition found';
-
-            // Try to find definition in senses
-            final senses = firstEntry['senses'] as List?;
-            if (senses != null && senses.isNotEmpty) {
-              final firstSense = senses[0] as Map<String, dynamic>;
-              definition = firstSense['definition'] as String? ?? definition;
-            }
-
-            // Extract phonetics (pronunciations)
-            final phoneticsList = <String>[];
-            final pronunciations = firstEntry['pronunciations'] as List?;
-            if (pronunciations != null) {
-              for (final p in pronunciations) {
-                final pMap = p as Map<String, dynamic>;
-                final text = pMap['text'] as String?;
-                if (text != null) {
-                  phoneticsList.add(text);
-                }
-              }
-            }
-
-            return CollectionItem(
-              id: word,
-              word: word, // Use requested word to match
-              definition: definition,
-              masteryLevel: 1,
-              savedAt: DateTime.now(),
-              phonetics: phoneticsList,
-            );
-          }
-        }
-      }
+      return collections.firstWhere((c) => c.id == id);
     } catch (e) {
-      debugPrint('Primary API error for $word: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<Collection> createCollection(String name, String? description) async {
+    final now = DateTime.now();
+    final collection = Collection(
+      id: _uuid.v4(),
+      name: name,
+      description: description,
+      terms: const [],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final collections = await getCollections();
+    collections.add(collection);
+    await _saveCollections(collections);
+
+    return collection;
+  }
+
+  @override
+  Future<void> updateCollection(Collection collection) async {
+    final collections = await getCollections();
+    final index = collections.indexWhere((c) => c.id == collection.id);
+
+    if (index == -1) {
+      throw Exception('Collection not found');
     }
 
-    // 2. Try Fallback API
-    try {
-      final url =
-          Uri.parse('https://api.dictionaryapi.dev/api/v2/entries/en/$word');
-      final response = await http.get(url);
+    collections[index] = collection.copyWith(updatedAt: DateTime.now());
+    await _saveCollections(collections);
+  }
 
-      if (response.statusCode == 200) {
-        final dynamic data = jsonDecode(response.body);
-        if (data is List && data.isNotEmpty) {
-          final firstEntry = data[0] as Map<String, dynamic>;
-          var definition = 'No definition found';
+  @override
+  Future<void> deleteCollection(String id) async {
+    final collections = await getCollections();
+    collections.removeWhere((c) => c.id == id);
+    await _saveCollections(collections);
+  }
 
-          // Parse Fallback API structure
-          final meanings = firstEntry['meanings'] as List?;
-          if (meanings != null && meanings.isNotEmpty) {
-            final firstMeaning = meanings[0] as Map<String, dynamic>;
-            final definitions = firstMeaning['definitions'] as List?;
-            if (definitions != null && definitions.isNotEmpty) {
-              final firstDefinition = definitions[0] as Map<String, dynamic>;
-              definition =
-                  firstDefinition['definition'] as String? ?? definition;
-            }
-          }
-
-          // Extract phonetics
-          final phoneticsList = <String>[];
-          final phonetics = firstEntry['phonetics'] as List?;
-          if (phonetics != null) {
-            for (final p in phonetics) {
-              final pMap = p as Map<String, dynamic>;
-              final text = pMap['text'] as String?;
-              if (text != null) {
-                phoneticsList.add(text);
-              }
-            }
-          }
-
-          return CollectionItem(
-            id: word,
-            word: word,
-            definition: definition,
-            masteryLevel: 1,
-            savedAt: DateTime.now(),
-            phonetics: phoneticsList,
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Fallback API error for $word: $e');
+  @override
+  Future<void> addTermToCollection(String collectionId, Term term) async {
+    final collection = await getCollection(collectionId);
+    if (collection == null) {
+      throw Exception('Collection not found');
     }
 
-    return null;
+    final updatedTerms = [...collection.terms, term];
+    await updateCollection(collection.copyWith(terms: updatedTerms));
+  }
+
+  @override
+  Future<void> removeTermFromCollection(
+    String collectionId,
+    String termId,
+  ) async {
+    final collection = await getCollection(collectionId);
+    if (collection == null) {
+      throw Exception('Collection not found');
+    }
+
+    final updatedTerms = collection.terms.where((t) => t.id != termId).toList();
+    await updateCollection(collection.copyWith(terms: updatedTerms));
+  }
+
+  @override
+  Future<void> updateTermMastery(
+    String collectionId,
+    String termId,
+    bool isMastered,
+  ) async {
+    final collection = await getCollection(collectionId);
+    if (collection == null) {
+      throw Exception('Collection not found');
+    }
+
+    final updatedTerms = collection.terms.map((t) {
+      if (t.id == termId) {
+        return t.copyWith(isMastered: isMastered);
+      }
+      return t;
+    }).toList();
+
+    await updateCollection(collection.copyWith(terms: updatedTerms));
+  }
+
+  @override
+  Future<Collection> importCollection(File file) async {
+    final extension = file.path.split('.').last.toLowerCase();
+
+    if (extension != 'csv') {
+      throw Exception('Only CSV files are supported for now');
+    }
+
+    final content = await file.readAsString();
+    final rows = const CsvToListConverter().convert(content);
+
+    if (rows.isEmpty) {
+      throw Exception('CSV file is empty');
+    }
+
+    // Assume first row is header: term,definition
+    final terms = <Term>[];
+    for (var i = 1; i < rows.length; i++) {
+      final row = rows[i];
+      if (row.length >= 2) {
+        final term = Term(
+          id: _uuid.v4(),
+          term: row[0].toString(),
+          definition: row[1].toString(),
+          addedAt: DateTime.now(),
+        );
+        terms.add(term);
+      }
+    }
+
+    // Tạo collection mới với tên từ file
+    final fileName = file.path.split('/').last.split('.').first;
+    final collection = await createCollection(
+      'Imported: $fileName',
+      'Imported from CSV file',
+    );
+
+    // Thêm terms vào collection
+    final updatedCollection = collection.copyWith(terms: terms);
+    await updateCollection(updatedCollection);
+
+    return updatedCollection;
+  }
+
+  @override
+  Future<File> exportCollection(String collectionId) async {
+    final collection = await getCollection(collectionId);
+    if (collection == null) {
+      throw Exception('Collection not found');
+    }
+
+    // Convert to CSV
+    final rows = <List<String>>[
+      ['term', 'definition', 'phonetics', 'isMastered'],
+    ];
+
+    for (final term in collection.terms) {
+      rows.add([
+        term.term,
+        term.definition,
+        term.phonetics.join(', '),
+        term.isMastered.toString(),
+      ]);
+    }
+
+    final csv = const ListToCsvConverter().convert(rows);
+
+    // Save to file
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName =
+        '${collection.name}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    final file = File('${directory.path}/$fileName');
+    await file.writeAsString(csv);
+
+    return file;
+  }
+
+  Future<void> _saveCollections(List<Collection> collections) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = collections.map((c) => c.toJson()).toList();
+    await prefs.setString(_collectionsKey, jsonEncode(jsonList));
+  }
+
+  @override
+  Future<bool> isTermInCollection(String collectionId, String term) async {
+    final collection = await getCollection(collectionId);
+    if (collection == null) return false;
+    // Check case-insensitive
+    return collection.terms
+        .any((t) => t.term.toLowerCase() == term.toLowerCase());
   }
 }
