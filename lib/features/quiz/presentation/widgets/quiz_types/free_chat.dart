@@ -226,6 +226,14 @@ class _FreeChatState extends State<FreeChat> {
   Future<void> _speakAiMessage(String text) async {
     try {
       final ttsProvider = context.read<TtsProvider>();
+
+      // Wait for initialization
+      int retries = 0;
+      while (!ttsProvider.isInitialized && retries < 25) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        retries++;
+      }
+
       if (ttsProvider.isInitialized && text.isNotEmpty) {
         // Use male voice as default since gender cannot be determined
         await ttsProvider.speakWithGender(text, gender: 'male');

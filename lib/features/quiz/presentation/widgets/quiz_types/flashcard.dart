@@ -101,6 +101,11 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
           });
         }
       });
+
+      // Sync PageView with restored index
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
     }
 
     // Auto-speak the current card after loading (whether progress exists or not)

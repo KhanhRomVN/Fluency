@@ -3,12 +3,13 @@ import 'dart:math' as math;
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/core/services/tts/tts_service.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -39,10 +40,10 @@ class _ScriptedChatState extends State<ScriptedChat> {
   int _visibleCount = 0;
   final Map<String, bool> _ipaVisible = {};
   final ScrollController _scrollController = ScrollController();
-  final FlutterTts _flutterTts = FlutterTts();
   final SpeechToText _speechToText = SpeechToText();
   bool _speechEnabled = false;
   bool _isListening = false;
+  StreamSubscription<TtsState>? _ttsSubscription;
 
   // Sequence playback
   bool _isPlayingSequence = false;
@@ -112,10 +113,70 @@ class _ScriptedChatState extends State<ScriptedChat> {
         if (_userRole != null) {
           // If we have progress, restore the sequence state
           _visibleCount = savedVisibleCount;
-          _currentSequenceIndex = _visibleCount;
-          // Don't auto-play if we just restored, let user interact?
-          // Or just scrollToBottom
-          _scrollToBottom();
+
+          debugPrint(
+              'ScriptedChat: Restored progress. Visible=$_visibleCount, Role=$_userRole');
+
+          // Resume sequence logic
+          int restartIndex = _visibleCount;
+          bool shouldResume = false;
+
+          if (_visibleCount > 0) {
+            final chats = widget.quiz.chats ?? [];
+            if (_visibleCount <= chats.length) {
+              final lastIndex = _visibleCount - 1;
+              final lastChat = chats[lastIndex];
+
+              if (lastChat.role != _userRole) {
+                // Last visible was Assistant.
+                // We want to replay this assistant message to give user context.
+                restartIndex = lastIndex;
+                shouldResume = true;
+                debugPrint(
+                    'ScriptedChat: Resuming at assistant message $restartIndex for context.');
+              } else {
+                // Last visible was User.
+                final scoreData = _messageScores[lastChat.id];
+                if (scoreData != null && scoreData.score >= 50) {
+                  // User passed this turn previously.
+                  // Resume from the NEXT message.
+                  restartIndex = _visibleCount;
+                  shouldResume = true;
+                  debugPrint(
+                      'ScriptedChat: User passed previous, resuming at next sequence $restartIndex');
+                } else {
+                  // User FAILED or hasn't attempted yet.
+                  // Do NOT resume sequence forward. We must stop and wait for user input.
+                  // Optional: Replay the previous Assistant message (prompt) for context?
+                  if (lastIndex > 0) {
+                    restartIndex = lastIndex - 1;
+                    shouldResume = true;
+                    debugPrint(
+                        'ScriptedChat: User pending/failed. Replaying previous assistant prompt at $restartIndex');
+                  } else {
+                    // Very first message was user? Just stop.
+                    shouldResume = false;
+                  }
+                }
+              }
+            }
+          } else {
+            // Start from beginning
+            restartIndex = 0;
+            shouldResume = true;
+          }
+
+          _currentSequenceIndex = restartIndex;
+          _isPlayingSequence = shouldResume;
+
+          if (shouldResume) {
+            // Use a slight delay to ensure UI builds first
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted && _isPlayingSequence) {
+                _playNextInSequence();
+              }
+            });
+          }
         }
       });
     }
@@ -124,30 +185,43 @@ class _ScriptedChatState extends State<ScriptedChat> {
   @override
   void dispose() {
     _scrollController.dispose();
-    _flutterTts.stop();
+    _ttsSubscription?.cancel();
+    context.read<TtsProvider>().ttsService?.stop();
     _longPressTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _initializeTts() async {
     try {
-      if (Platform.isAndroid) {
-        await _flutterTts.getDefaultEngine;
+      final ttsProvider = context.read<TtsProvider>();
+
+      // Wait for initialization if needed
+      int retries = 0;
+      while (!ttsProvider.isInitialized && retries < 25) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        retries++;
       }
 
-      await _flutterTts.awaitSpeakCompletion(true);
-      await _flutterTts.setLanguage('en-US');
-      await _flutterTts.setSpeechRate(0.5);
+      // If still not initialized, force it
+      if (!ttsProvider.isInitialized) {
+        debugPrint(
+            'ScriptedChat: TTS not initialized after wait, forcing init');
+        await ttsProvider.initService();
+      }
 
-      _flutterTts.setCompletionHandler(() {
-        if (_isPlayingSequence) {
-          _playNextInSequence();
-        }
-      });
+      if (ttsProvider.isInitialized && ttsProvider.ttsService != null) {
+        // Subscribe to state stream for sequence handling
+        _ttsSubscription?.cancel();
+        _ttsSubscription = ttsProvider.ttsService!.stateStream.listen((state) {
+          if (state == TtsState.stopped && _isPlayingSequence) {
+            _playNextInSequence();
+          }
+        });
+      }
 
       // Initialize Speech to Text
       _speechEnabled = await _speechToText.initialize();
-      setState(() {});
+      if (mounted) setState(() {});
     } catch (e) {
       debugPrint('TTS/STT Init Error: $e');
     }
@@ -261,15 +335,37 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
   Future<void> _speakText(String text) async {
     try {
-      await _flutterTts.stop();
+      debugPrint('ScriptedChat: _speakText called with text: "$text"');
+      final ttsService = context.read<TtsProvider>().ttsService;
+      if (ttsService == null) {
+        debugPrint('ScriptedChat: TTS Service is null, triggering fallback');
+        if (_isPlayingSequence) {
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted && _isPlayingSequence) {
+              _playNextInSequence();
+            }
+          });
+        }
+        return;
+      }
+
+      // Removed await ttsService.stop() to prevent emitting TtsState.stopped prematurely
       if (text.isNotEmpty) {
-        await _flutterTts.speak(text);
+        debugPrint('ScriptedChat: calling ttsService.speak');
+        await ttsService.speak(text);
+        debugPrint('ScriptedChat: ttsService.speak returned');
+      } else {
+        // If nothing to speak, manually advance
+        debugPrint('ScriptedChat: empty text, manually advancing');
+        if (_isPlayingSequence) {
+          Future.delayed(Duration.zero, () {
+            if (mounted && _isPlayingSequence) _playNextInSequence();
+          });
+        }
       }
     } catch (e) {
       debugPrint('TTS Speak Error: $e');
-      // If TTS fails, we should probably manually advance the sequence after a delay?
-      // Or just let it be.
-      // If we don't advance, the user is stuck.
+      // Fallback: manually advance if TTS fails
       if (_isPlayingSequence) {
         debugPrint('Advancing sequence manually due to TTS error');
         Future.delayed(const Duration(seconds: 2), () {
@@ -615,16 +711,22 @@ class _ScriptedChatState extends State<ScriptedChat> {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final chats = widget.quiz.chats ?? [];
 
-    // Check if it's user's turn (last visible message is user role and not scored)
+    // Check if it's user's turn
+    // User turn if:
+    // 1. Last visible message is user role.
+    // 2. AND (we have no score yet OR score is < 50).
     ChatMessage? activeUserChat;
     var isUserTurn = false;
 
     if (_visibleCount > 0 && _userRole != null) {
       final lastVisibleChat = chats[_visibleCount - 1];
-      if (lastVisibleChat.role == _userRole &&
-          !_messageScores.containsKey(lastVisibleChat.id)) {
-        isUserTurn = true;
-        activeUserChat = lastVisibleChat;
+      if (lastVisibleChat.role == _userRole) {
+        final scoreData = _messageScores[lastVisibleChat.id];
+        // If no score, or failed score, it's still user turn to try/retry
+        if (scoreData == null || scoreData.score < 50) {
+          isUserTurn = true;
+          activeUserChat = lastVisibleChat;
+        }
       }
     }
 
@@ -727,7 +829,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle bar
               Container(
                 width: 48,
                 height: 6,
@@ -737,8 +838,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Title
               Text(
                 'Choose Your Role',
                 style: TextStyle(
@@ -756,8 +855,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Role buttons
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 400),
                 child: GridView.builder(
@@ -776,7 +873,6 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   },
                 ),
               ),
-
               const SizedBox(height: 16),
             ],
           ),
@@ -847,25 +943,17 @@ class _ScriptedChatState extends State<ScriptedChat> {
     final isTranslateVisible = _translateVisible.contains(chat.id);
     final scoreData = _messageScores[chat.id];
     final targetText = _getTextContent(chat.question ?? chat.content);
-    final showIpaButton =
-        scoreData != null && scoreData.score < 50 && chat.ipa != null;
 
+    // Check role color
     final roleColor = _getRoleColor(chat.role, isUserMessage);
-
-    // If it's a user message but it's not the current active turn (or past turn),
-    // and we haven't spoken it yet (no score), we might want to hide it?
-    // BUT the logic `_visibleCount` handles "showing" the bubble.
-    // If it is shown, it means it is the user's turn acting out.
-
-    // Check if we should show the "active" recording UI for user
-    final isMyTurn = isUserMessage && scoreData == null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Role/Name badge
+          // Role information + Score (if exists and < 50 or is user message)
+          // Req 3: Display score % in label row of user message box
           Row(
             mainAxisAlignment:
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -883,42 +971,28 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   const SizedBox(width: 4),
                   Text(
                     '(${chat.name})',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: appColors.textSecondary,
-                    ),
-                  ),
-                ],
-                if (chat.time != null) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    chat.time!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                      color: appColors.textSecondary,
-                    ),
+                    style:
+                        TextStyle(fontSize: 12, color: appColors.textSecondary),
                   ),
                 ],
               ] else ...[
-                if (chat.time != null) ...[
+                // User message: Show Score if available
+                if (scoreData != null) ...[
                   Text(
-                    chat.time!,
+                    '${scoreData.score}%',
                     style: TextStyle(
                       fontSize: 12,
-                      fontFamily: 'monospace',
-                      color: appColors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                      color: _getScoreColor(scoreData.score),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                 ],
                 if (chat.name != null) ...[
                   Text(
                     '(${chat.name})',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: appColors.textSecondary,
-                    ),
+                    style:
+                        TextStyle(fontSize: 12, color: appColors.textSecondary),
                   ),
                   const SizedBox(width: 4),
                 ],
@@ -935,7 +1009,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
           ),
           const SizedBox(height: 4),
 
-          // Bubble
+          // Bubble Content
           Row(
             mainAxisAlignment:
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -974,23 +1048,21 @@ class _ScriptedChatState extends State<ScriptedChat> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Message content
-                        if (scoreData != null)
-                          _buildTextWithFeedback(
-                            targetText,
-                            scoreData.feedback,
-                            appColors,
-                          )
-                        else
-                          RichTextParser.buildRichText(
-                            context,
-                            chat.question ?? chat.content,
-                            onWordLongPress: widget.onWordLongPress,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: appColors.textPrimary,
-                            ),
-                          ).first,
+                        // Message content (Target Text)
+                        // Removed RichText with feedback coloring on main text if user message?
+                        // Actually, requirement says "display user pronunciation like translate".
+                        // So the main text should probably remain clean or just target text?
+                        // "2/ ở phần hiển thị phần "phát âm của người dùng" sẽ hiển thị giống của hiển thị của translate"
+                        // imply main text is target text. User transcript is separate.
+                        RichTextParser.buildRichText(
+                          context,
+                          chat.question ?? chat.content,
+                          onWordLongPress: widget.onWordLongPress,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: appColors.textPrimary,
+                          ),
+                        ).first,
 
                         // Translation
                         if (translateText != null && isTranslateVisible)
@@ -1005,69 +1077,69 @@ class _ScriptedChatState extends State<ScriptedChat> {
                                 ),
                               ),
                             ),
-                            child: Text(
-                              translateText,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
-                                color: appColors.textSecondary,
-                              ),
-                            ),
-                          ),
-
-                        // IPA Display
-                        if (_ipaVisible[chat.id] == true && chat.ipa != null)
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: appColors.inputBackground,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              chat.ipa!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontFamily: 'monospace',
-                                color: appColors.textSecondary,
-                              ),
-                            ),
-                          ),
-
-                        // Score badge
-                        if (scoreData != null)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${scoreData.score}%',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: _getScoreColor(scoreData.score),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Translate:',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: appColors.textSecondary,
+                                  ),
                                 ),
-                              ),
-                              if (showIpaButton) ...[
-                                const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _ipaVisible[chat.id] =
-                                          !(_ipaVisible[chat.id] ?? false);
-                                    });
-                                  },
-                                  child: Icon(
-                                    Icons.help_outline,
-                                    size: 14,
+                                Text(
+                                  translateText,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontStyle: FontStyle.italic,
                                     color: appColors.textSecondary,
                                   ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
+
+                        // User Transcript (Pronunciation) - Req 2: Display like translate
+                        if (scoreData != null && isUserMessage)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.only(left: 8),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  // Color based on pass/fail? Or just primary like translate?
+                                  // Let's use score color or primary.
+                                  // Primary matches "like translate".
+                                  color: _getScoreColor(scoreData.score),
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Your recording:',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: appColors.textSecondary,
+                                  ),
+                                ),
+                                _buildTextWithFeedback(
+                                  scoreData
+                                      .transcript, // We show what they said? Or target with coloring?
+                                  // Usually transcript is what they said. Feedback has coloring.
+                                  // But _buildTextWithFeedback uses target words usually.
+                                  // Let's just show transcript text for now as per requirement "user pronunciation".
+                                  // Actually passing feedback to _buildTextWithFeedback works if we want coloring.
+                                  scoreData.feedback,
+                                  appColors,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // Req 1: Removed IPA and Explain sections inside bubble.
                       ],
                     ),
                   ),
@@ -1076,58 +1148,14 @@ class _ScriptedChatState extends State<ScriptedChat> {
             ],
           ),
 
-          // User Transcript Display
-          if (scoreData != null && isUserMessage)
-            Padding(
-              padding: EdgeInsets.only(
-                top: 4,
-                left: isUserMessage ? 0 : 0,
-                right: isUserMessage ? 0 : 0,
-              ),
-              child: Row(
-                mainAxisAlignment: isUserMessage
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: Container(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.8,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: appColors.inputBackground,
-                        border: Border.all(
-                          color: appColors.border,
-                          style: BorderStyle.solid,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '"${scoreData.transcript}"',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: appColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           // Icon buttons
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment:
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
+              // For Assistant: Show TTS and Translate
               if (!isUserMessage) ...[
-                // TTS Button (Speaker)
                 GestureDetector(
                   onTap: () => _speakText(targetText),
                   child: Icon(
@@ -1160,144 +1188,92 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   ),
                 ),
               ] else ...[
-                // User Actions
-
-                // If already scored, show replay/TTS?
-                if (scoreData != null) ...[
-                  GestureDetector(
-                    onTap: () => _speakText(targetText),
-                    child: Icon(
-                      Icons.volume_up,
-                      size: 16,
-                      color: appColors.textSecondary,
+                // User Message Actions
+                // TTS for target text (reference)
+                GestureDetector(
+                  onTap: () => _speakText(targetText),
+                  child: Icon(
+                    Icons.volume_up,
+                    size: 16,
+                    color: appColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isTranslateVisible) {
+                        _translateVisible.remove(chat.id);
+                      } else {
+                        _translateVisible.add(chat.id);
+                      }
+                    });
+                  },
+                  child: SvgPicture.string(
+                    '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages-icon lucide-languages"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>''',
+                    width: 16,
+                    height: 16,
+                    colorFilter: ColorFilter.mode(
+                      isTranslateVisible
+                          ? appColors.primary
+                          : appColors.textSecondary,
+                      BlendMode.srcIn,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (isTranslateVisible) {
-                          _translateVisible.remove(chat.id);
-                        } else {
-                          _translateVisible.add(chat.id);
-                        }
-                      });
-                    },
-                    child: SvgPicture.string(
-                      '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages-icon lucide-languages"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>''',
-                      width: 16,
-                      height: 16,
-                      colorFilter: ColorFilter.mode(
-                        isTranslateVisible
-                            ? appColors.primary
-                            : appColors.textSecondary,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  // If not scored, user is seeing their turn.
-                  // we just showed the Mic button above.
-                  // Do we show translate/TTS for user's own prompt? Yes, helpful.
-                  GestureDetector(
-                    onTap: () => _speakText(targetText),
-                    child: Icon(
-                      Icons.volume_up,
-                      size: 16,
-                      color: appColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (isTranslateVisible) {
-                          _translateVisible.remove(chat.id);
-                        } else {
-                          _translateVisible.add(chat.id);
-                        }
-                      });
-                    },
-                    child: SvgPicture.string(
-                      '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages-icon lucide-languages"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>''',
-                      width: 16,
-                      height: 16,
-                      colorFilter: ColorFilter.mode(
-                        isTranslateVisible
-                            ? appColors.primary
-                            : appColors.textSecondary,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ],
             ],
           ),
 
-          // Explanation - Centered after completion
-          if (scoreData != null && chat.explain != null)
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.9,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: appColors.border,
-                    style: BorderStyle.solid,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  chat.explain!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontStyle: FontStyle.italic,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
+          // REQ 1: Removed Explanation section which was here.
         ],
       ),
     );
   }
 
   Widget _buildTextWithFeedback(
-    String text,
+    String text, // Unused really if we use feedback items
     List<_WordFeedback> feedback,
     AppColorsExtension appColors,
   ) {
+    // If we want to show the USER TRANSCRIPT with coloring, we iterate feedback.
+    // Feedback matches target words.
+    // Requirement: "user pronunciation ... like translate".
+    // Usually we show what the user SAID.
+    // But feedback structure maps target words to status.
+    // Let's best effort construct a display.
+    // If the transcript is available in scoreData, maybe we strictly use scoreData.transcript for "raw"
+    // But feedback is better.
+
     final spans = <InlineSpan>[];
 
     for (var i = 0; i < feedback.length; i++) {
       final item = feedback[i];
-      if (item.status == _FeedbackStatus.extra) continue;
+      if (item.status == _FeedbackStatus.missing)
+        continue; // Don't show missing in user transcript? Or show as gray?
+      // Actually usually you show what user said.
+      // If we use target-based feedback, it shows target words colored.
+      // Let's stick to existing logic but styled nicely.
 
       Color? color;
       if (item.status == _FeedbackStatus.correct) {
-        color = appColors.primary;
-      } else if (item.status == _FeedbackStatus.incorrect ||
-          item.status == _FeedbackStatus.missing) {
-        color = Colors.red.shade500;
+        color = Colors.green;
+      } else if (item.status == _FeedbackStatus.incorrect) {
+        color = Colors.red;
+      } else if (item.status == _FeedbackStatus.extra) {
+        color = Colors.grey;
+      } else {
+        color = appColors.textPrimary;
       }
 
       spans.add(
         TextSpan(
           text: item.word,
-          style: TextStyle(color: color),
+          style: TextStyle(color: color, fontStyle: FontStyle.italic),
         ),
       );
 
-      if (i <
-          feedback.where((f) => f.status != _FeedbackStatus.extra).length - 1) {
+      if (i < feedback.length - 1) {
         spans.add(const TextSpan(text: ' '));
       }
     }
@@ -1306,8 +1282,8 @@ class _ScriptedChatState extends State<ScriptedChat> {
       TextSpan(
         children: spans,
         style: TextStyle(
-          fontSize: 14,
-          color: appColors.textPrimary,
+          fontSize: 13,
+          color: appColors.textSecondary,
         ),
       ),
     );

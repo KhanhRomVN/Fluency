@@ -12,6 +12,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 
 class CourseDetailPage extends StatefulWidget {
   const CourseDetailPage({super.key, this.course});
@@ -590,6 +591,9 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
 
   Future<void> _handleLessonTap(BuildContext context, Lesson lesson) async {
     final quizStateProvider = context.read<QuizStateProvider>();
+    // Preload TTS service to avoid delay in quiz
+    context.read<TtsProvider>().initService();
+
     await quizStateProvider.init();
 
     // Check if lesson has any saved progress

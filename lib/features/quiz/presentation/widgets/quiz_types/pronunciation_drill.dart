@@ -4,6 +4,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -86,6 +87,25 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
           });
         }
       });
+
+      // Sync PageView with restored index
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
+    }
+
+    // Auto-speak like Flashcard
+    if (mounted) {
+      final ttsProvider = context.read<TtsProvider>();
+      int retries = 0;
+      while (!ttsProvider.isInitialized && retries < 25) {
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        retries++;
+      }
+
+      if (ttsProvider.isInitialized) {
+        _speakCurrentWord();
+      }
     }
   }
 
@@ -134,15 +154,24 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
       _currentIndex = index;
     });
     _saveProgress();
+    _speakCurrentWord();
   }
 
-  void _animateToNextQuestion() {
-    if (_currentIndex < (widget.quiz.pronunciations?.length ?? 0) - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+  Future<void> _speakCurrentWord() async {
+    final ttsProvider = context.read<TtsProvider>();
+    if (!ttsProvider.isInitialized) return;
+
+    final item = (widget.quiz.pronunciations ?? [])[_currentIndex];
+    final text = _getTextContent(item.text);
+
+    if (text.isNotEmpty) {
+      await ttsProvider.ttsService?.speak(text);
     }
+  }
+
+  String _getTextContent(String? html) {
+    if (html == null) return '';
+    return html.replaceAll(RegExp(r'<[^>]*>'), '');
   }
 
   void _startRecording(PronunciationItem item) async {
@@ -198,10 +227,6 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
         });
       }
     }
-  }
-
-  String _getTextContent(String html) {
-    return html.replaceAll(RegExp(r'<[^>]*>'), '');
   }
 
   int _calculateScore(String spoken, String target) {

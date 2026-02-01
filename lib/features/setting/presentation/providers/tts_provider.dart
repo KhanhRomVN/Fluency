@@ -53,6 +53,8 @@ class TtsProvider extends ChangeNotifier {
     await _initService();
   }
 
+  Future<void> initService() => _initService();
+
   Future<void> _initService() async {
     _activeTtsService?.dispose();
     _isInitialized = false;
