@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:fluency/app.dart';
 import 'package:fluency/core/config/environment_config.dart';
+import 'package:fluency/core/services/activity/activity_repository.dart';
+import 'package:fluency/core/services/usage/app_usage_service.dart';
 import 'package:fluency/core/services/tts/voice_download_service.dart';
 import 'package:fluency/di/injection_container.dart' as di;
+import 'package:fluency/di/injection_container.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +37,9 @@ class Runner {
     await di.init();
     // Initialize Sherpa Onnx
     initBindings();
+
+    // Start Usage Tracking
+    sl<AppUsageService>().startTracking();
 
     // Initialize SharedPreferences
     final sharedPreferences = await SharedPreferences.getInstance();

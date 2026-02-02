@@ -544,17 +544,17 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       builder: (context) => AlertDialog(
         backgroundColor: appColors.background,
         title: Text(
-          'Xác nhận xóa',
+          'Confirm Delete',
           style: TextStyle(color: appColors.textPrimary),
         ),
         content: Text(
-          'Bạn có chắc chắn muốn xóa khóa học này?',
+          'Are you sure you want to delete this course?',
           style: TextStyle(color: appColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
@@ -562,7 +562,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
               await _deleteCourse();
             },
             child: const Text(
-              'Xóa',
+              'Delete',
               style: TextStyle(color: Colors.red),
             ),
           ),
@@ -582,7 +582,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi xóa khóa học: $e')),
+          SnackBar(content: Text('Error deleting course: $e')),
         );
       }
     }

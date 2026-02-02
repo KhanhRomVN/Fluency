@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:csv/csv.dart';
+import 'package:fluency/core/services/activity/activity.dart';
+import 'package:fluency/core/services/activity/activity_repository.dart';
+import 'package:fluency/di/injection_container.dart';
 import 'package:fluency/features/collection/domain/entities/collection.dart';
 import 'package:fluency/features/collection/domain/entities/term.dart';
 import 'package:fluency/features/collection/domain/repositories/collection_repository.dart';
@@ -54,6 +57,19 @@ class CollectionRepositoryImpl implements CollectionRepository {
     collections.add(collection);
     await _saveCollections(collections);
 
+    // Log activity
+    await sl<ActivityRepository>().logActivity(Activity(
+      id: _uuid.v4(),
+      type: ActivityType.addCollection,
+      title: 'Collection created',
+      subtitle: name,
+      timestamp: DateTime.now(),
+      metadata: {
+        'collectionId': collection.id,
+        'collectionName': name,
+      },
+    ));
+
     return collection;
   }
 
@@ -68,13 +84,46 @@ class CollectionRepositoryImpl implements CollectionRepository {
 
     collections[index] = collection.copyWith(updatedAt: DateTime.now());
     await _saveCollections(collections);
+
+    // Log activity
+    await sl<ActivityRepository>().logActivity(Activity(
+      id: _uuid.v4(),
+      type: ActivityType.updateCollection,
+      title: 'Collection updated',
+      subtitle: collection.name,
+      timestamp: DateTime.now(),
+      metadata: {
+        'collectionId': collection.id,
+        'collectionName': collection.name,
+      },
+    ));
   }
 
   @override
   Future<void> deleteCollection(String id) async {
     final collections = await getCollections();
+    final collection = collections.cast<Collection?>().firstWhere(
+          (c) => c?.id == id,
+          orElse: () => null,
+        );
+
     collections.removeWhere((c) => c.id == id);
     await _saveCollections(collections);
+
+    if (collection != null) {
+      // Log activity
+      await sl<ActivityRepository>().logActivity(Activity(
+        id: _uuid.v4(),
+        type: ActivityType.removeCollection,
+        title: 'Collection deleted',
+        subtitle: collection.name,
+        timestamp: DateTime.now(),
+        metadata: {
+          'collectionId': collection.id,
+          'collectionName': collection.name,
+        },
+      ));
+    }
   }
 
   @override
@@ -86,6 +135,21 @@ class CollectionRepositoryImpl implements CollectionRepository {
 
     final updatedTerms = [...collection.terms, term];
     await updateCollection(collection.copyWith(terms: updatedTerms));
+
+    // Log activity
+    await sl<ActivityRepository>().logActivity(Activity(
+      id: _uuid.v4(),
+      type: ActivityType.addTerm,
+      title: 'Term added to collection',
+      subtitle: '${term.term} -> ${collection.name}',
+      timestamp: DateTime.now(),
+      metadata: {
+        'collectionId': collection.id,
+        'collectionName': collection.name,
+        'termId': term.id,
+        'term': term.term,
+      },
+    ));
   }
 
   @override
@@ -98,8 +162,30 @@ class CollectionRepositoryImpl implements CollectionRepository {
       throw Exception('Collection not found');
     }
 
+    final term = collection.terms.cast<Term?>().firstWhere(
+          (t) => t?.id == termId,
+          orElse: () => null,
+        );
+
     final updatedTerms = collection.terms.where((t) => t.id != termId).toList();
     await updateCollection(collection.copyWith(terms: updatedTerms));
+
+    if (term != null) {
+      // Log activity
+      await sl<ActivityRepository>().logActivity(Activity(
+        id: _uuid.v4(),
+        type: ActivityType.removeTerm,
+        title: 'Term removed from collection',
+        subtitle: '${term.term} (từ ${collection.name})',
+        timestamp: DateTime.now(),
+        metadata: {
+          'collectionId': collection.id,
+          'collectionName': collection.name,
+          'termId': term.id,
+          'term': term.term,
+        },
+      ));
+    }
   }
 
   @override

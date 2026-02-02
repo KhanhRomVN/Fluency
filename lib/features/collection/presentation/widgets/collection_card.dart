@@ -21,6 +21,7 @@ class CollectionCard extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) => CollectionMenuDrawer(
         collection: collection,
@@ -33,23 +34,23 @@ class CollectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final progress = collection.totalTerms > 0
+        ? collection.masteredCount / collection.totalTerms
+        : 0.0;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: appColors.border, width: 1),
+        ),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: appColors.border),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Dòng 1: Title và icon ellipsis
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -57,7 +58,7 @@ class CollectionCard extends StatelessWidget {
                     child: Text(
                       collection.name,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: appColors.textPrimary,
                       ),
@@ -65,17 +66,20 @@ class CollectionCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => _showMenu(context),
-                    icon: const Icon(Icons.more_vert),
-                    color: appColors.textSecondary,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: IconButton(
+                      onPressed: () => _showMenu(context),
+                      icon: const Icon(Icons.more_vert, size: 20),
+                      color: appColors.textSecondary,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // Dòng 2: Badges
+              const SizedBox(height: 4),
               Row(
                 children: [
                   _buildBadge(
@@ -90,11 +94,12 @@ class CollectionCard extends StatelessWidget {
                     Colors.green,
                   ),
                   const SizedBox(width: 8),
-                  _buildBadge(
-                    '${collection.unmasteredCount} learning',
-                    Colors.orange.withValues(alpha: 0.1),
-                    Colors.orange,
-                  ),
+                  if (collection.unmasteredCount > 0)
+                    _buildBadge(
+                      '${collection.unmasteredCount} learning',
+                      Colors.orange.withValues(alpha: 0.1),
+                      Colors.orange,
+                    ),
                 ],
               ),
             ],

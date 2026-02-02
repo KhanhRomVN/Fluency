@@ -4,10 +4,14 @@ import 'dart:convert';
 import 'package:fluency/core/mock/mock_course_service.dart';
 import 'package:fluency/features/course/data/services/zip_course_loader.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/core/services/activity/activity.dart';
+import 'package:fluency/core/services/activity/activity_repository.dart';
+import 'package:fluency/di/injection_container.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
+import 'package:uuid/uuid.dart';
 
 class CourseRepository {
   // List of known course files in assets
@@ -67,8 +71,19 @@ class CourseRepository {
       await file.copy(newPath);
       debugPrint('Copied imported course to $newPath');
 
-      // Extraction already happened during validation, but let's ensure it's in the right place if needed
-      // ZipCourseLoader handles caching based on name.
+      // Log activity
+      await sl<ActivityRepository>().logActivity(Activity(
+        id: const Uuid().v4(),
+        type: ActivityType.importCourse,
+        title: 'Course imported',
+        subtitle: newCourse.title,
+        timestamp: DateTime.now(),
+        metadata: {
+          'courseId': newCourse.id,
+          'courseTitle': newCourse.title,
+          'version': newCourse.version,
+        },
+      ));
     } catch (e) {
       debugPrint('Error importing course: $e');
       rethrow;
@@ -143,6 +158,16 @@ class CourseRepository {
           // Resolve paths using extracted directory
           course = _resolvePathsFromZip(course, extractedDir);
 
+          // Inject lesson metadata
+          course = course.copyWith(
+            lessons: course.lessons
+                .map((l) => l.copyWith(
+                      courseId: course.id,
+                      courseTitle: course.title,
+                    ))
+                .toList(),
+          );
+
           courses.add(course);
           debugPrint('Successfully loaded course: ${course.title}');
         } catch (e) {
@@ -198,6 +223,16 @@ class CourseRepository {
 
           // Resolve paths using extracted directory
           course = _resolvePathsFromZip(course, extractedDir);
+
+          // Inject lesson metadata
+          course = course.copyWith(
+            lessons: course.lessons
+                .map((l) => l.copyWith(
+                      courseId: course.id,
+                      courseTitle: course.title,
+                    ))
+                .toList(),
+          );
 
           courses.insert(0, course); // Add imported courses to the top
           debugPrint('Successfully loaded imported course: ${course.title}');
@@ -310,6 +345,16 @@ class CourseRepository {
           // Resolve paths
           final basePath = '$folder/';
           course = _resolvePaths(course, basePath);
+
+          // Inject lesson metadata
+          course = course.copyWith(
+            lessons: course.lessons
+                .map((l) => l.copyWith(
+                      courseId: course.id,
+                      courseTitle: course.title,
+                    ))
+                .toList(),
+          );
 
           courses.add(course);
         } catch (e) {
@@ -519,6 +564,19 @@ class CourseRepository {
           }
         }
       }
+
+      // Log activity
+      await sl<ActivityRepository>().logActivity(Activity(
+        id: const Uuid().v4(),
+        type: ActivityType.deleteCourse,
+        title: 'Course deleted',
+        subtitle: course.title,
+        timestamp: DateTime.now(),
+        metadata: {
+          'courseId': course.id,
+          'courseTitle': course.title,
+        },
+      ));
     } catch (e) {
       debugPrint('Error in robust deleteCourse: $e');
       rethrow;

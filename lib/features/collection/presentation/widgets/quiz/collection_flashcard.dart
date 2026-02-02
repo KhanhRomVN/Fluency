@@ -4,7 +4,9 @@ import 'dart:math' as math;
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/domain/entities/term.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class CollectionFlashcard extends StatefulWidget {
   const CollectionFlashcard({
@@ -49,6 +51,11 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
     );
 
     _pageController = PageController(initialPage: _currentIndex);
+
+    // Initial speak
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _speakCurrentTerm();
+    });
   }
 
   @override
@@ -58,12 +65,25 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
     super.dispose();
   }
 
+  Future<void> _speakCurrentTerm() async {
+    if (_currentIndex < 0 || _currentIndex >= widget.terms.length) return;
+    final term = widget.terms[_currentIndex];
+
+    final ttsProvider = context.read<TtsProvider>();
+    if (!ttsProvider.isInitialized) {
+      await ttsProvider.initService();
+    }
+    await ttsProvider.ttsService?.stop();
+    await ttsProvider.speakWithGender(term.term);
+  }
+
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
       _isFlipped = false;
       _flipController.reset();
     });
+    _speakCurrentTerm();
   }
 
   void _performFlip() {
@@ -135,8 +155,15 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
               height: double.infinity,
               decoration: BoxDecoration(
                 color: appColors.cardBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: appColors.primary, width: 2),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: appColors.border, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: GestureDetector(
                 onTap: index == _currentIndex ? _performFlip : null,
@@ -180,6 +207,10 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
       width: double.infinity,
       height: double.infinity,
       padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: appColors.cardBackground,
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Stack(
         children: [
           Center(
@@ -219,13 +250,14 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.rotate_right, size: 16, color: appColors.primary),
+                  Icon(Icons.touch_app_outlined,
+                      size: 16, color: appColors.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Tap to flip',
                     style: TextStyle(
                       color: appColors.primary,
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -248,14 +280,10 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
     try {
       if (term.definition.startsWith('{')) {
         final json = jsonDecode(term.definition) as Map<String, dynamic>;
-        // Sometimes definition might be just a flat map if I wasn't careful,
-        // but I used jsonEncode(entry.toJson()). So it should be a full entry.
-        // However, DirectoryEntry.fromJson expects specific structure.
-        // Let's safe-guard.
         entry = DirectoryEntry.fromJson(json);
       }
     } catch (_) {
-      // Fallback to null (treat as simple string)
+      // Fallback
     }
 
     return Container(
@@ -263,46 +291,87 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
       height: double.infinity,
       decoration: BoxDecoration(
         color: appColors.cardBackground,
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Text(
-                term.term,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.primary,
-                ),
-                textAlign: TextAlign.center,
+      child: Column(
+        children: [
+          // Header handle visual (like QuizDrawer)
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            width: 48,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Text(
+                      term.term,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.primary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (entry != null)
+                    _buildRichContent(context, entry, appColors)
+                  else ...[
+                    _buildFallbackDefinition(term, appColors),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            if (entry != null)
-              _buildRichContent(context, entry, appColors)
-            else ...[
-              Text(
-                'Definition:',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textSecondary,
-                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFallbackDefinition(Term term, AppColorsExtension appColors) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: appColors.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: appColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              'DEFINITION',
+              style: TextStyle(
+                color: appColors.primary,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 8),
-              Text(
-                term.definition,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: appColors.textPrimary,
-                ),
-              ),
-            ],
-          ],
-        ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            term.definition,
+            style: TextStyle(
+              fontSize: 16,
+              color: appColors.textPrimary,
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -322,87 +391,39 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: groupedDefinitions.entries.map((group) {
-        final pos = group.key;
-        final defs = group.value;
-
         return Padding(
-          padding: const EdgeInsets.only(bottom: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // POS Label
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _getPosColor(pos, appColors).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  pos.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: _getPosColor(pos, appColors),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Definitions
-              ...defs.asMap().entries.map((e) {
-                final index = e.key;
-                final def = e.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: appColors.textPrimary,
-                            height: 1.4,
-                            fontFamily: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.fontFamily,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: '${index + 1}. ',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            TextSpan(text: def.definition),
-                          ],
-                        ),
-                      ),
-                      if (def.example != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4, left: 16),
-                          child: Text(
-                            '"${def.example}"',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
-                              color: appColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ],
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _PosSection(
+            pos: group.key,
+            definitions: group.value,
+            appColors: appColors,
           ),
         );
       }).toList(),
     );
   }
+}
 
-  Color _getPosColor(String pos, AppColorsExtension appColors) {
+class _PosSection extends StatefulWidget {
+  final String pos;
+  final List<Definition> definitions;
+  final AppColorsExtension appColors;
+
+  const _PosSection({
+    required this.pos,
+    required this.definitions,
+    required this.appColors,
+  });
+
+  @override
+  State<_PosSection> createState() => _PosSectionState();
+}
+
+class _PosSectionState extends State<_PosSection> {
+  int _page = 0;
+  static const int _limit = 3; // Limit per page
+
+  Color _getPosColor(String pos) {
     switch (pos.toLowerCase()) {
       case 'noun':
       case 'n.':
@@ -431,7 +452,165 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
       case 'interj.':
         return Colors.deepOrange;
       default:
-        return appColors.primary;
+        return widget.appColors.primary;
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final defs = widget.definitions;
+    if (defs.isEmpty) return const SizedBox.shrink();
+
+    final totalPages = (defs.length / _limit).ceil();
+    // Ensure current page is valid (in case defs changed, though unlikely here)
+    if (_page >= totalPages && totalPages > 0) _page = totalPages - 1;
+
+    final start = _page * _limit;
+    final end = (start + _limit < defs.length) ? start + _limit : defs.length;
+    final currentDefs = defs.sublist(start, end);
+
+    final posColor = _getPosColor(widget.pos);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header: Label + Pagination
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Label
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: posColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                widget.pos.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: posColor,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            // Pagination
+            if (totalPages > 1)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      Icons.chevron_left,
+                      size: 18,
+                      color: _page > 0
+                          ? widget.appColors.textSecondary
+                          : widget.appColors.textSecondary
+                              .withValues(alpha: 0.3),
+                    ),
+                    onPressed: _page > 0 ? () => setState(() => _page--) : null,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: widget.appColors.border),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${_page + 1} / $totalPages',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: widget.appColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: _page < totalPages - 1
+                          ? widget.appColors.textSecondary
+                          : widget.appColors.textSecondary
+                              .withValues(alpha: 0.3),
+                    ),
+                    onPressed: _page < totalPages - 1
+                        ? () => setState(() => _page++)
+                        : null,
+                  ),
+                ],
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+
+        // List of definitions
+        ...currentDefs.asMap().entries.map((e) {
+          final index = e.key;
+          final def = e.value;
+          final globalIndex = start + index; // Use global index for numbering
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: widget.appColors.textPrimary,
+                            height: 1.3,
+                            fontFamily: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.fontFamily,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '${globalIndex + 1}. ',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: widget.appColors.textSecondary,
+                              ),
+                            ),
+                            TextSpan(text: def.definition),
+                          ],
+                        ),
+                      ),
+                      if (def.example != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '"${def.example}"',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: widget.appColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    );
   }
 }

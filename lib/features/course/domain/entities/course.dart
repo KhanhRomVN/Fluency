@@ -107,6 +107,8 @@ class Lesson {
     this.description = '',
     this.quizCount = 0,
     this.quizzes = const [],
+    this.courseId = '',
+    this.courseTitle = '',
   });
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
@@ -131,6 +133,8 @@ class Lesson {
   final int lessonNumber;
   final int quizCount;
   final List<Quiz> quizzes;
+  final String courseId;
+  final String courseTitle;
 
   Lesson copyWith({
     String? id,
@@ -139,6 +143,8 @@ class Lesson {
     int? lessonNumber,
     int? quizCount,
     List<Quiz>? quizzes,
+    String? courseId,
+    String? courseTitle,
   }) {
     return Lesson(
       id: id ?? this.id,
@@ -147,6 +153,8 @@ class Lesson {
       lessonNumber: lessonNumber ?? this.lessonNumber,
       quizCount: quizCount ?? this.quizCount,
       quizzes: quizzes ?? this.quizzes,
+      courseId: courseId ?? this.courseId,
+      courseTitle: courseTitle ?? this.courseTitle,
     );
   }
 }

@@ -260,7 +260,7 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
         color: appColors.cardBackground,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,36 +292,45 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
                 child: CircularProgressIndicator(),
               ),
             )
-          else ...[
-            _buildOption(
-              icon: Icons.share_outlined,
-              title: 'Share',
-              onTap: _shareCollection,
-              appColors: appColors,
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: appColors.cardBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  _buildOption(
+                    icon: Icons.share_outlined,
+                    title: 'Share',
+                    onTap: _shareCollection,
+                    appColors: appColors,
+                  ),
+                  Divider(height: 1, color: appColors.border),
+                  _buildOption(
+                    icon: Icons.edit_outlined,
+                    title: 'Edit',
+                    onTap: _editCollection,
+                    appColors: appColors,
+                  ),
+                  Divider(height: 1, color: appColors.border),
+                  _buildOption(
+                    icon: Icons.download_outlined,
+                    title: 'Export',
+                    onTap: _exportCollection,
+                    appColors: appColors,
+                  ),
+                  Divider(height: 1, color: appColors.border),
+                  _buildOption(
+                    icon: Icons.delete_outline,
+                    title: 'Delete',
+                    onTap: _deleteCollection,
+                    appColors: appColors,
+                    isDanger: true,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildOption(
-              icon: Icons.edit_outlined,
-              title: 'Edit',
-              onTap: _editCollection,
-              appColors: appColors,
-            ),
-            const SizedBox(height: 12),
-            _buildOption(
-              icon: Icons.download_outlined,
-              title: 'Export',
-              onTap: _exportCollection,
-              appColors: appColors,
-            ),
-            const SizedBox(height: 12),
-            _buildOption(
-              icon: Icons.delete_outline,
-              title: 'Delete',
-              onTap: _deleteCollection,
-              appColors: appColors,
-              isDanger: true,
-            ),
-          ],
           const SizedBox(height: 20),
         ],
       ),
@@ -337,16 +346,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color:
-                isDanger ? Colors.red.withValues(alpha: 0.3) : appColors.border,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
             Icon(

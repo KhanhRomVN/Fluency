@@ -17,7 +17,7 @@ class HomeHeader extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'What your learn today?',
+          'What will you learn today?',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Theme.of(context).hintColor,
               ),

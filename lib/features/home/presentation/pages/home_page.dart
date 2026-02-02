@@ -20,22 +20,8 @@ class HomePage extends StatelessWidget {
               const SizedBox(height: 24),
               const ContinueLearningCard(),
               const SizedBox(height: 24),
-              Text(
-                'Your Progress',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 16),
               const ActivityChart(),
               const SizedBox(height: 24),
-              Text(
-                'Recent Activity',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 16),
               const RecentActivityList(),
             ],
           ),

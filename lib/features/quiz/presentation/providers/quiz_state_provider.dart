@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fluency/core/services/activity/activity.dart';
+import 'package:fluency/core/services/activity/activity_repository.dart';
+import 'package:fluency/di/injection_container.dart';
 import 'package:fluency/features/quiz/data/services/quiz_progress_storage.dart';
 import 'package:fluency/features/quiz/domain/entities/quiz_progress.dart';
+import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:uuid/uuid.dart';
 
 class QuizStateProvider extends ChangeNotifier {
   // Key: lessonId, Value: Set of completed quizIds
@@ -8,6 +13,9 @@ class QuizStateProvider extends ChangeNotifier {
 
   // Key: lessonId, Value: Map of quizId to QuizProgress
   final Map<String, Map<String, QuizProgress>> _quizProgress = {};
+
+  // Track lessons that have already been logged as completed to avoid duplicates
+  final Set<String> _completedLessons = {};
 
   bool _initialized = false;
 
@@ -26,16 +34,59 @@ class QuizStateProvider extends ChangeNotifier {
     return _completedQuizzes[lessonId]?.contains(quizId) ?? false;
   }
 
-  void markQuizCompleted(String lessonId, String quizId) {
+  void markQuizCompleted(dynamic lessonOrId, String quizId) {
+    final String lessonId =
+        (lessonOrId is Lesson) ? lessonOrId.id : lessonOrId.toString();
+
     if (_completedQuizzes[lessonId] == null) {
       _completedQuizzes[lessonId] = {quizId};
+      _logQuizCompletionCompatible(lessonOrId, quizId);
       notifyListeners();
     } else {
       if (!_completedQuizzes[lessonId]!.contains(quizId)) {
         _completedQuizzes[lessonId]!.add(quizId);
+        _logQuizCompletionCompatible(lessonOrId, quizId);
         notifyListeners();
       }
     }
+  }
+
+  void _logQuizCompletionCompatible(dynamic lessonOrId, String quizId) async {
+    if (lessonOrId is Lesson) {
+      _logQuizCompletion(lessonOrId, quizId);
+    } else {
+      // Fallback for when we only have the ID (mostly from saveQuizProgress in widgets)
+      final lessonId = lessonOrId.toString();
+      await sl<ActivityRepository>().logActivity(Activity(
+        id: const Uuid().v4(),
+        type: ActivityType.completeQuiz,
+        title: 'Quiz completed',
+        subtitle: 'Lesson ID: $lessonId',
+        timestamp: DateTime.now(),
+        metadata: {
+          'lessonId': lessonId,
+          'quizId': quizId,
+        },
+      ));
+    }
+  }
+
+  void _logQuizCompletion(Lesson lesson, String quizId) async {
+    // We now have course metadata from the lesson object
+    await sl<ActivityRepository>().logActivity(Activity(
+      id: const Uuid().v4(),
+      type: ActivityType.completeQuiz,
+      title: 'Quiz completed',
+      subtitle: '${lesson.courseTitle} - ${lesson.title}',
+      timestamp: DateTime.now(),
+      metadata: {
+        'courseId': lesson.courseId,
+        'courseTitle': lesson.courseTitle,
+        'lessonId': lesson.id,
+        'lessonTitle': lesson.title,
+        'quizId': quizId,
+      },
+    ));
   }
 
   void resetLessonProgress(String lessonId) {
@@ -187,6 +238,35 @@ class QuizStateProvider extends ChangeNotifier {
 
     final result = (totalProgressSum / totalQuizzes * 100).clamp(0.0, 100.0);
     debugPrint('Result: $result');
+
+    // Automatically log lesson completion if reaching 100%
+    if (result >= 100.0 && !_completedLessons.contains(lessonId)) {
+      _completedLessons.add(lessonId);
+      // Note: We might not have the full lesson object here, but we can try to find it
+      // or just log with what we have. For better results, ensure _logLessonCompletion
+      // is called from a context where we have metadata.
+      // But getLessonProgressPercentage is often called from UI.
+    }
+
     return result;
+  }
+
+  void logLessonCompletion(Lesson lesson) async {
+    if (_completedLessons.contains(lesson.id)) return;
+    _completedLessons.add(lesson.id);
+
+    await sl<ActivityRepository>().logActivity(Activity(
+      id: const Uuid().v4(),
+      type: ActivityType.completeLesson,
+      title: 'Lesson completed',
+      subtitle: '${lesson.courseTitle} - ${lesson.title}',
+      timestamp: DateTime.now(),
+      metadata: {
+        'courseId': lesson.courseId,
+        'courseTitle': lesson.courseTitle,
+        'lessonId': lesson.id,
+        'lessonTitle': lesson.title,
+      },
+    ));
   }
 }
