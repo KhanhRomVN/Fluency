@@ -14,12 +14,37 @@ class CourseProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
 
   Future<void> loadCourses() async {
-    _isLoading = true;
-    notifyListeners();
+    // 1. Fast Load from Index Cache (Instant UI)
+    try {
+      final cachedCourses = await _repository.getCoursesFromCache();
+      if (cachedCourses.isNotEmpty) {
+        _allCourses = cachedCourses;
+        _filterCourses();
+        notifyListeners();
+        debugPrint('UI updated from Cache (${cachedCourses.length} courses)');
+      }
+    } catch (e) {
+      debugPrint('Error loading from cache: $e');
+    }
+
+    // 2. Determine if we need to show loading spinner
+    // If we have cached data, we don't block UI with spinner,
+    // but we can show a small sync indicator if needed (not implemented yet).
+    // If no cache, we show blocking spinner.
+    if (_allCourses.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
-      _allCourses = await _repository.getCourses();
+      // 3. Background Sync (Full Extraction & Parsing)
+      final freshCourses = await _repository.getCourses();
+
+      // Update data
+      _allCourses = freshCourses;
       _filterCourses();
+    } catch (e) {
+      debugPrint('Error syncing courses: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -53,6 +78,20 @@ class CourseProvider extends ChangeNotifier {
     try {
       await _repository.importCourse(path);
       // Reload courses to reflect changes
+      await loadCourses();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> importCourseFromUrl(String url) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _repository.importCourseFromUrl(url);
       await loadCourses();
     } catch (e) {
       _isLoading = false;

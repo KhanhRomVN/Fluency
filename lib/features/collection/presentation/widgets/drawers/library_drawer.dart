@@ -17,40 +17,50 @@ class LibraryDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.5,
       child: Container(
         decoration: BoxDecoration(
-          color: appColors.cardBackground,
+          color: appColors.background,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Library',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textPrimary,
-                  ),
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: appColors.textSecondary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Library',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
             _buildOption(
               context,
               icon: Icons.add_circle_outline,
@@ -70,7 +80,12 @@ class LibraryDrawer extends StatelessWidget {
               },
               appColors: appColors,
             ),
-            const SizedBox(height: 12),
+            Divider(
+              height: 1,
+              indent: 24,
+              endIndent: 24,
+              color: appColors.textSecondary.withValues(alpha: 0.1),
+            ),
             _buildOption(
               context,
               icon: Icons.file_upload_outlined,
@@ -90,7 +105,12 @@ class LibraryDrawer extends StatelessWidget {
               },
               appColors: appColors,
             ),
-            const SizedBox(height: 12),
+            Divider(
+              height: 1,
+              indent: 24,
+              endIndent: 24,
+              color: appColors.textSecondary.withValues(alpha: 0.1),
+            ),
             _buildOption(
               context,
               icon: Icons.folder_special_outlined,
@@ -124,13 +144,9 @@ class LibraryDrawer extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: appColors.border),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Row(
           children: [
             Icon(icon, color: appColors.primary, size: 28),

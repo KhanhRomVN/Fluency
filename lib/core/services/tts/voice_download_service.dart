@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:archive/archive_io.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class VoiceDownloadService {
@@ -27,113 +27,157 @@ class VoiceDownloadService {
   static const List<VoiceModel> _models = [
     // US English Models
     VoiceModel(
-        name: 'Arctic (Female, US)',
-        code: 'en_US-arctic-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-arctic-medium.tar.bz2'),
+      name: 'Arctic (Female, US)',
+      code: 'en_US-arctic-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-arctic-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Bryce (Male, US)',
-        code: 'en_US-bryce-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-bryce-medium.tar.bz2'),
+      name: 'Bryce (Male, US)',
+      code: 'en_US-bryce-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-bryce-medium.tar.bz2',
+      size: '65 MB',
+    ),
     VoiceModel(
-        name: 'HFC Female (US)',
-        code: 'en_US-hfc_female-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-hfc_female-medium.tar.bz2'),
+      name: 'HFC Female (US)',
+      code: 'en_US-hfc_female-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-hfc_female-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'HFC Male (US)',
-        code: 'en_US-hfc_male-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-hfc_male-medium.tar.bz2'),
+      name: 'HFC Male (US)',
+      code: 'en_US-hfc_male-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-hfc_male-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Joe (Male, US)',
-        code: 'en_US-joe-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-joe-medium.tar.bz2'),
+      name: 'Joe (Male, US)',
+      code: 'en_US-joe-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-joe-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'John (Male, US)',
-        code: 'en_US-john-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-john-medium.tar.bz2'),
+      name: 'John (Male, US)',
+      code: 'en_US-john-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-john-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Kristin (Female, US)',
-        code: 'en_US-kristin-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-kristin-medium.tar.bz2'),
+      name: 'Kristin (Female, US)',
+      code: 'en_US-kristin-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-kristin-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Kusal (Male, US)',
-        code: 'en_US-kusal-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-kusal-medium.tar.bz2'),
+      name: 'Kusal (Male, US)',
+      code: 'en_US-kusal-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-kusal-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'L2 Arctic (Female, US)',
-        code: 'en_US-l2arctic-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-l2arctic-medium.tar.bz2'),
+      name: 'L2 Arctic (Female, US)',
+      code: 'en_US-l2arctic-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-l2arctic-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Lessac (Female, US)',
-        code: 'en_US-lessac-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-lessac-medium.tar.bz2'),
+      name: 'Lessac (Female, US)',
+      code: 'en_US-lessac-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-lessac-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'LJSpeech (Female, US)',
-        code: 'en_US-ljspeech-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-ljspeech-medium.tar.bz2'),
+      name: 'LJSpeech (Female, US)',
+      code: 'en_US-ljspeech-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-ljspeech-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Norman (Male, US)',
-        code: 'en_US-norman-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-norman-medium.tar.bz2'),
+      name: 'Norman (Male, US)',
+      code: 'en_US-norman-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-norman-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Ryan (Male, US)',
-        code: 'en_US-ryan-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-ryan-medium.tar.bz2'),
+      name: 'Ryan (Male, US)',
+      code: 'en_US-ryan-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-ryan-medium.tar.bz2',
+      size: '77 MB',
+    ),
 
     // GB English Models
     VoiceModel(
-        name: 'Alan (Male, British)',
-        code: 'en_GB-alan-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alan-medium.tar.bz2'),
+      name: 'Alan (Male, British)',
+      code: 'en_GB-alan-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alan-medium.tar.bz2',
+      size: '65 MB',
+    ),
     VoiceModel(
-        name: 'Alba (Female, British)',
-        code: 'en_GB-alba-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alba-medium.tar.bz2'),
+      name: 'Alba (Female, British)',
+      code: 'en_GB-alba-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alba-medium.tar.bz2',
+      size: '65 MB',
+    ),
     VoiceModel(
-        name: 'Aru (Female, British)',
-        code: 'en_GB-aru-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-aru-medium.tar.bz2'),
+      name: 'Aru (Female, British)',
+      code: 'en_GB-aru-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-aru-medium.tar.bz2',
+      size: '65 MB',
+    ),
     VoiceModel(
-        name: 'Cori (Female, British)',
-        code: 'en_GB-cori-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-cori-medium.tar.bz2'),
+      name: 'Cori (Female, British)',
+      code: 'en_GB-cori-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-cori-medium.tar.bz2',
+      size: '65 MB',
+    ),
     VoiceModel(
-        name: 'Jenny Dioco (Female, British)',
-        code: 'en_GB-jenny_dioco-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-jenny_dioco-medium.tar.bz2'),
+      name: 'Jenny Dioco (Female, British)',
+      code: 'en_GB-jenny_dioco-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-jenny_dioco-medium.tar.bz2',
+      size: '65 MB',
+    ),
     VoiceModel(
-        name: 'Northern Male (British)',
-        code: 'en_GB-northern_english_male-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-northern_english_male-medium.tar.bz2'),
+      name: 'Northern Male (British)',
+      code: 'en_GB-northern_english_male-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-northern_english_male-medium.tar.bz2',
+      size: '65 MB',
+    ),
     VoiceModel(
-        name: 'Southern Female (British)',
-        code: 'en_GB-southern_english_female-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-southern_english_female-medium.tar.bz2'),
+      name: 'Southern Female (British)',
+      code: 'en_GB-southern_english_female-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-southern_english_female-medium.tar.bz2',
+      size: '77 MB',
+    ),
     VoiceModel(
-        name: 'Southern Male (British)',
-        code: 'en_GB-southern_english_male-medium',
-        url:
-            'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-southern_english_male-medium.tar.bz2'),
+      name: 'Southern Male (British)',
+      code: 'en_GB-southern_english_male-medium',
+      url:
+          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-southern_english_male-medium.tar.bz2',
+      size: '77 MB',
+    ),
   ];
+
+  List<VoiceModel> get models => _models;
 
   Future<void> startAutoDownload() async {
     if (_isDownloading) return;
@@ -170,7 +214,7 @@ class VoiceDownloadService {
       if (!baseDir.existsSync()) await baseDir.create(recursive: true);
 
       for (var model in _models) {
-        if (await _isModelDownloaded(model)) {
+        if (await isModelDownloaded(model)) {
           debugPrint('${model.name} already downloaded, skipping');
           _downloadedModels++;
           _emitState();
@@ -201,7 +245,42 @@ class VoiceDownloadService {
     }
   }
 
-  Future<bool> _isModelDownloaded(VoiceModel model) async {
+  Future<void> downloadModel(VoiceModel model) async {
+    if (_isDownloading) {
+      // If already downloading a batch, this might be a single request from settings
+      // We could queue it, but for now let's just avoid parallel downloads
+      debugPrint(
+          'Already downloading, skipping single request for ${model.name}');
+      return;
+    }
+
+    _isDownloading = true;
+    _totalModels = 1;
+    _downloadedModels = 0;
+    _currentModelName = model.name;
+    _emitState();
+
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final baseDir = Directory(path.join(appDir.path, 'piper_models'));
+      if (!baseDir.existsSync()) await baseDir.create(recursive: true);
+
+      debugPrint('Downloading single model ${model.name}...');
+      await _downloadAndExtractTarBz2(model.url, baseDir.path);
+
+      _downloadedModels = 1;
+      _isDownloading = false;
+      _currentModelName = null;
+      _emitState();
+    } catch (e) {
+      debugPrint('Single download error: $e');
+      _isDownloading = false;
+      _emitState();
+      rethrow;
+    }
+  }
+
+  Future<bool> isModelDownloaded(VoiceModel model) async {
     final appDir = await getApplicationDocumentsDirectory();
     final extractedFolder = 'vits-piper-${model.code}';
     final modelPath = path.join(
@@ -211,22 +290,41 @@ class VoiceDownloadService {
 
   Future<void> _downloadAndExtractTarBz2(
       String url, String destinationPath) async {
-    final client = http.Client();
-    final request = http.Request('GET', Uri.parse(url));
-    final response = await client.send(request);
-
-    List<int> bytes = [];
-    await for (var chunk in response.stream) {
-      bytes.addAll(chunk);
-    }
-
-    // Save temp file
+    // 1. Download to temp file using streaming to avoid loading all into RAM
     final tempDir = await getTemporaryDirectory();
     final tempFile = File(path.join(tempDir.path, 'temp_package.tar.bz2'));
-    await tempFile.writeAsBytes(bytes);
+    final client = http.Client();
 
-    // Extract
-    final fileBytes = await tempFile.readAsBytes();
+    try {
+      final request = http.Request('GET', Uri.parse(url));
+      final response = await client.send(request);
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download: ${response.statusCode}');
+      }
+
+      final sink = tempFile.openWrite();
+      await response.stream.pipe(sink);
+      await sink.close();
+
+      // 2. Extract in an isolate to avoid blocking main thread
+      await compute(_extractIsolate, {
+        'zipPath': tempFile.path,
+        'destPath': destinationPath,
+      });
+    } finally {
+      client.close();
+      if (tempFile.existsSync()) {
+        await tempFile.delete();
+      }
+    }
+  }
+
+  static Future<void> _extractIsolate(Map<String, String> args) async {
+    final zipPath = args['zipPath']!;
+    final destPath = args['destPath']!;
+
+    final fileBytes = await File(zipPath).readAsBytes();
     final archive = TarDecoder().decodeBytes(
       BZip2Decoder().decodeBytes(fileBytes),
     );
@@ -234,13 +332,11 @@ class VoiceDownloadService {
     for (var file in archive) {
       final filename = file.name;
       if (file.isFile) {
-        final outFile = File(path.join(destinationPath, filename));
+        final outFile = File(path.join(destPath, filename));
         await outFile.parent.create(recursive: true);
         await outFile.writeAsBytes(file.content as List<int>);
       }
     }
-
-    await tempFile.delete();
   }
 
   void _emitState() {
@@ -261,11 +357,13 @@ class VoiceModel {
   final String name;
   final String code;
   final String url;
+  final String size;
 
   const VoiceModel({
     required this.name,
     required this.code,
     required this.url,
+    required this.size,
   });
 }
 

@@ -1,6 +1,7 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/widgets/course_image.dart';
+import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -15,6 +16,116 @@ class CourseCard extends StatelessWidget {
 
   final Course course;
   final VoidCallback onTap;
+
+  void _showActionDrawer(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: appColors.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: appColors.textSecondary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Course Actions',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: appColors.textPrimary,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDelete(context, appColors);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 20),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete_outline, color: Colors.red),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Delete Course',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, AppColorsExtension appColors) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: appColors.background,
+        title: Text('Delete Course',
+            style: TextStyle(color: appColors.textPrimary)),
+        content: Text('Are you sure you want to delete "${course.title}"?',
+            style: TextStyle(color: appColors.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await context.read<CourseProvider>().deleteCourse(course);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +169,7 @@ class CourseCard extends StatelessWidget {
                                       .extension<AppColorsExtension>()
                                       ?.textPrimary,
                                 ),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
@@ -107,6 +218,20 @@ class CourseCard extends StatelessWidget {
                       _buildProgressBar(context),
                     ],
                   ),
+                ),
+                // Menu Icon
+                IconButton(
+                  icon: Icon(
+                    Icons.more_vert_rounded,
+                    color: Theme.of(context)
+                        .extension<AppColorsExtension>()
+                        ?.textSecondary,
+                    size: 20,
+                  ),
+                  onPressed: () => _showActionDrawer(context),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(),
+                  splashRadius: 20,
                 ),
               ],
             ),

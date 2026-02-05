@@ -97,6 +97,27 @@ class Course {
       version: version ?? this.version,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'imageUrl': imageUrl,
+      'author': author,
+      'translator': translator,
+      'adapter': adapter,
+      'pageCount': pageCount,
+      'publisher': publisher,
+      'publicationYear': publicationYear,
+      'skill': skill,
+      'shortDescription': shortDescription,
+      'fullDescription': fullDescription,
+      'targetAudience': targetAudience,
+      'lessons': lessons.map((e) => e.toJson()).toList(),
+      'completedLessons': completedLessons,
+      'version': version,
+    };
+  }
 }
 
 class Lesson {
@@ -157,6 +178,19 @@ class Lesson {
       courseTitle: courseTitle ?? this.courseTitle,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'lessonNumber': lessonNumber,
+      'quizCount': quizCount,
+      'quizzes': quizzes.map((e) => e.toJson()).toList(),
+      'courseId': courseId,
+      'courseTitle': courseTitle,
+    };
+  }
 }
 
 class Quiz {
@@ -192,6 +226,8 @@ class Quiz {
     this.aiRole,
     this.userRole,
     this.minTurns,
+    this.startTime,
+    this.endTime,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
@@ -335,6 +371,8 @@ class Quiz {
       aiRole: json['aiRole']?.toString(),
       userRole: json['userRole']?.toString(),
       minTurns: json['minTurns'] as int?,
+      startTime: json['startTime']?.toString(),
+      endTime: json['endTime']?.toString(),
     );
   }
   final String id;
@@ -370,6 +408,8 @@ class Quiz {
   final String? aiRole; // AI role name (e.g., "Alex (Friend)")
   final String? userRole; // User role name (e.g., "You")
   final int? minTurns; // Minimum number of conversation turns
+  final String? startTime;
+  final String? endTime;
 
   Quiz copyWith({
     String? id,
@@ -401,6 +441,8 @@ class Quiz {
     String? aiRole,
     String? userRole,
     int? minTurns,
+    String? startTime,
+    String? endTime,
   }) {
     return Quiz(
       id: id ?? this.id,
@@ -433,7 +475,52 @@ class Quiz {
       aiRole: aiRole ?? this.aiRole,
       userRole: userRole ?? this.userRole,
       minTurns: minTurns ?? this.minTurns,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    var serializedAnswers = <dynamic>[];
+    if (answers.isNotEmpty) {
+      serializedAnswers = answers.map((e) => e.toJson()).toList();
+    } else if (answersString != null) {
+      serializedAnswers = answersString!;
+    }
+
+    return {
+      'id': id,
+      'title': title,
+      'type': type,
+      'instruction': instruction,
+      'quizNumber': quizNumber,
+      'question': question,
+      'audio': audio,
+      'transcript': transcript,
+      'passage': passage,
+      'questions': questions.map((e) => e.toJson()).toList(),
+      'answers': serializedAnswers,
+      'options': options,
+      'matchings': matchings?.map((e) => e.toJson()).toList(),
+      'subtype': subtype,
+      'min': min,
+      'example': example,
+      'chats': chats?.map((e) => e.toJson()).toList(),
+      'flashcards': flashcards?.map((e) => e.toJson()).toList(),
+      'dictations': dictations?.map((e) => e.toJson()).toList(),
+      'pronunciations': pronunciations?.map((e) => e.toJson()).toList(),
+      'speechBuilders': speechBuilders?.map((e) => e.toJson()).toList(),
+      'errorCorrections': errorCorrections?.map((e) => e.toJson()).toList(),
+      'sentenceTransformations':
+          sentenceTransformations?.map((e) => e.toJson()).toList(),
+      'prompt': prompt,
+      'context': context,
+      'aiRole': aiRole,
+      'userRole': userRole,
+      'minTurns': minTurns,
+      'startTime': startTime,
+      'endTime': endTime,
+    };
   }
 }
 
@@ -468,6 +555,14 @@ class QuizAnswer {
   final List<String> answer;
   final String explain;
   final List<String> options;
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'answer': answer,
+      'explain': explain,
+      'options': options,
+    };
+  }
 }
 
 class QuizQuestion {
@@ -478,6 +573,11 @@ class QuizQuestion {
     required this.answer,
     required this.validAnswers,
     required this.explain,
+    this.image,
+    this.images,
+    this.audioSegmentId,
+    this.startTime,
+    this.endTime,
   });
 
   factory QuizQuestion.fromJson(Map<String, dynamic> json) {
@@ -525,6 +625,11 @@ class QuizQuestion {
       answer: singleAnswer,
       validAnswers: answersList,
       explain: json['explain']?.toString() ?? '',
+      image: json['image']?.toString() ?? json['imageUrl']?.toString(),
+      images: (json['images'] as List?)?.map((e) => e.toString()).toList(),
+      audioSegmentId: json['audioSegmentId']?.toString(),
+      startTime: json['startTime']?.toString(),
+      endTime: json['endTime']?.toString(),
     );
   }
   final String id;
@@ -534,6 +639,11 @@ class QuizQuestion {
       answer; // Kept for backward compat, but use validAnswers for logic
   final List<String> validAnswers;
   final String explain;
+  final String? image;
+  final List<String>? images;
+  final String? audioSegmentId;
+  final String? startTime;
+  final String? endTime;
 
   QuizQuestion copyWith({
     String? id,
@@ -542,6 +652,11 @@ class QuizQuestion {
     String? answer,
     List<String>? validAnswers,
     String? explain,
+    String? image,
+    List<String>? images,
+    String? audioSegmentId,
+    String? startTime,
+    String? endTime,
   }) {
     return QuizQuestion(
       id: id ?? this.id,
@@ -550,7 +665,28 @@ class QuizQuestion {
       answer: answer ?? this.answer,
       validAnswers: validAnswers ?? this.validAnswers,
       explain: explain ?? this.explain,
+      image: image ?? this.image,
+      images: images ?? this.images,
+      audioSegmentId: audioSegmentId ?? this.audioSegmentId,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question': question,
+      'options': options,
+      'answer': answer,
+      'answers': validAnswers,
+      'explain': explain,
+      'image': image,
+      'images': images,
+      'audioSegmentId': audioSegmentId,
+      'startTime': startTime,
+      'endTime': endTime,
+    };
   }
 }
 
@@ -568,6 +704,13 @@ class QuizOption {
   }
   final String key;
   final String text;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'key': key,
+      'text': text,
+    };
+  }
 }
 
 class MatchingItem {
@@ -590,6 +733,15 @@ class MatchingItem {
   final String question;
   final String answer;
   final String explain;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question': question,
+      'answer': answer,
+      'explain': explain,
+    };
+  }
 }
 
 class ChatMessage {
@@ -640,6 +792,21 @@ class ChatMessage {
   final String? explain;
   final String? question;
   final String? translate;
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'role': role,
+      'content': content,
+      'name': name,
+      'gender': gender,
+      'time': time,
+      'ipa': ipa,
+      'tips': tips,
+      'explain': explain,
+      'question': question,
+      'translate': translate,
+    };
+  }
 }
 
 class FlashcardItem {
@@ -682,6 +849,21 @@ class FlashcardItem {
   final List<String>? options;
   final List<QuizOptionTrans>? optionsTrans;
   final int? score;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'front': front,
+      'frontAudio': frontAudio,
+      'image': image,
+      'images': images,
+      'back': back,
+      'backAudio': backAudio,
+      'options': options,
+      'optionsTrans': optionsTrans?.map((e) => e.toJson()).toList(),
+      'score': score,
+    };
+  }
 }
 
 class QuizOptionTrans {
@@ -698,6 +880,96 @@ class QuizOptionTrans {
   }
   final String text;
   final bool isCorrect;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'isCorrect': isCorrect,
+    };
+  }
+}
+
+// Assuming CorrectionError is defined elsewhere, adding its toJson here
+// based on the provided instruction snippet.
+// This class is used within ErrorCorrectionItem.
+class CorrectionError {
+  const CorrectionError({
+    required this.id,
+    required this.index,
+    required this.correct,
+  });
+
+  factory CorrectionError.fromJson(Map<String, dynamic> json) {
+    return CorrectionError(
+      id: json['id']?.toString() ?? '',
+      index: json['index'] as int? ?? 0,
+      correct: (json['correct'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
+    );
+  }
+  final String id;
+  final int index; // Token index
+  final List<String> correct;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'index': index,
+      'correct': correct,
+    };
+  }
+}
+
+class SentenceTransformationItem {
+  const SentenceTransformationItem({
+    required this.id,
+    required this.answer,
+    this.original,
+    this.question,
+    this.require,
+    this.explain,
+  });
+
+  factory SentenceTransformationItem.fromJson(Map<String, dynamic> json) {
+    // Answer can be String or List inside json['answer']
+    var parsedAnswer = <String>[];
+    if (json['answer'] is List) {
+      parsedAnswer = (json['answer'] as List).map((e) => e.toString()).toList();
+    } else if (json['answer'] != null) {
+      parsedAnswer = [json['answer'].toString()];
+    }
+
+    return SentenceTransformationItem(
+      id: json['id']?.toString() ?? '',
+      original:
+          json['original']?.toString() ?? json['originalSentence']?.toString(),
+      question: json['question']?.toString(),
+      require: json['require']?.toString(),
+      answer: parsedAnswer.isNotEmpty
+          ? parsedAnswer
+          : (json['correctSentence'] != null
+              ? [json['correctSentence'].toString()]
+              : []),
+      explain: json['explain']?.toString() ?? '',
+    );
+  }
+  final String id;
+  final String? original;
+  final String? question; // Template with </gap> tags for input
+  final String? require; // The instruction/requirement
+  final List<String> answer; // List of acceptable answers
+  final String? explain;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'original': original,
+      'question': question,
+      'require': require,
+      'answer': answer,
+      'explain': explain,
+    };
+  }
 }
 
 class DictationItem {
@@ -732,6 +1004,19 @@ class DictationItem {
   final String? ipa;
   final int? score;
   final double? speed;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'audio': audio,
+      'text': text,
+      'transcript': transcript,
+      'translate': translate,
+      'ipa': ipa,
+      'score': score,
+      'speed': speed,
+    };
+  }
 }
 
 class PronunciationItem {
@@ -759,6 +1044,16 @@ class PronunciationItem {
   final String? ipa;
   final String? translate;
   final String? hiddenWord;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'text': text,
+      'ipa': ipa,
+      'translate': translate,
+      'hiddenWord': hiddenWord,
+    };
+  }
 }
 
 class SpeechBuilderItem {
@@ -783,6 +1078,18 @@ class SpeechBuilderItem {
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question': question,
+      'items': items,
+      'hint': hint,
+      'translate': translate,
+      'answers': answers?.map((e) => e.toJson()).toList(),
+    };
+  }
+
   final String id;
   final String? question; // Scrambled sentence?
   final List<String>? items; // For legacy scrambled words
@@ -813,130 +1120,83 @@ class ErrorCorrectionItem {
     // 2. Map IDs to indices.
     // 3. Strip tags to get clean 'original'.
 
+    final jsonErrorsMap = <String, List<String>>{};
+    if (json['errors'] is List) {
+      for (var errorJson in (json['errors'] as List)) {
+        if (errorJson is Map<String, dynamic>) {
+          final id = errorJson['id']?.toString();
+          final correct = (errorJson['correct'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              const [];
+          if (id != null) {
+            jsonErrorsMap[id] = correct;
+          }
+        }
+      }
+    }
+
     if (content.contains('<error')) {
-      final regex =
-          RegExp(r'<error id=[\"\u0027](.*?)[\"\u0027]>(.*?)<\/error>');
+      final regex = RegExp(
+          r'<error id=[\"\u0027](.*?)(?:[\"\u0027] correct=[\"\u0027](.*?)[\"\u0027])?>(.*?)<\/error>');
       final matches = regex.allMatches(content);
 
-      var cleanText = content;
-      // Naive approach: Strip tags, then tokenize?
-      // Better: Tokenize the raw string with tags, identify error tokens.
-      // Or: Replace tags with just content, track which word index it falls into.
-
-      // 1. Replace tags with just content, but remember ID.
-      // We can use a temporary map.
-
-      // Simplified parser:
-      // Split by spaces? XML tags might attach to words.
-      // Let's assume space separation for now or standard text.
-      // React "parseTokens" probably handles this.
-
-      // Regex replace and track?
-      // "She " -> "She "
-      // "<error...>don't</error>" -> "don't" (record ID -> index)
-
-      // Let's rebuild the clean string and map indices simultaneously.
-
-      // Split by spaces to find tokens?
-      // Problem: <error> tag might contain multiple words? "have went"
-
-      // Let's try splitting raw string by spaces, then checking for tags.
-      // "She"
-      // "<error" ...
-
-      // Actually, let's keep it simple for MVP similar to React if possible.
-      // React `parseTokens` likely Regexes content.
-
-      // Strategy:
-      // 1. Remove all tags to get `original`.
-      // 2. Use `original` for display.
-      // 3. BUT we need `index` for `CorrectionError`.
-      // User says JSON input: "She <error...>don't</error>..."
-      // `CorrectionError` needs `index`.
-
-      // Parse Logic:
-      // Iterate matches.
-      // Calculate token index of the match start.
-
-      // Implementation:
-      // Split content by matches.
-      var wordCount = 0;
+      var currentCleanText = '';
       var lastEnd = 0;
-      final constructedOriginal = StringBuffer();
-
-      final jsonErrors = (json['errors'] as List?)
-              ?.map((e) => CorrectionError.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [];
-
-      // A list to hold updated errors with indices
-      final updatedErrors = <CorrectionError>[];
-      final errorMap = <String, CorrectionError>{
-        for (final e in jsonErrors) e.id: e,
-      };
+      var wordCount = 0;
 
       for (final match in matches) {
-        // Text before this match
+        // Add text before the current match to clean text and count words
         final pre = content.substring(lastEnd, match.start);
         if (pre.isNotEmpty) {
-          // Count words in pre
-          var preWords = pre.trim().split(RegExp(r'\s+'));
-          if (pre.trim().isEmpty) preWords = [];
-          wordCount += preWords.length;
-          constructedOriginal.write(pre);
+          currentCleanText += pre;
+          wordCount += pre
+              .trim()
+              .split(RegExp(r'\s+'))
+              .where((s) => s.isNotEmpty)
+              .length;
         }
 
-        // The error content
         final id = match.group(1) ?? '';
-        final text = match.group(2) ?? '';
+        // The `correct` attribute in the tag is optional, and might be overridden by `jsonErrorsMap`
+        final tagCorrectAttr = match.group(2);
+        final errorTextInTag = match.group(3) ?? '';
 
-        // This 'text' is the error token(s).
-        // It starts at `wordCount`.
-        // If "have went" -> 2 words.
-
-        // Map this ID to start index
-        if (errorMap.containsKey(id)) {
-          updatedErrors.add(
-            CorrectionError(
-              id: id,
-              index: wordCount, // Start index
-              correct: errorMap[id]!.correct,
-            ),
-          );
+        List<String> correctOptions = jsonErrorsMap[id] ?? [];
+        if (correctOptions.isEmpty && tagCorrectAttr != null) {
+          correctOptions =
+              tagCorrectAttr.split(',').map((e) => e.trim()).toList();
         }
 
-        var errorWords = text.trim().split(RegExp(r'\s+'));
-        if (text.trim().isEmpty) errorWords = [];
-        wordCount += errorWords.length;
+        // Create CorrectionError for this match
+        parsedErrors.add(
+          CorrectionError(
+            id: id,
+            index: wordCount, // Start index of the error
+            correct: correctOptions,
+          ),
+        );
 
-        constructedOriginal.write(text);
+        // Add the error text itself to clean text and count its words
+        currentCleanText += errorTextInTag;
+        wordCount += errorTextInTag
+            .trim()
+            .split(RegExp(r'\s+'))
+            .where((s) => s.isNotEmpty)
+            .length;
+
         lastEnd = match.end;
       }
 
-      // Remaining
+      // Add any remaining text after the last match
       final post = content.substring(lastEnd);
-      constructedOriginal.write(post);
-
-      // Clean up extra spaces in constructedOriginal for storage if needed?
-      // Or just rely on cleanText logic.
-      cleanText = constructedOriginal.toString(); // Rough approximation.
-
-      // Better: Use `cleanText` derived by just stripping tags.
-      cleanText = content
-          .replaceAll(RegExp('<error.*?>'), '')
-          .replaceAll('</error>', '');
-
-      // Re-assign basic fields
-      content = cleanText;
-      parsedErrors = updatedErrors;
-
-      // If we found errors via tags, use them.
-      // If not (no tags), use jsonErrors as is (assuming indices provided).
-      if (parsedErrors.isEmpty && jsonErrors.isNotEmpty) {
-        parsedErrors = jsonErrors;
+      if (post.isNotEmpty) {
+        currentCleanText += post;
       }
+
+      content = currentCleanText.trim();
     } else {
-      // Normal JSON with correct `original` and `errors` with indices
+      // If no <error> tags, assume 'original' is clean and 'errors' are provided with indices
       parsedErrors = (json['errors'] as List?)
               ?.map((e) => CorrectionError.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -945,7 +1205,7 @@ class ErrorCorrectionItem {
 
     return ErrorCorrectionItem(
       id: json['id']?.toString() ?? '',
-      original: content.trim(), // Clean text
+      original: content, // Clean text
       errors: parsedErrors,
       explain: json['explain']?.toString(),
     );
@@ -954,60 +1214,15 @@ class ErrorCorrectionItem {
   final String original;
   final List<CorrectionError> errors;
   final String? explain;
-}
 
-class CorrectionError {
-  const CorrectionError({
-    required this.id,
-    required this.index,
-    required this.correct,
-  });
-
-  factory CorrectionError.fromJson(Map<String, dynamic> json) {
-    return CorrectionError(
-      id: json['id']?.toString() ?? '',
-      index: json['index'] as int? ?? 0,
-      correct: (json['correct'] as List?)?.map((e) => e.toString()).toList() ??
-          const [],
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'original': original,
+      'errors': errors.map((e) => e.toJson()).toList(),
+      'explain': explain,
+    };
   }
-  final String id;
-  final int index; // Token index
-  final List<String> correct;
 }
 
-class SentenceTransformationItem {
-  const SentenceTransformationItem({
-    required this.id,
-    required this.answer,
-    this.original,
-    this.question,
-    this.require,
-    this.explain,
-  });
-
-  factory SentenceTransformationItem.fromJson(Map<String, dynamic> json) {
-    // Answer can be String or List inside json['answer']
-    var parsedAnswer = <String>[];
-    if (json['answer'] is List) {
-      parsedAnswer = (json['answer'] as List).map((e) => e.toString()).toList();
-    } else if (json['answer'] != null) {
-      parsedAnswer = [json['answer'].toString()];
-    }
-
-    return SentenceTransformationItem(
-      id: json['id']?.toString() ?? '',
-      original: json['original']?.toString(),
-      question: json['question']?.toString(),
-      require: json['require']?.toString(),
-      answer: parsedAnswer,
-      explain: json['explain']?.toString(),
-    );
-  }
-  final String id;
-  final String? original;
-  final String? question; // Template with </gap> tags for input
-  final String? require; // The instruction/requirement
-  final List<String> answer; // List of acceptable answers
-  final String? explain;
-}
+// Removed duplicate classes

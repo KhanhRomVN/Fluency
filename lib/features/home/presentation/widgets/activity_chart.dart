@@ -75,8 +75,10 @@ class ActivityChart extends StatelessWidget {
 
   List<String> _generateLabels() {
     final results = <String>[];
+    // Use local time (DateTime.now() is local by default in Dart)
+    final now = DateTime.now();
     for (int i = 6; i >= 0; i--) {
-      final date = DateTime.now().subtract(Duration(days: i));
+      final date = now.subtract(Duration(days: i));
       results.add(DateFormat('E').format(date)); // Mon, Tue, etc.
     }
     return results;

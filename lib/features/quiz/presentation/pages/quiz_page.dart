@@ -8,16 +8,17 @@ import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/builder.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/free_chat.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/scripted_chat.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation_audio.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/error_correction.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/flashcard.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/free_chat.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill_dropdown.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/gap_fill_typing.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/listening_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/matching_dropdown.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/multiple_choice.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/pronunciation_drill.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/scripted_chat.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/sentence_transformation.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speaking_essay.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speech_builder.dart';
@@ -27,6 +28,7 @@ import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart'
 import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -53,15 +55,45 @@ class _QuizPageState extends State<QuizPage> {
   late AudioPlayer _audioPlayer;
   late PageController _pageController;
 
+  // Audio segmentation
+  double? _currentSegmentStart; // Question-level (for looping)
+  double? _currentSegmentEnd; // Question-level (for looping)
+  double? _quizSegmentStart; // Quiz-level (for MediaPlayer UI)
+  double? _quizSegmentEnd; // Quiz-level (for MediaPlayer UI)
+  List<String>? _keyTimestamps;
+
   @override
   void initState() {
     super.initState();
+    // Create new AudioPlayer instance
+    // Note: On hot restart, old instances may persist. We can't stop them from here
+    // because we don't have reference to them. The stop() in dispose() should handle it.
     _audioPlayer = AudioPlayer();
     _pageController = PageController(initialPage: _activeQuizIndex);
+    _initAudio();
+  }
+
+  Future<void> _initAudio() async {
+    _audioPlayer.onPositionChanged.listen((p) {
+      // Check if audio exceeds quiz-level segment boundary
+      if (_quizSegmentEnd != null) {
+        final currentSeconds = p.inMilliseconds / 1000.0;
+        if (currentSeconds >= _quizSegmentEnd! &&
+            _audioPlayer.state == PlayerState.playing) {
+          debugPrint(
+              'QuizPage: Audio exceeded quiz segment end. Current: $currentSeconds, End: ${_quizSegmentEnd}. Pausing.');
+          _audioPlayer.pause();
+        }
+      }
+    });
+
+    // Reset segment when audio source changes or completes?
+    // Actually source changes happen in MediaPlayer, but player is shared.
   }
 
   @override
   void dispose() {
+    _audioPlayer.stop(); // Stop playback before disposing
     _audioPlayer.dispose();
     _pageController.dispose();
     super.dispose();
@@ -133,6 +165,43 @@ class _QuizPageState extends State<QuizPage> {
     setState(() {
       _activeQuizIndex = index;
       _isQuizChecked = false;
+      // Clear timestamps and segments when switching quiz,
+      // they will be re-emitted by the quiz widget if it has them.
+      _keyTimestamps = null;
+      _quizSegmentStart = null;
+      _quizSegmentEnd = null;
+      _currentSegmentStart = null;
+      _currentSegmentEnd = null;
+    });
+  }
+
+  void _handleSegmentChange(double? start, double? end) {
+    if (_currentSegmentStart == start && _currentSegmentEnd == end) return;
+    debugPrint('QuizPage: Received segment change. Start: $start, End: $end');
+    setState(() {
+      _currentSegmentStart = start;
+      _currentSegmentEnd = end;
+    });
+    // Note: We don't auto-seek here. The looping logic in _initAudio handles playback.
+    // Auto-seeking would jump to the segment start immediately, which is not desired on page load.
+  }
+
+  void _handleQuizSegmentChange(double? start, double? end) {
+    if (_quizSegmentStart == start && _quizSegmentEnd == end) return;
+    debugPrint(
+        'QuizPage: Received QUIZ-level segment change. Start: $start, End: $end');
+    setState(() {
+      _quizSegmentStart = start;
+      _quizSegmentEnd = end;
+    });
+  }
+
+  void _handleKeyTimestampsChange(List<String>? timestamps) {
+    if (listEquals(_keyTimestamps, timestamps)) return;
+    debugPrint(
+        'QuizPage: Received Key Timestamps change. Count: ${timestamps?.length ?? 0}');
+    setState(() {
+      _keyTimestamps = timestamps;
     });
   }
 
@@ -375,6 +444,9 @@ class _QuizPageState extends State<QuizPage> {
                   audioPath: audioPath,
                   title: audioFileName, // Use audio filename
                   externalPlayer: _audioPlayer,
+                  segmentStart: _quizSegmentStart,
+                  segmentEnd: _quizSegmentEnd,
+                  keyTimestamps: _keyTimestamps,
                 )
               : null,
         ),
@@ -594,6 +666,24 @@ class _QuizPageState extends State<QuizPage> {
           onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
         );
+      case 'listening-choice':
+        return ListeningChoice(
+          quiz: quiz,
+          lessonId: widget.lesson.id,
+          onCheck: _onQuizChecked,
+          onNext: _onNextQuiz,
+          onPrev: _onPrevQuiz,
+          onShowExplain: (String explanation) {
+            setState(() {
+              _currentExplanation = explanation;
+              _showExplainDrawer = true;
+            });
+          },
+          onWordLongPress: _onWordLongPress,
+          onSegmentChange: _handleSegmentChange,
+          onQuizSegmentChange: _handleQuizSegmentChange,
+          onKeyTimestampsChange: _handleKeyTimestampsChange,
+        );
       case 'speech-builder':
         return SpeechBuilder(
           quiz: quiz,
@@ -710,6 +800,9 @@ class _QuizPageState extends State<QuizPage> {
       case 'speech-builder':
         label = 'Speech Builder';
         color = Colors.blueGrey;
+      case 'listening-choice':
+        label = 'Listening Choice';
+        color = Colors.indigo;
       default:
         label = 'Quiz';
         color = Colors.grey;
@@ -838,20 +931,6 @@ class _QuizPageState extends State<QuizPage> {
                     sttProvider.currentProviderType == SttProviderType.system,
                 onTap: () {
                   sttProvider.setProviderType(SttProviderType.system);
-                },
-                colors: appColors,
-              ),
-
-              const SizedBox(height: 12),
-
-              // Vosk STT Option
-              _buildSTTOption(
-                title: 'Vosk (Offline)',
-                subtitle: 'Local speech recognition',
-                isSelected:
-                    sttProvider.currentProviderType == SttProviderType.vosk,
-                onTap: () {
-                  sttProvider.setProviderType(SttProviderType.vosk);
                 },
                 colors: appColors,
               ),

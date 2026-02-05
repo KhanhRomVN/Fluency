@@ -52,7 +52,13 @@ class CourseImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => _buildErrorPlaceholder(),
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('Error loading image (File): $imageUrl - $error');
+          if (error is FileSystemException) {
+            debugPrint('File exists: ${File(imageUrl).existsSync()}');
+          }
+          return _buildErrorPlaceholder();
+        },
       );
     }
   }

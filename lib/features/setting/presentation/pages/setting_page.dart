@@ -1,5 +1,4 @@
 import 'package:fluency/features/setting/presentation/pages/privacy_policy_page.dart';
-import 'package:fluency/features/setting/presentation/pages/stt_settings_page.dart';
 import 'package:fluency/features/setting/presentation/pages/tts_settings_page.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
@@ -284,25 +283,6 @@ class SettingPage extends StatelessWidget {
                               ?.textPrimary,
                         ),
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryColor,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'v1.0.0',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -320,20 +300,7 @@ class SettingPage extends StatelessWidget {
                 subtitle: 'Import course from .zip file',
                 onTap: () => _importCourse(context),
               ),
-              SettingTile(
-                icon: Icons.record_voice_over,
-                iconColor: primaryColor,
-                title: 'Voice Recognition',
-                subtitle: 'Manage STT engine and offline models',
-                onTap: () {
-                  Navigator.push<void>(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (context) => const SttSettingsPage(),
-                    ),
-                  );
-                },
-              ),
+              // Voice Setting tile (only TTS remains or consider removing this if it was only for STT/TTS mix)
               SettingTile(
                 icon: Icons.volume_up,
                 iconColor: primaryColor,

@@ -11,7 +11,7 @@ import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider
 import 'package:fluency/core/services/stt/stt_service.dart';
 import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
-import 'package:fluency/core/services/stt/vosk_stt_service.dart';
+import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:provider/provider.dart';
@@ -126,17 +126,9 @@ class _FreeChatState extends State<FreeChat> {
       });
     }
 
-    final sttProvider = context.read<SttSettingProvider>();
-    final providerType = sttProvider.currentProviderType;
-    final selectedModelId = sttProvider.selectedModelId;
+    debugPrint('FreeChat: Initializing STT (system)...');
 
-    debugPrint('FreeChat: Initializing STT ($providerType)...');
-
-    if (providerType == SttProviderType.vosk && selectedModelId != null) {
-      _sttService = VoskSttService(selectedModelId: selectedModelId);
-    } else {
-      _sttService = SystemSttService();
-    }
+    _sttService = SystemSttService();
 
     _isSttAvailable = await _sttService!.initialize();
 

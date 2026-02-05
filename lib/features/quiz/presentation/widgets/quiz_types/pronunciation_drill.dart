@@ -9,7 +9,6 @@ import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
-import 'package:fluency/core/services/stt/vosk_stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 
@@ -60,17 +59,9 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   }
 
   Future<void> _initSpeech() async {
-    final sttProvider = context.read<SttSettingProvider>();
-    final providerType = sttProvider.currentProviderType;
-    final selectedModelId = sttProvider.selectedModelId;
+    debugPrint('PronunciationDrill: Initializing STT (system)...');
 
-    debugPrint('PronunciationDrill: Initializing STT ($providerType)...');
-
-    if (providerType == SttProviderType.vosk && selectedModelId != null) {
-      _sttService = VoskSttService(selectedModelId: selectedModelId);
-    } else {
-      _sttService = SystemSttService();
-    }
+    _sttService = SystemSttService();
 
     final available = await _sttService!.initialize();
     if (mounted) {
@@ -226,7 +217,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     debugPrint('STT Result: "$text" (Final: $isFinal)');
 
     // For System STT, we define "final" by the callback
-    // For Vosk, similar logic.
+    // For other STT services, similar logic.
     // If it's final, we process score.
 
     if (isFinal) {

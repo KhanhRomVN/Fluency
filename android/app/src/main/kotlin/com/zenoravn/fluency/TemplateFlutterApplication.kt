@@ -1,4 +1,4 @@
-package com.khanhromvn.fluency
+package com.zenoravn.fluency
 
 import io.flutter.app.FlutterApplication
 import io.flutter.embedding.engine.FlutterEngine

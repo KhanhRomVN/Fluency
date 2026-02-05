@@ -1,4 +1,4 @@
-package com.khanhromvn.fluency
+package com.zenoravn.fluency
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification

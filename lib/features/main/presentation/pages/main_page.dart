@@ -133,26 +133,18 @@ class MainPage extends StatelessWidget {
                       ),
                       if (showBadge)
                         Positioned(
-                          right: -2,
-                          top: -2,
+                          right: 0,
+                          bottom: 2,
                           child: Container(
-                            padding: const EdgeInsets.all(4),
+                            width: 10,
+                            height: 10,
                             decoration: BoxDecoration(
                               color: primaryColor,
                               shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 18,
-                              minHeight: 18,
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${state.downloadedModels}/${state.totalModels}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              border: Border.all(
+                                color:
+                                    Theme.of(context).scaffoldBackgroundColor,
+                                width: 1.5,
                               ),
                             ),
                           ),

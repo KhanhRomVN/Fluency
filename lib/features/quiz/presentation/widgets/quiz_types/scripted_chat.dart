@@ -12,7 +12,6 @@ import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider
 import 'package:fluency/core/services/stt/stt_service.dart';
 import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
-import 'package:fluency/core/services/stt/vosk_stt_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -104,17 +103,9 @@ class _ScriptedChatState extends State<ScriptedChat> {
   }
 
   Future<void> _initializeStt() async {
-    final sttProvider = context.read<SttSettingProvider>();
-    final providerType = sttProvider.currentProviderType;
-    final selectedModelId = sttProvider.selectedModelId;
+    debugPrint('ScriptedChat: Initializing STT (system)...');
 
-    debugPrint('ScriptedChat: Initializing STT ($providerType)...');
-
-    if (providerType == SttProviderType.vosk && selectedModelId != null) {
-      _sttService = VoskSttService(selectedModelId: selectedModelId);
-    } else {
-      _sttService = SystemSttService();
-    }
+    _sttService = SystemSttService();
 
     final available = await _sttService!.initialize();
     if (available) {

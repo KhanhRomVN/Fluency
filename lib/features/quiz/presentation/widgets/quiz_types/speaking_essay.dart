@@ -6,7 +6,6 @@ import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
-import 'package:fluency/core/services/stt/vosk_stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 
@@ -64,15 +63,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   }
 
   Future<void> _initSpeech() async {
-    final sttProvider = context.read<SttSettingProvider>();
-    final providerType = sttProvider.currentProviderType;
-    final selectedModelId = sttProvider.selectedModelId;
-
-    if (providerType == SttProviderType.vosk && selectedModelId != null) {
-      _sttService = VoskSttService(selectedModelId: selectedModelId);
-    } else {
-      _sttService = SystemSttService();
-    }
+    _sttService = SystemSttService();
 
     final available = await _sttService!.initialize();
     if (mounted) {

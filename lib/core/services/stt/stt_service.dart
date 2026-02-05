@@ -8,7 +8,7 @@ abstract class SttService {
   /// Check if the service is available on this device
   Future<bool> isAvailable();
 
-  /// Get the ID of the service (e.g., 'system', 'vosk')
+  /// Get the ID of the service (e.g., 'system')
   String get serviceId;
 
   /// Start listening for speech input

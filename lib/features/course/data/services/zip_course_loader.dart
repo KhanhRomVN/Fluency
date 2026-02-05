@@ -14,8 +14,10 @@ class ZipCourseLoader {
 
   /// Get the cache directory for extracted courses
   Future<Directory> _getCacheDirectory() async {
-    final tempDir = await getTemporaryDirectory();
-    final cacheDir = Directory('${tempDir.path}/course_cache');
+    // Use Application Documents Directory for persistent storage
+    // This avoids re-extraction after OS clears temporary files
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final cacheDir = Directory('${appDocDir.path}/course_cache_persistent');
     if (!cacheDir.existsSync()) {
       await cacheDir.create(recursive: true);
     }
@@ -93,9 +95,6 @@ class ZipCourseLoader {
       final data = await rootBundle.load(assetPath);
       final bytes = data.buffer.asUint8List();
 
-      // Decode ZIP archive
-      final archive = ZipDecoder().decodeBytes(bytes);
-
       // Get cache directory
       final cacheDir = await _getCacheDirectory();
       final extractDir = Directory('${cacheDir.path}/$courseName');
@@ -106,25 +105,11 @@ class ZipCourseLoader {
       }
       await extractDir.create(recursive: true);
 
-      // Extract all files
-      for (final file in archive) {
-        final filename = file.name;
-
-        if (file.isFile) {
-          final data = file.content as List<int>;
-          final outputFile = File('${extractDir.path}/$filename');
-
-          // Create parent directories if needed
-          await outputFile.parent.create(recursive: true);
-
-          // Write file
-          await outputFile.writeAsBytes(data);
-        } else {
-          // Create directory
-          final dir = Directory('${extractDir.path}/$filename');
-          await dir.create(recursive: true);
-        }
-      }
+      // Extract in isolate
+      await compute(_extractZipBytesIsolate, {
+        'bytes': bytes,
+        'extractPath': extractDir.path,
+      });
 
       debugPrint('Successfully extracted $courseName to ${extractDir.path}');
       _extractedCourses[courseName] = extractDir;
@@ -151,9 +136,6 @@ class ZipCourseLoader {
 
       debugPrint('Extracting local ZIP file: ${zipFile.path}');
 
-      final bytes = await zipFile.readAsBytes();
-      final archive = ZipDecoder().decodeBytes(bytes);
-
       final cacheDir = await _getCacheDirectory();
       final extractDir = Directory('${cacheDir.path}/$courseName');
 
@@ -162,18 +144,11 @@ class ZipCourseLoader {
       }
       await extractDir.create(recursive: true);
 
-      for (final file in archive) {
-        final filename = file.name;
-        if (file.isFile) {
-          final data = file.content as List<int>;
-          final outputFile = File('${extractDir.path}/$filename');
-          await outputFile.parent.create(recursive: true);
-          await outputFile.writeAsBytes(data);
-        } else {
-          final dir = Directory('${extractDir.path}/$filename');
-          await dir.create(recursive: true);
-        }
-      }
+      // Extract in isolate using path stream for memory efficiency
+      await compute(_extractZipPathIsolate, {
+        'zipPath': zipFile.path,
+        'extractPath': extractDir.path,
+      });
 
       debugPrint(
         'Successfully extracted local ZIP $courseName to ${extractDir.path}',
@@ -183,6 +158,48 @@ class ZipCourseLoader {
     } catch (e) {
       debugPrint('Error extracting local ZIP file ${zipFile.path}: $e');
       return null;
+    }
+  }
+
+  // Helper function for asset extraction (using bytes)
+  static void _extractZipBytesIsolate(Map<String, dynamic> params) {
+    final bytes = params['bytes'] as Uint8List;
+    final extractPath = params['extractPath'] as String;
+
+    final archive = ZipDecoder().decodeBytes(bytes);
+    for (final file in archive) {
+      final filename = file.name;
+      final fullPath = '$extractPath/$filename';
+      if (file.isFile) {
+        final data = file.content as List<int>;
+        final outputFile = File(fullPath);
+        outputFile.parent.createSync(recursive: true);
+        outputFile.writeAsBytesSync(data);
+      } else {
+        Directory(fullPath).createSync(recursive: true);
+      }
+    }
+  }
+
+  // Helper function for file extraction (using path)
+  static void _extractZipPathIsolate(Map<String, dynamic> params) {
+    final zipPath = params['zipPath'] as String;
+    final extractPath = params['extractPath'] as String;
+
+    final bytes = File(zipPath).readAsBytesSync();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    for (final file in archive) {
+      final filename = file.name;
+      final fullPath = '$extractPath/$filename';
+      if (file.isFile) {
+        final data = file.content as List<int>;
+        final outputFile = File(fullPath);
+        outputFile.parent.createSync(recursive: true);
+        outputFile.writeAsBytesSync(data);
+      } else {
+        Directory(fullPath).createSync(recursive: true);
+      }
     }
   }
 

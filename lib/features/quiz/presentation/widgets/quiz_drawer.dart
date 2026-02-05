@@ -153,6 +153,9 @@ class QuizDrawer extends StatelessWidget {
                   case 'speech-builder':
                     typeLabel = 'SPEECH BUILDER';
                     typeColor = Colors.blueGrey;
+                  case 'listening-choice':
+                    typeLabel = 'LISTENING CHOICE';
+                    typeColor = Colors.indigo;
                   default:
                     typeLabel = 'QUIZ';
                     typeColor = Colors.grey;

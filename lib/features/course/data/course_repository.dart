@@ -9,6 +9,8 @@ import 'package:fluency/core/services/activity/activity_repository.dart';
 import 'package:fluency/di/injection_container.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path_utils;
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 import 'package:uuid/uuid.dart';
@@ -17,6 +19,34 @@ class CourseRepository {
   // List of known course files in assets
   static const String _coursesAssetPath = 'lib/features/course/assets/courses';
   final ZipCourseLoader _zipLoader = ZipCourseLoader();
+
+  Future<void> importCourseFromUrl(String url) async {
+    final tempDir = await getTemporaryDirectory();
+    final fileName = url.split('/').last;
+    final tempFile = File(path_utils.join(
+        tempDir.path, fileName.isEmpty ? 'temp_course.zip' : fileName));
+    final client = http.Client();
+
+    try {
+      final request = http.Request('GET', Uri.parse(url));
+      final response = await client.send(request);
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to download course: ${response.statusCode}');
+      }
+
+      final sink = tempFile.openWrite();
+      await response.stream.pipe(sink);
+      await sink.close();
+
+      await importCourse(tempFile.path);
+    } finally {
+      client.close();
+      if (tempFile.existsSync()) {
+        await tempFile.delete();
+      }
+    }
+  }
 
   Future<void> importCourse(String path) async {
     try {
@@ -98,24 +128,66 @@ class CourseRepository {
       final mockService = MockCourseService();
       final mockCourses = await mockService.getMockCourses();
       courses.addAll(mockCourses);
-
       return courses;
     }
 
+    // PLATFORM: MOBILE
+    // Strategy:
+    // 1. Load from Index Cache (Instant UI)
+    // 2. Perform Full Sync (ZIP extraction, JSON parsing) - This will be called in background if cache exists
+    // 3. Save to Index Cache
+
+    // But getCourses() is typically called once by provider.
+    // Provider will handle the "Double Load" (Cache then Network/Sync).
+    // Here, we provide a "Sync" method.
+
     // Load courses from ZIP files first (mobile only)
-    if (!kIsWeb) {
-      await _loadCoursesFromZip(courses);
-    }
+    await _loadCoursesFromZip(courses);
 
     // Load courses from imported ZIP files (mobile only)
-    if (!kIsWeb) {
-      await _loadCoursesFromLocalZips(courses);
-    }
+    await _loadCoursesFromLocalZips(courses);
 
     // Then load from regular JSON files (for backward compatibility)
     await _loadCoursesFromJson(courses);
 
+    // Save to Index Cache for next time
+    await _saveCoursesToIndexCache(courses);
+
     return courses;
+  }
+
+  /// Load courses strictly from index cache (Fast)
+  Future<List<Course>> getCoursesFromCache() async {
+    if (kIsWeb) return [];
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final indexFile = File('${appDocDir.path}/courses_index.json');
+      if (await indexFile.exists()) {
+        final jsonString = await indexFile.readAsString();
+        final jsonList = json.decode(jsonString) as List<dynamic>;
+        debugPrint('Loaded ${jsonList.length} courses from Index Cache');
+        return jsonList
+            .map((json) => Course.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('Error loading courses from Index Cache: $e');
+    }
+    return [];
+  }
+
+  /// Save current courses to index cache
+  Future<void> _saveCoursesToIndexCache(List<Course> courses) async {
+    if (kIsWeb) return;
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final indexFile = File('${appDocDir.path}/courses_index.json');
+      final jsonList = courses.map((c) => c.toJson()).toList();
+      await indexFile.writeAsString(json.encode(jsonList));
+      debugPrint('Saved ${courses.length} courses to Index Cache');
+    } catch (e) {
+      debugPrint('Error saving courses to Index Cache: $e');
+    }
   }
 
   /// Load courses from ZIP files in assets
@@ -416,10 +488,28 @@ class CourseRepository {
       passage = _zipLoader.resolveFilePath(extractedDir, passage);
     }
 
+    // Resolve images in questions
+    final resolvedQuestions = quiz.questions.map((q) {
+      var image = q.image;
+      if (image != null && image.isNotEmpty) {
+        image = _zipLoader.resolveFilePath(extractedDir, image);
+      }
+
+      var images = q.images;
+      if (images != null && images.isNotEmpty) {
+        images = images
+            .map((img) => _zipLoader.resolveFilePath(extractedDir, img))
+            .toList();
+      }
+
+      return q.copyWith(image: image, images: images);
+    }).toList();
+
     return quiz.copyWith(
       audio: audio,
       transcript: transcript,
       passage: passage,
+      questions: resolvedQuestions,
     );
   }
 
@@ -485,10 +575,37 @@ class CourseRepository {
       }
     }
 
+    // Resolve images in questions
+    final resolvedQuestions = quiz.questions.map((q) {
+      var image = q.image;
+      if (image != null && image.isNotEmpty) {
+        if (image.startsWith('./')) {
+          image = image.replaceFirst('./', basePath);
+        } else if (!image.startsWith('/') && !image.startsWith('http')) {
+          image = '$basePath$image';
+        }
+      }
+
+      var images = q.images;
+      if (images != null && images.isNotEmpty) {
+        images = images.map((img) {
+          if (img.startsWith('./')) {
+            return img.replaceFirst('./', basePath);
+          } else if (!img.startsWith('/') && !img.startsWith('http')) {
+            return '$basePath$img';
+          }
+          return img;
+        }).toList();
+      }
+
+      return q.copyWith(image: image, images: images);
+    }).toList();
+
     return quiz.copyWith(
       audio: audio,
       transcript: transcript,
       passage: passage,
+      questions: resolvedQuestions,
     );
   }
 
@@ -499,11 +616,14 @@ class CourseRepository {
       debugPrint(
           'Attempting robust delete for course: ${course.title} (ID: ${course.id})');
 
-      final cacheDir = await getTemporaryDirectory();
-      final courseCacheDir = Directory('${cacheDir.path}/course_cache');
+      // Use Application Documents Directory where ZipCourseLoader extracts to
+      final appDocDir = await getApplicationDocumentsDirectory();
+      // Match the directory name used in ZipCourseLoader._getCacheDirectory
+      final courseCacheDir =
+          Directory('${appDocDir.path}/course_cache_persistent');
       String? targetFolderName;
 
-      // 1. Scan course_cache to find the folder containing this course ID
+      // 1. Scan course_cache_persistent to find the folder containing this course ID
       if (courseCacheDir.existsSync()) {
         final entities = courseCacheDir.listSync();
         for (final entity in entities) {
@@ -525,7 +645,6 @@ class CourseRepository {
       }
 
       // 2. Delete ZIP file in imported_courses
-      final appDocDir = await getApplicationDocumentsDirectory();
       final importDir = Directory('${appDocDir.path}/imported_courses');
 
       if (importDir.existsSync()) {
@@ -547,15 +666,23 @@ class CourseRepository {
           }
         }
 
-        // Strategy B: Fallback search within ZIPs (reading content might be too slow, so try name matching)
+        // Strategy B: Fallback search within ZIPs
         if (!deletedZip) {
+          // Normalize both title and ID for comparison
           final normalizedTitle =
               course.title.toLowerCase().replaceAll(' ', '_');
+          final courseId = course.id;
+
           for (final zip in zipFiles) {
             final zipBaseName = zip.path.split('/').last.replaceAll('.zip', '');
-            if (zipBaseName.toLowerCase() == normalizedTitle ||
-                zipBaseName.toLowerCase().contains(normalizedTitle) ||
-                normalizedTitle.contains(zipBaseName.toLowerCase())) {
+            final normalizedZipName = zipBaseName.toLowerCase();
+
+            // Check for match against title (snake_case) or ID
+            if (normalizedZipName == normalizedTitle ||
+                normalizedZipName == courseId ||
+                normalizedZipName.contains(normalizedTitle) ||
+                (normalizedTitle.isNotEmpty &&
+                    normalizedZipName.contains(normalizedTitle))) {
               await zip.delete();
               debugPrint(
                   'Deleted likely matching ZIP file (fallback): ${zip.path}');
