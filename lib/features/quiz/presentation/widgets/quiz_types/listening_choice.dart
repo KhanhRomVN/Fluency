@@ -22,6 +22,7 @@ class ListeningChoice extends StatefulWidget {
     this.onSegmentChange,
     this.onQuizSegmentChange,
     this.onKeyTimestampsChange,
+    this.targetQuestionIndex,
     super.key,
   });
 
@@ -35,6 +36,7 @@ class ListeningChoice extends StatefulWidget {
   final void Function(double? start, double? end)? onSegmentChange;
   final void Function(double? start, double? end)? onQuizSegmentChange;
   final void Function(List<String>? timestamps)? onKeyTimestampsChange;
+  final int? targetQuestionIndex;
 
   @override
   State<ListeningChoice> createState() => _ListeningChoiceState();
@@ -92,6 +94,18 @@ class _ListeningChoiceState extends State<ListeningChoice> {
           _emitKeyTimestamps();
         }
         _triggerSegmentChange();
+      });
+    }
+
+    if (widget.targetQuestionIndex != null &&
+        widget.targetQuestionIndex != oldWidget.targetQuestionIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _pageController.jumpToPage(widget.targetQuestionIndex!);
+          setState(() {
+            _currentQuestionIndex = widget.targetQuestionIndex!;
+          });
+        }
       });
     }
   }
@@ -397,6 +411,39 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                                         // Options
                                         _buildOptions(context, question,
                                             appColors, isSubmitted),
+
+                                        // Explain Button
+                                        if (isSubmitted &&
+                                            question.explain.isNotEmpty)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 16),
+                                            child: InkWell(
+                                              onTap: () => widget.onShowExplain
+                                                  ?.call(question.explain),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.start,
+                                                children: [
+                                                  Icon(Icons.info_outline,
+                                                      size: 20,
+                                                      color: appColors.primary),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    'Explain',
+                                                    style: TextStyle(
+                                                      color: appColors.primary,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      decoration: TextDecoration
+                                                          .underline,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+
                                         const SizedBox(height: 60),
                                       ],
                                     ),
@@ -582,7 +629,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                 : () => _handleOptionSelect(question.id, optionValue),
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: bgColor,
                 border: Border.all(color: borderColor, width: 2),
@@ -591,8 +638,8 @@ class _ListeningChoiceState extends State<ListeningChoice> {
               child: Row(
                 children: [
                   Container(
-                    width: 28,
-                    height: 28,
+                    width: 24,
+                    height: 24,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: (isSubmitted && (icon != null))
@@ -616,12 +663,12 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                                       isSelected ? Colors.white : Colors.grey)),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isSubmitted ? optionValue : 'Option $key',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: isSelected || (isSubmitted && isCorrect)
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -657,30 +704,6 @@ class _ListeningChoiceState extends State<ListeningChoice> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       );
-    }
-
-    if (isSubmitted) {
-      final isLast = _currentQuestionIndex == widget.quiz.questions.length - 1;
-
-      // Only show Finish button if it's the last question
-      if (isLast) {
-        return ElevatedButton(
-          onPressed: widget.onNext, // Call parent Next to finish/exit
-          style: ElevatedButton.styleFrom(
-            backgroundColor: appColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
-          ),
-          child: const Text(
-            'Finish Quiz',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        );
-      }
-      // If not last, show nothing (user swipes)
     }
 
     return const SizedBox.shrink();

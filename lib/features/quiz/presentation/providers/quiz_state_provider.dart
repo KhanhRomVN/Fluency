@@ -155,6 +155,26 @@ class QuizStateProvider extends ChangeNotifier {
     return _quizProgress[lessonId]?[quizId];
   }
 
+  Map<String, dynamic>? getQuestionState(
+    String lessonId,
+    String quizId,
+    String questionId,
+  ) {
+    final progress = _quizProgress[lessonId]?[quizId];
+    if (progress?.data == null) return null;
+
+    final correctnessData =
+        progress!.data!['questionCorrectness'] as Map<String, dynamic>?;
+
+    if (correctnessData != null && correctnessData.containsKey(questionId)) {
+      return {
+        'isCorrect': correctnessData[questionId] as bool,
+      };
+    }
+
+    return null;
+  }
+
   Map<String, QuizProgress>? getLessonProgress(String lessonId) {
     return _quizProgress[lessonId];
   }

@@ -580,7 +580,8 @@ class MarkersPainter extends CustomPainter {
 
     // 2. Draw Active Track
     // Calculate width relative to duration
-    final progressRatio = (currentPosition - segmentStart) / duration;
+    // Note: currentPosition is already relative (effectivePosition), no need to subtract segmentStart again
+    final progressRatio = currentPosition / duration;
     final clampedRatio = progressRatio.clamp(0.0, 1.0);
     final activeWidth = size.width * clampedRatio;
 

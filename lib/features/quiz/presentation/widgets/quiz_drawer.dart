@@ -5,17 +5,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
-class QuizDrawer extends StatelessWidget {
+class QuizDrawer extends StatefulWidget {
   const QuizDrawer({
     required this.lesson,
     required this.activeQuizIndex,
     required this.onQuizSelected,
+    this.onQuestionSelected,
+    this.onNextLesson,
     super.key,
   });
 
   final Lesson lesson;
   final int activeQuizIndex;
   final ValueChanged<int> onQuizSelected;
+  final void Function(int quizIndex, int questionIndex)? onQuestionSelected;
+  final VoidCallback? onNextLesson;
+
+  @override
+  State<QuizDrawer> createState() => _QuizDrawerState();
+}
+
+class _QuizDrawerState extends State<QuizDrawer> {
+  final Set<int> _expandedIndices = {};
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +60,7 @@ class QuizDrawer extends StatelessWidget {
 
           // Header
           Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
@@ -64,25 +75,41 @@ class QuizDrawer extends StatelessWidget {
                 Text(
                   'Question List',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: appColors.textPrimary,
                         fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
                       ),
                 ),
-                InkWell(
-                  onTap: () => Navigator.of(context).pop(),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: SvgPicture.asset(
-                      'assets/icons/x.svg',
-                      width: 20,
-                      height: 20,
-                      colorFilter: ColorFilter.mode(
-                        appColors.textSecondary,
-                        BlendMode.srcIn,
+                Row(
+                  children: [
+                    if (widget.onNextLesson != null &&
+                        context
+                                .watch<QuizStateProvider>()
+                                .getLessonProgressPercentage(
+                                  widget.lesson.id,
+                                  widget.lesson.quizzes.length,
+                                ) >=
+                            100)
+                      InkWell(
+                        onTap: widget.onNextLesson,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SvgPicture.string(
+                            '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#${appColors.primary.value.toRadixString(16).substring(2)}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-step-forward-icon lucide-step-forward"><path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/><path d="M3 4v16"/></svg>''',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
                       ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(
+                        Icons.close,
+                        color: appColors.textSecondary,
+                      ),
+                      splashRadius: 24,
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -92,19 +119,17 @@ class QuizDrawer extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: lesson.quizzes.length,
+              itemCount: widget.lesson.quizzes.length,
               separatorBuilder: (_, __) => Divider(
                 color: appColors.border.withValues(alpha: 0.3),
                 height: 1,
               ),
               itemBuilder: (context, index) {
-                final quiz = lesson.quizzes[index];
-                final isActive = index == activeQuizIndex;
-                final isCompleted = context
-                    .watch<QuizStateProvider>()
-                    .isQuizCompleted(lesson.id, quiz.id);
+                final quiz = widget.lesson.quizzes[index];
+                final isActive = index == widget.activeQuizIndex;
+                final isExpanded = _expandedIndices.contains(index);
 
-                // Get quiz type label and color (similar to QuizPage)
+                // Get quiz type label and color
                 final String typeLabel;
                 final Color typeColor;
                 switch (quiz.type) {
@@ -161,90 +186,272 @@ class QuizDrawer extends StatelessWidget {
                     typeColor = Colors.grey;
                 }
 
-                return InkWell(
-                  onTap: () {
-                    onQuizSelected(index);
-                    Navigator.of(context).pop();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      border: isActive
-                          ? Border(
-                              left: BorderSide(
-                                color: appColors.primary,
-                                width: 3,
-                              ),
-                            )
-                          : null,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Type badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: typeColor.withValues(alpha: 0.1),
-                                  border: Border.all(
-                                    color: typeColor.withValues(alpha: 0.3),
-                                    width: 0.5,
-                                  ),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  typeLabel,
-                                  style: TextStyle(
+                return Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        widget.onQuizSelected(index);
+                        Navigator.of(context).pop();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          border: isActive
+                              ? Border(
+                                  left: BorderSide(
                                     color: typeColor,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
+                                    width: 3,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Type badge row
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              typeColor.withValues(alpha: 0.1),
+                                          border: Border.all(
+                                            color: typeColor.withValues(
+                                                alpha: 0.3),
+                                            width: 0.5,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          typeLabel,
+                                          style: TextStyle(
+                                            color: typeColor,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      if (quiz.questions.isNotEmpty) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: appColors.textSecondary
+                                                .withValues(alpha: 0.1),
+                                            border: Border.all(
+                                              color: appColors.textSecondary
+                                                  .withValues(alpha: 0.3),
+                                              width: 0.5,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '${quiz.questions.length} questions',
+                                            style: TextStyle(
+                                              color: appColors.textSecondary,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: appColors.textSecondary
+                                                .withValues(alpha: 0.1),
+                                            border: Border.all(
+                                              color: appColors.textSecondary
+                                                  .withValues(alpha: 0.3),
+                                              width: 0.5,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '${context.watch<QuizStateProvider>().getQuizProgress(widget.lesson.id, quiz.id)?.correctItems ?? 0}/${quiz.questions.length}pt',
+                                            style: TextStyle(
+                                              color: appColors.textSecondary,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+
+                                  // Title
+                                  Text(
+                                    '${index + 1}. ${quiz.title.isNotEmpty ? quiz.title : quiz.question.isNotEmpty ? quiz.question : 'Untitled Question'}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: isActive
+                                              ? typeColor
+                                              : appColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.3,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // Expand/Collapse and Progress
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (quiz.questions.isNotEmpty)
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        if (isExpanded) {
+                                          _expandedIndices.remove(index);
+                                        } else {
+                                          _expandedIndices.add(index);
+                                        }
+                                      });
+                                    },
+                                    iconSize: 20,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: SvgPicture.string(
+                                      isExpanded
+                                          ? '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-chevrons-down-up-icon lucide-list-chevrons-down-up"><path d="M3 5h8"/><path d="M3 12h8"/><path d="M3 19h8"/><path d="m15 5 3 3 3-3"/><path d="m15 19 3-3 3 3"/></svg>'''
+                                          : '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-chevrons-up-down-icon lucide-list-chevrons-up-down"><path d="M3 5h8"/><path d="M3 12h8"/><path d="M3 19h8"/><path d="m15 8 3-3 3 3"/><path d="m15 16 3 3 3-3"/></svg>''',
+                                      width: 20,
+                                      height: 20,
+                                      colorFilter: ColorFilter.mode(
+                                        appColors.textSecondary,
+                                        BlendMode.srcIn,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(width: 8),
+                                _buildProgressCircle(
+                                  context,
+                                  widget.lesson.id,
+                                  quiz.id,
+                                  quiz.type,
+                                  typeColor,
+                                  appColors,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Expandable Mini quiz cards
+                    if (isExpanded && quiz.questions.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: quiz.questions.asMap().entries.map((entry) {
+                            final qIndex = entry.key;
+                            final question = entry.value;
+                            final isLast = qIndex == quiz.questions.length - 1;
+                            final questionState = context
+                                .watch<QuizStateProvider>()
+                                .getQuestionState(
+                                    widget.lesson.id, quiz.id, question.id);
+
+                            final bool isCorrect =
+                                questionState?['isCorrect'] == true;
+                            final Color badgeColor =
+                                isCorrect ? Colors.green : Colors.red;
+
+                            return Column(
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    widget.onQuestionSelected
+                                        ?.call(index, qIndex);
+                                    Navigator.of(context).pop();
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '${qIndex + 1}. ${question.question.isNotEmpty ? question.question : 'Question ${qIndex + 1}'}',
+                                            style: TextStyle(
+                                              color: appColors.textPrimary,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                              height: 1.2,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        if (questionState != null)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: badgeColor.withValues(
+                                                  alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              isCorrect ? '1pt' : '0pt',
+                                              style: TextStyle(
+                                                color: badgeColor,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-
-                              // Title
-                              Text(
-                                '${index + 1}. ${quiz.title.isNotEmpty ? quiz.title : quiz.question.isNotEmpty ? quiz.question : 'Untitled Question'}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: isActive
-                                          ? appColors.primary
-                                          : appColors.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      height: 1.3,
-                                    ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
+                                if (!isLast)
+                                  Divider(
+                                    color: appColors.border
+                                        .withValues(alpha: 0.15),
+                                    height: 1,
+                                    thickness: 0.5,
+                                  ),
+                              ],
+                            );
+                          }).toList(),
                         ),
-                        const SizedBox(width: 12),
-
-                        // Progress Circle
-                        _buildProgressCircle(
-                          context,
-                          lesson.id,
-                          quiz.id,
-                          quiz.type,
-                          typeColor,
-                          appColors,
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                  ],
                 );
               },
             ),

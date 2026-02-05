@@ -15,6 +15,7 @@ class MultipleChoice extends StatefulWidget {
     this.onPrev,
     this.onShowExplain,
     this.onWordLongPress,
+    this.targetQuestionIndex,
     super.key,
   });
 
@@ -25,6 +26,7 @@ class MultipleChoice extends StatefulWidget {
   final VoidCallback? onPrev;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
+  final int? targetQuestionIndex;
 
   @override
   State<MultipleChoice> createState() => _MultipleChoiceState();
@@ -100,6 +102,22 @@ class _MultipleChoiceState extends State<MultipleChoice> {
   }
 
   @override
+  void didUpdateWidget(covariant MultipleChoice oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.targetQuestionIndex != null &&
+        widget.targetQuestionIndex != oldWidget.targetQuestionIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _pageController.jumpToPage(widget.targetQuestionIndex!);
+          setState(() {
+            _currentQuestionIndex = widget.targetQuestionIndex!;
+          });
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -112,15 +130,6 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     _saveProgress();
   }
 
-  void _animateToNextQuestion() {
-    if (_currentQuestionIndex < widget.quiz.questions.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // If no questions, show empty
@@ -130,15 +139,6 @@ class _MultipleChoiceState extends State<MultipleChoice> {
 
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final questions = widget.quiz.questions;
-    final currentQuestion = questions[_currentQuestionIndex];
-    final isSubmitted = _submittedQuestions.contains(currentQuestion.id);
-
-    // Calculate background border color for the card based on state
-    var borderColor = Colors.grey.withValues(alpha: 0.5);
-    if (isSubmitted) {
-      final isCorrect = _questionCorrectness[currentQuestion.id] ?? false;
-      borderColor = isCorrect ? appColors.primary : Colors.red;
-    }
 
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
@@ -422,8 +422,6 @@ class _MultipleChoiceState extends State<MultipleChoice> {
             const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
       );
     }
-
-    return const SizedBox.shrink();
 
     return const SizedBox.shrink();
   }

@@ -34,9 +34,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({required this.lesson, super.key});
+  const QuizPage({
+    required this.lesson,
+    this.onNextLesson,
+    super.key,
+  });
 
   final Lesson lesson;
+  final VoidCallback? onNextLesson;
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -61,6 +66,9 @@ class _QuizPageState extends State<QuizPage> {
   double? _quizSegmentStart; // Quiz-level (for MediaPlayer UI)
   double? _quizSegmentEnd; // Quiz-level (for MediaPlayer UI)
   List<String>? _keyTimestamps;
+
+  // Track target question index for each quiz ID to support navigation from drawer
+  final Map<String, int> _targetQuestionIndices = {};
 
   @override
   void initState() {
@@ -248,28 +256,62 @@ class _QuizPageState extends State<QuizPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Left: Back button + Quiz Badge
-                      Row(
-                        children: [
-                          InkWell(
-                            onTap: _showExitConfirmationDrawer,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: SvgPicture.asset(
-                                'assets/icons/chevron_left.svg',
-                                width: 20,
-                                height: 20,
-                                colorFilter: ColorFilter.mode(
-                                  appColors.textPrimary,
-                                  BlendMode.srcIn,
-                                ),
-                              ),
+                      // Left: Back button
+                      InkWell(
+                        onTap: _showExitConfirmationDrawer,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: SvgPicture.asset(
+                            'assets/icons/chevron_left.svg',
+                            width: 20,
+                            height: 20,
+                            colorFilter: ColorFilter.mode(
+                              appColors.textPrimary,
+                              BlendMode.srcIn,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          _buildQuizTypeBadge(quizType, context),
-                        ],
+                        ),
+                      ),
+
+                      // Center: Quiz text + Badge
+                      Padding(
+                        padding: const EdgeInsets.only(left: 24),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Quiz',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: appColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: appColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${_activeQuizIndex + 1}/${lesson.quizzes.length}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: appColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
 
                       // Right: Icon row and Progress Badge
@@ -308,21 +350,15 @@ class _QuizPageState extends State<QuizPage> {
                                 });
                               },
                               borderRadius: BorderRadius.circular(8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: appColors.primary,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  'Must read',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: SvgPicture.string(
+                                  '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>''',
+                                  width: 18,
+                                  height: 18,
+                                  colorFilter: ColorFilter.mode(
+                                    appColors.textPrimary,
+                                    BlendMode.srcIn,
                                   ),
                                 ),
                               ),
@@ -351,52 +387,6 @@ class _QuizPageState extends State<QuizPage> {
                               ),
                             ),
 
-                          const SizedBox(width: 4),
-
-                          // Question counter badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: appColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${_activeQuizIndex + 1}/${lesson.quizzes.length}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: appColors.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 4),
-
-                          // Quick Settings Button
-                          InkWell(
-                            onTap: _showQuickSettingsDrawer,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: SvgPicture.string(
-                                '''<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><circle cx="12" cy="12" r="4"/></svg>''',
-                                colorFilter: ColorFilter.mode(
-                                  appColors.textPrimary,
-                                  BlendMode.srcIn,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 4),
-
-                          // Menu icon
                           InkWell(
                             onTap: () {
                               _showQuizDrawer(context);
@@ -550,6 +540,7 @@ class _QuizPageState extends State<QuizPage> {
             });
           },
           onWordLongPress: _onWordLongPress,
+          targetQuestionIndex: _targetQuestionIndices[quiz.id],
         );
       case 'matching-dropdown':
         return MatchingDropdown(
@@ -683,6 +674,7 @@ class _QuizPageState extends State<QuizPage> {
           onSegmentChange: _handleSegmentChange,
           onQuizSegmentChange: _handleQuizSegmentChange,
           onKeyTimestampsChange: _handleKeyTimestampsChange,
+          targetQuestionIndex: _targetQuestionIndices[quiz.id],
         );
       case 'speech-builder':
         return SpeechBuilder(
@@ -741,87 +733,18 @@ class _QuizPageState extends State<QuizPage> {
               _pageController.jumpToPage(index);
             }
           },
+          onQuestionSelected: (quizIndex, questionIndex) {
+            final quiz = widget.lesson.quizzes[quizIndex];
+            setState(() {
+              _targetQuestionIndices[quiz.id] = questionIndex;
+            });
+            if (quizIndex != _activeQuizIndex) {
+              _pageController.jumpToPage(quizIndex);
+            }
+          },
+          onNextLesson: widget.onNextLesson,
         );
       },
-    );
-  }
-
-  Widget _buildQuizTypeBadge(String type, BuildContext context) {
-    String label;
-    Color color;
-
-    switch (type) {
-      case 'multiple-choice':
-        label = 'Multiple Choice';
-        color = Colors.blue;
-      case 'gap-fill':
-      case 'gap-fill-typing':
-      case 'gap-fill-dropdown':
-        label = 'Gap Fill';
-        color = Colors.green;
-      case 'matching-dropdown':
-        label = 'Matching';
-        color = Colors.purple;
-      case 'writing-essay':
-        label = 'Writing';
-        color = Colors.orange;
-      case 'speaking-essay':
-      case 'speaking':
-        label = 'Speaking';
-        color = Colors.pink;
-      case 'free-chat':
-      case 'free-typing-chat':
-        label = 'Free Chat';
-        color = Colors.cyan;
-      case 'scripted-chat':
-      case 'chatting-speech':
-        label = 'Scripted Chat';
-        color = Colors.blueAccent;
-      case 'pronunciation-drill':
-      case 'pronunciation':
-        label = 'Pronunciation';
-        color = Colors.teal;
-      case 'dictation':
-      case 'dictation-audio':
-        label = 'Dictation';
-        color = Colors.pink;
-      case 'builder':
-        label = 'Builder';
-        color = Colors.amber;
-      case 'sentence-transformation':
-        label = 'Transformation';
-        color = Colors.deepOrange;
-      case 'error-correction':
-        label = 'Error Correction';
-        color = Colors.redAccent;
-      case 'flashcard':
-        label = 'Flashcard';
-        color = Colors.indigo;
-      case 'speech-builder':
-        label = 'Speech Builder';
-        color = Colors.blueGrey;
-      case 'listening-choice':
-        label = 'Listening Choice';
-        color = Colors.indigo;
-      default:
-        label = 'Quiz';
-        color = Colors.grey;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
     );
   }
 
