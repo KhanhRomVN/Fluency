@@ -1,5 +1,6 @@
 import 'dart:convert';
 // import 'dart:io'; // Removed to support web
+import 'package:fluency/core/utils/web_helper.dart';
 
 import 'package:fluency/core/mock/mock_course_service.dart';
 import 'package:fluency/features/course/data/services/zip_course_loader.dart';
@@ -20,7 +21,30 @@ class CourseRepository {
   static const String _coursesAssetPath = 'lib/features/course/assets/courses';
   final ZipCourseLoader _zipLoader = ZipCourseLoader();
 
+  // Web Only: specific cache for imported courses in current session
+  final List<Course> _webImportedCourses = [];
+
   Future<void> importCourseFromUrl(String url) async {
+    if (kIsWeb) {
+      final client = http.Client();
+      try {
+        final response = await client.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          final fileName = url.split('/').last;
+          await importCourseFromBytes(
+              response.bodyBytes, fileName.isEmpty ? 'download.zip' : fileName);
+        } else {
+          throw Exception('Failed to download course: ${response.statusCode}');
+        }
+      } catch (e) {
+        debugPrint('Error downloading course on web: $e');
+        rethrow;
+      } finally {
+        client.close();
+      }
+      return;
+    }
+
     final tempDir = await getTemporaryDirectory();
     final fileName = url.split('/').last;
     final tempFile = File(path_utils.join(
@@ -45,6 +69,77 @@ class CourseRepository {
       if (tempFile.existsSync()) {
         await tempFile.delete();
       }
+    }
+  }
+
+  Future<void> importCourseFromBytes(Uint8List bytes, String filename) async {
+    if (kIsWeb) {
+      try {
+        final extractedFiles = await _zipLoader.extractZipToMemory(bytes);
+        if (extractedFiles == null) {
+          throw Exception('Failed to extract ZIP.');
+        }
+
+        final courseJson =
+            await _zipLoader.loadCourseJsonFromMemory(extractedFiles);
+        if (courseJson == null) {
+          throw Exception('Invalid course: Course.json not found in ZIP.');
+        }
+
+        var course = Course.fromJson(courseJson);
+
+        // Load lessons
+        final lessonJsons =
+            await _zipLoader.loadLessonJsonsFromMemory(extractedFiles);
+        if (lessonJsons.isNotEmpty) {
+          final lessons = lessonJsons.map(Lesson.fromJson).toList();
+          course = course.copyWith(
+            lessons: [...course.lessons, ...lessons]
+              ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+          );
+        }
+
+        // Resolve Path with Blob URLs
+        course = _resolvePathsFromMemory(course, extractedFiles);
+
+        // Inject lesson metadata
+        course = course.copyWith(
+          lessons: course.lessons
+              .map((l) => l.copyWith(
+                    courseId: course.id,
+                    courseTitle: course.title,
+                  ))
+              .toList(),
+        );
+
+        // Check duplication
+        _webImportedCourses.removeWhere((c) => c.id == course.id);
+        _webImportedCourses.insert(0, course);
+
+        debugPrint('Imported course (Web): ${course.title}');
+
+        await sl<ActivityRepository>().logActivity(Activity(
+          id: const Uuid().v4(),
+          type: ActivityType.importCourse,
+          title: 'Course imported (Web)',
+          subtitle: course.title,
+          timestamp: DateTime.now(),
+          metadata: {
+            'courseId': course.id,
+            'courseTitle': course.title,
+            'version': course.version,
+          },
+        ));
+      } catch (e) {
+        debugPrint('Error importing course from bytes: $e');
+        rethrow;
+      }
+    } else {
+      // Native fallback: write to temp file and import
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(path_utils.join(tempDir.path, filename));
+      await tempFile.writeAsBytes(bytes);
+      await importCourse(tempFile.path);
     }
   }
 
@@ -128,6 +223,7 @@ class CourseRepository {
       final mockService = MockCourseService();
       final mockCourses = await mockService.getMockCourses();
       courses.addAll(mockCourses);
+      courses.addAll(_webImportedCourses);
       return courses;
     }
 
@@ -708,5 +804,84 @@ class CourseRepository {
       debugPrint('Error in robust deleteCourse: $e');
       rethrow;
     }
+  }
+
+  Course _resolvePathsFromMemory(Course course, Map<String, Uint8List> files) {
+    // Helper to Create Blob URL for a path
+    String resolve(String? path) {
+      if (path == null || path.isEmpty) return '';
+      // Remove ./ or / prefix
+      var cleanPath = path;
+      if (cleanPath.startsWith('./'))
+        cleanPath = cleanPath.substring(2);
+      else if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+
+      // Find file in memory
+      for (final key in files.keys) {
+        // Simple fuzzy match or exact match depending on structure
+        // The Zip might have folders "audio/file.mp3"
+        // Key might be "audio/file.mp3"
+        if (key == cleanPath || key.endsWith('/$cleanPath')) {
+          final mimeType = _getMimeType(key);
+          return createBlobUrl(files[key]!, mimeType);
+        }
+      }
+      return path; // Return original if not found (might be external URL)
+    }
+
+    var imageUrl = resolve(course.imageUrl);
+
+    final resolvedLessons = course.lessons.map((lesson) {
+      final resolvedQuizzes = lesson.quizzes.map((quiz) {
+        var audio = resolve(quiz.audio);
+        var transcript = quiz
+            .transcript; // Transcript usually text, keep as is or resolve if file needed
+        // Since we read transcripts from JSON usually, or if it is a file path:
+        // logic says if it is a file path, we might need XHR. But here we have bytes.
+        // If transcript is a path to .json or .txt, we might want to read it?
+        // Existing logic in native resolve doesn't read it, just resolves path.
+        // But on Web, path is useless.
+        // For now, let's assume transcript is embedded OR handle if path.
+        if (transcript != null && transcript.endsWith('.json')) {
+          // If it provides a path, we might need to pre-load content?
+          // Complex. Let's resolve URL for now.
+          transcript = resolve(transcript);
+        }
+
+        var passage = resolve(quiz.passage);
+
+        final resolvedQuestions = quiz.questions.map((q) {
+          var image = resolve(q.image);
+          var images = q.images?.map((img) => resolve(img)).toList();
+          return q.copyWith(image: image, images: images);
+        }).toList();
+
+        return quiz.copyWith(
+          audio: audio,
+          transcript:
+              transcript, // Note: if transcript logic requires http.get, Blob URL works.
+          passage: passage,
+          questions: resolvedQuestions,
+        );
+      }).toList();
+
+      return lesson.copyWith(quizzes: resolvedQuizzes);
+    }).toList();
+
+    return course.copyWith(
+      imageUrl: imageUrl, // If image path was found
+      lessons: resolvedLessons,
+    );
+  }
+
+  String _getMimeType(String path) {
+    final cur = path.toLowerCase();
+    if (cur.endsWith('.jpg') || cur.endsWith('.jpeg')) return 'image/jpeg';
+    if (cur.endsWith('.png')) return 'image/png';
+    if (cur.endsWith('.gif')) return 'image/gif';
+    if (cur.endsWith('.mp3')) return 'audio/mpeg';
+    if (cur.endsWith('.wav')) return 'audio/wav';
+    if (cur.endsWith('.json')) return 'application/json';
+    return 'application/octet-stream';
   }
 }

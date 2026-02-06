@@ -330,4 +330,79 @@ class ZipCourseLoader {
       return 0;
     }
   }
+
+  /// Web Only: Extract ZIP bytes to memory
+  Future<Map<String, Uint8List>?> extractZipToMemory(Uint8List bytes) async {
+    try {
+      final archive = ZipDecoder().decodeBytes(bytes);
+      final extractedFiles = <String, Uint8List>{};
+
+      for (final file in archive) {
+        if (file.isFile) {
+          final data = file.content as List<int>;
+          extractedFiles[file.name] = Uint8List.fromList(data);
+        }
+      }
+      return extractedFiles;
+    } catch (e) {
+      debugPrint('Error extracting ZIP to memory: $e');
+      return null;
+    }
+  }
+
+  /// Web Only: Load course JSON from memory
+  Future<Map<String, dynamic>?> loadCourseJsonFromMemory(
+      Map<String, Uint8List> files) async {
+    try {
+      // Find course JSON
+      String? courseJsonPath;
+      for (final path in files.keys) {
+        if (path.endsWith('_Course.json')) {
+          courseJsonPath = path;
+          break;
+        }
+      }
+
+      // Fallback
+      if (courseJsonPath == null) {
+        for (final path in files.keys) {
+          final fileName = path.split('/').last.toLowerCase();
+          if (fileName.contains('course') && fileName.endsWith('.json')) {
+            courseJsonPath = path;
+            break;
+          }
+        }
+      }
+
+      if (courseJsonPath == null) return null;
+
+      final content = utf8.decode(files[courseJsonPath]!);
+      return json.decode(content) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Error loading course JSON from memory: $e');
+      return null;
+    }
+  }
+
+  /// Web Only: Load lesson JSONs from memory
+  Future<List<Map<String, dynamic>>> loadLessonJsonsFromMemory(
+      Map<String, Uint8List> files) async {
+    final lessons = <Map<String, dynamic>>[];
+    try {
+      for (final path in files.keys) {
+        final fileName = path.split('/').last.toLowerCase();
+        if (fileName.contains('lesson') && fileName.endsWith('.json')) {
+          try {
+            final content = utf8.decode(files[path]!);
+            lessons.add(json.decode(content) as Map<String, dynamic>);
+          } catch (e) {
+            debugPrint('Error loading lesson from memory $path: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading lessons from memory: $e');
+    }
+    return lessons;
+  }
 }

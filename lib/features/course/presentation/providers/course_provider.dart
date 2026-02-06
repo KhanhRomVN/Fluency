@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:fluency/features/course/data/course_repository.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:flutter/material.dart';
@@ -68,6 +69,21 @@ class CourseProvider extends ChangeNotifier {
                   .toLowerCase()
                   .contains(_searchQuery.toLowerCase()))
           .toList();
+    }
+  }
+
+  Future<void> importCourseFromBytes(Uint8List bytes, String filename) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _repository.importCourseFromBytes(bytes, filename);
+      // Reload courses to reflect changes
+      await loadCourses();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
     }
   }
 

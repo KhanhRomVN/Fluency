@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:fluency/core/utils/file_system_helper.dart';
 
 import 'package:fluency/core/services/tts/piper_tts_service.dart';
 import 'package:fluency/core/services/tts/system_tts_service.dart';
@@ -73,7 +73,7 @@ class TtsProvider extends ChangeNotifier {
             extractedFolder,
             '$voiceCode.onnx',
           );
-          if (File(modelPath).existsSync()) {
+          if (fileExists(modelPath)) {
             _selectedPiperModel = modelPath;
             await _prefs.setString(_selectedModelKey, modelPath);
             debugPrint('Auto-selected default Piper model: $modelPath');
@@ -113,7 +113,7 @@ class TtsProvider extends ChangeNotifier {
 
     return PiperTtsService(
       selectedModelPath: _selectedPiperModel,
-      espeakDataPath: Directory(espeakPath).existsSync() ? espeakPath : null,
+      espeakDataPath: directoryExists(espeakPath) ? espeakPath : null,
     );
   }
 
@@ -148,7 +148,7 @@ class TtsProvider extends ChangeNotifier {
           '$voiceCode.onnx',
         );
 
-        if (File(modelPath).existsSync()) {
+        if (fileExists(modelPath)) {
           // Temporarily switch to this voice
           final previousModel = _selectedPiperModel;
           await setSelectedModel(modelPath);

@@ -10,7 +10,9 @@ import 'package:fluency/di/injection_container.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sherpa_onnx/sherpa_onnx.dart';
+import 'package:fluency/runner/sherpa/sherpa_initializer.dart'
+    if (dart.library.io) 'package:fluency/runner/sherpa/sherpa_initializer_native.dart'
+    if (dart.library.html) 'package:fluency/runner/sherpa/sherpa_initializer_web.dart';
 
 /// App runner class
 class Runner {
@@ -36,7 +38,7 @@ class Runner {
     // Initialize Dependency Injection
     await di.init();
     // Initialize Sherpa Onnx
-    initBindings();
+    initSherpaBindings();
 
     // Start Usage Tracking
     sl<AppUsageService>().startTracking();

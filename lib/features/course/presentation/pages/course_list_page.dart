@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fluency/core/constants/route_constants.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
@@ -22,21 +23,39 @@ class _CourseListPageState extends State<CourseListPage> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
+        withData: kIsWeb, // Make sure to load data on web
       );
 
-      if (result != null && result.files.single.path != null) {
-        final path = result.files.single.path!;
+      if (result != null) {
+        if (kIsWeb) {
+          final bytes = result.files.single.bytes;
+          final name = result.files.single.name;
 
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Importing course...')),
-          );
+          if (bytes != null) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Importing course (Web)...')),
+              );
+            }
+            if (!context.mounted) return;
+
+            await Provider.of<CourseProvider>(context, listen: false)
+                .importCourseFromBytes(bytes, name);
+          }
+        } else if (result.files.single.path != null) {
+          final path = result.files.single.path!;
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Importing course...')),
+            );
+          }
+
+          if (!context.mounted) return;
+
+          await Provider.of<CourseProvider>(context, listen: false)
+              .importCourse(path);
         }
-
-        if (!context.mounted) return;
-
-        await Provider.of<CourseProvider>(context, listen: false)
-            .importCourse(path);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
