@@ -51,6 +51,46 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     super.initState();
     _inputController = TextEditingController();
     _pageController = PageController(initialPage: _currentIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProgress();
+    });
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quiz.id,
+    );
+
+    if (progress != null && mounted) {
+      setState(() {
+        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+
+        final savedStates =
+            progress.data?['itemStates'] as Map<String, dynamic>?;
+        if (savedStates != null) {
+          savedStates.forEach((key, value) {
+            final data = value as Map<String, dynamic>;
+            _itemStates[key] = _ErrorCorrectionItemState(
+              solvedErrorIds:
+                  (data['solvedErrorIds'] as List?)?.cast<String>().toSet() ??
+                      {},
+              passed: data['passed'] as bool? ?? false,
+              feedbackMessage: data['feedbackMessage'] as String? ?? '',
+              isCorrectFeedback: data['isCorrectFeedback'] as bool? ?? true,
+              corrections: (data['corrections'] as Map<String, dynamic>?)?.map(
+                    (k, v) => MapEntry(int.parse(k), v as String),
+                  ) ??
+                  {},
+            );
+          });
+        }
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(_currentIndex);
+        }
+      });
+    }
   }
 
   @override
@@ -63,7 +103,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
-      // Reset interaction state for new item
       _selectedTokenIndex = null;
       _selectedError = null;
       _inputValue = '';
@@ -73,38 +112,141 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     _saveProgress();
   }
 
-  void _animateToNextQuestion() {
-    if (_currentIndex < (widget.quiz.errorCorrections?.length ?? 0) - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+  List<_Token> _parseTokens(ErrorCorrectionItem item) {
+    // If the original text is likely not HTML-tagged (legacy), fallback to split?
+    // But we assume updated content.
+    final tokens = <_Token>[];
+    int tokenCounter = 0;
+
+    // Regex to match <error> or <p> blocks
+    // Captures: 1=attributes, 2=content
+    final blockRegex = RegExp(
+      r"<(?:error|p)\b([^>]*)>(.*?)<\/(?:error|p)>",
+      caseSensitive: false,
+      dotAll: true,
+    );
+
+    final brRegex = RegExp(r"<br\s*/?>", caseSensitive: false);
+
+    void addTextTokens(
+        String text, bool isError, String? errorId, bool isUnderline) {
+      // Split by <br> tags to handle newlines
+      // We use splitMapJoin logic but manually
+      int lastIndex = 0;
+      final brMatches = brRegex.allMatches(text);
+
+      void processSegment(String segment) {
+        if (segment.isEmpty) return;
+        // Strip other tags
+        final clean = segment.replaceAll(RegExp(r'<[^>]*>'), '');
+        final words = clean.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+        for (final w in words) {
+          tokens.add(_Token(
+            id: 'tok-${tokenCounter}',
+            text: w,
+            isError: isError,
+            errorId: errorId,
+            index: tokenCounter++,
+            isUnderline: isUnderline,
+          ));
+        }
+      }
+
+      for (final match in brMatches) {
+        if (match.start > lastIndex) {
+          processSegment(text.substring(lastIndex, match.start));
+        }
+        // Add newline token
+        tokens.add(_Token(
+          id: 'nl-${tokenCounter++}', // Unique ID
+          text: '\n',
+          isError: false,
+          index: -1, // Newlines don't have index for corrections
+          isNewline: true,
+        ));
+        lastIndex = match.end;
+      }
+      if (lastIndex < text.length) {
+        processSegment(text.substring(lastIndex));
+      }
     }
+
+    // Main parsing loop
+    int lastIndex = 0;
+    for (final match in blockRegex.allMatches(item.original)) {
+      // Text before
+      if (match.start > lastIndex) {
+        final textBefore = item.original.substring(lastIndex, match.start);
+        addTextTokens(textBefore, false, null, false);
+      }
+
+      final attrString = match.group(1) ?? '';
+      final content = match.group(2) ?? '';
+
+      // Extract error ID
+      final idMatch = RegExp(r"(?:error|id)=['\u0022]([^'\u0022]+)['\u0022]",
+              caseSensitive: false)
+          .firstMatch(attrString);
+      final errorId = idMatch?.group(1);
+
+      // Check underline
+      final isUnderline = attrString.contains('underline');
+
+      addTextTokens(content, errorId != null, errorId, isUnderline);
+
+      lastIndex = match.end;
+    }
+
+    // Text after
+    if (lastIndex < item.original.length) {
+      final textAfter = item.original.substring(lastIndex);
+      addTextTokens(textAfter, false, null, false);
+    }
+
+    // Fallback: If no tags found at all and text is not empty, assume plain text?
+    // Or assume it's just one text block.
+    // The previous implementation just split by space.
+    // If tokens is empty and original is not, do plain parse.
+    if (tokens.isEmpty && item.original.isNotEmpty) {
+      addTextTokens(item.original, false, null, false);
+    }
+
+    return tokens;
   }
 
-  void _onTokenTap(ErrorCorrectionItem item, int tokenIndex) {
+  void _onTokenTap(ErrorCorrectionItem item, _Token token) {
+    if (token.isNewline) return;
     final state = _itemStates[item.id] ?? _ErrorCorrectionItemState();
-    if (state.passed) return; // Prevent interaction if already passed
+    if (state.passed) return;
 
-    // Identify if this token corresponds to an actual error
-    final error = item.errors.where((e) => e.index == tokenIndex).firstOrNull;
+    if (token.errorId != null && state.solvedErrorIds.contains(token.errorId)) {
+      return; // Already solved
+    }
+
+    // Find error object associated with this token if any
+    CorrectionError? error;
+    if (token.isError && token.errorId != null) {
+      error = item.errors.where((e) => e.id == token.errorId).firstOrNull;
+    } else {
+      // Fallback: finding error by index? No, relying on parsed ID is safer if tags exist.
+      // If tags don't exist (legacy), we might match by index?
+      // But we enforced parsing.
+      // If token.isError is false, user clicked a non-error word.
+    }
 
     setState(() {
-      _selectedTokenIndex = tokenIndex;
+      _selectedTokenIndex = token.index;
       _selectedError = error;
 
-      // Load saved correction if exists
-      _inputValue = state.corrections[tokenIndex] ?? '';
+      _inputValue = state.corrections[token.index] ?? '';
       _inputController.text = _inputValue;
-      // Ensure cursor is at end
       _inputController.selection = TextSelection.fromPosition(
         TextPosition(offset: _inputController.text.length),
       );
 
-      // Reset feedback for this new attempt selection (optional, or keep generic)
       _itemStates[item.id] = state.copyWith(
         feedbackMessage: '',
-        isCorrectFeedback: true, // Reset to neutral
+        isCorrectFeedback: true,
       );
     });
   }
@@ -115,23 +257,15 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
 
     if (_selectedTokenIndex == null) return;
 
-    // 1. Check if the selected token IS an error
+    // 1. Check if token is an error
     if (_selectedError == null) {
-      // User selected a word that is NOT an error
-      final tokens = item.original.split(RegExp(r'\s+'));
-      final errorDescriptions = item.errors.map((e) {
-        final incorrectWord = tokens[e.index];
-        final correctWord = e.correct.first;
-        return '$incorrectWord -> $correctWord';
-      }).join(', ');
-
       setState(() {
         _itemStates[item.id] = state.copyWith(
-          feedbackMessage: 'That word is correct. Error: $errorDescriptions',
+          feedbackMessage: "Incorrect selection. The error wasn't here.",
           isCorrectFeedback: false,
         );
+        // Reset selection
         _selectedTokenIndex = null;
-        _selectedError = null;
         _inputValue = '';
         _inputController.clear();
         _saveProgress();
@@ -139,10 +273,8 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
       return;
     }
 
-    // 2. Check if the input correction is correct
+    // 2. Check value
     final normalizedInput = _inputValue.trim().toLowerCase();
-
-    // Support multiple valid answers
     final isCorrect = _selectedError!.correct
         .map((e) => e.toLowerCase())
         .contains(normalizedInput);
@@ -150,6 +282,10 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     if (isCorrect) {
       final newSolved = Set<String>.from(state.solvedErrorIds)
         ..add(_selectedError!.id);
+
+      // Check if all errors solved
+      // We need to know total errors.
+      // Assumption: item.errors list contains ALL errors.
       final allSolved = item.errors.every((e) => newSolved.contains(e.id));
 
       setState(() {
@@ -166,10 +302,12 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         _saveProgress();
       });
     } else {
+      final correctAns = _selectedError!.correct.isNotEmpty
+          ? _selectedError!.correct.first
+          : 'unknown';
       setState(() {
         _itemStates[item.id] = state.copyWith(
-          feedbackMessage:
-              'Incorrect. Correct answer: ${_selectedError!.correct.join(" / ")}',
+          feedbackMessage: 'Right spot, but wrong fix. Expected: "$correctAns"',
           isCorrectFeedback: false,
         );
         _saveProgress();
@@ -180,7 +318,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
   Future<void> _saveProgress() async {
     final quizStateProvider = context.read<QuizStateProvider>();
 
-    // Serialize states
     final statesMap = _itemStates.map((key, value) {
       return MapEntry(key, {
         'solvedErrorIds': value.solvedErrorIds.toList(),
@@ -193,7 +330,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     });
 
     final totalItems = widget.quiz.errorCorrections?.length ?? 0;
-    // Count completed as items where user made any correction entry or passed
     final completedItems = _itemStates.values
         .where((s) => s.corrections.isNotEmpty || s.passed)
         .length;
@@ -201,14 +337,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
 
     await quizStateProvider.saveQuizProgress(
       lessonId: widget.lessonId,
-      quizId: widget.quiz
-          .id, // ErrorCorrection widget uses quiz.id (from constructor usage generally) but let's check.
-      // Constructor: required this.quiz. No quizId param in widget?
-      // Wait, ErrorCorrection widget definition:
-      // class ErrorCorrection extends StatefulWidget { const ErrorCorrection({ required this.quiz, ... });
-      // No quizId field?
-      // Check `_loadProgress`: `widget.quiz.id`.
-      // Yes, widget.quiz.id.
+      quizId: widget.quiz.id,
       quizType: 'error-correction',
       completedItems: completedItems,
       totalItems: totalItems,
@@ -223,7 +352,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
   void _retryCurrent() {
     final item = widget.quiz.errorCorrections![_currentIndex];
     setState(() {
-      _itemStates[item.id] = _ErrorCorrectionItemState(); // Reset state
+      _itemStates[item.id] = _ErrorCorrectionItemState();
       _selectedTokenIndex = null;
       _selectedError = null;
       _inputValue = '';
@@ -245,9 +374,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
 
     return Column(
       children: [
-        // 1. Instruction (Rich Text)
-
-        // 2. The Card Area
         Expanded(
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
@@ -270,12 +396,14 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                 final state =
                     _itemStates[item.id] ?? _ErrorCorrectionItemState();
 
+                // Parse tokens specifically for this item (rebuilding cheaper than caching usually)
+                final tokens = _parseTokens(item);
+
                 return Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   child: Stack(
                     children: [
-                      // The Card
                       Container(
                         width: double.infinity,
                         height: double.infinity,
@@ -285,15 +413,16 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                         ),
                         child: CustomPaint(
                           painter: _DashedBorderPainter(
-                            color: appColors.border,
-                            strokeWidth: 1.5,
+                            color: state.passed
+                                ? appColors.primary
+                                : appColors.border,
+                            strokeWidth: 2,
                             gap: 4,
                             borderRadius: 16,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Card Header
                               Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -311,7 +440,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                                         color: appColors.textSecondary,
                                       ),
                                     ),
-                                    // Score/State Indicator (Circle)
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
@@ -334,8 +462,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                                 ),
                               ),
                               Divider(height: 1, color: appColors.border),
-
-                              // Card Content (Sentence)
                               Expanded(
                                 child: SingleChildScrollView(
                                   padding: const EdgeInsets.fromLTRB(
@@ -344,13 +470,12 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      _buildTokens(
+                                      _buildTokensWidget(
                                         item,
                                         state,
+                                        tokens,
                                         appColors,
                                       ),
-
-                                      // Input Area (Animated)
                                       if (!state.passed &&
                                           _selectedTokenIndex != null)
                                         _buildInputArea(
@@ -358,8 +483,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                                           state,
                                           item,
                                         ),
-
-                                      // Feedback Message
                                       if (state.feedbackMessage.isNotEmpty)
                                         _buildFeedbackMessage(
                                           appColors,
@@ -374,8 +497,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                           ),
                         ),
                       ),
-
-                      // Floating Action Buttons
                       Positioned(
                         bottom: 28,
                         right: 36,
@@ -386,8 +507,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                           items,
                         ),
                       ),
-
-                      // Explain Drawer
                       if (item.explain != null)
                         ExplainDrawer(
                           isOpen: _showExplanation,
@@ -406,108 +525,130 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     );
   }
 
-  Widget _buildTokens(
+  Widget _buildTokensWidget(
     ErrorCorrectionItem item,
     _ErrorCorrectionItemState state,
+    List<_Token> tokens,
     AppColorsExtension appColors,
   ) {
-    // Splits by whitespace to get tokens.
-    // NOTE: This assumes 'original' text in item is space-separated correctly.
-    final tokens = item.original.split(RegExp(r'\s+'));
-
     return Wrap(
       spacing: 8,
       runSpacing: 14,
-      children: tokens.asMap().entries.map((entry) {
-        final i = entry.key;
-        final word = entry.value;
-        if (word.isEmpty) return const SizedBox.shrink();
-
-        // Is this token an error?
-        final error = item.errors.where((e) => e.index == i).firstOrNull;
-        final isError = error != null;
-        final isSolved = isError &&
-            (state.solvedErrorIds.contains(error.id) || state.passed);
-
-        final isSelected = _selectedTokenIndex == i;
-
-        if (isSolved) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  word,
-                  style: TextStyle(
-                    decoration: TextDecoration.lineThrough,
-                    decorationColor: Colors.red.withValues(alpha: 0.5),
-                    color: Colors.red.withValues(alpha: 0.7),
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 16,
-                  color: Colors.green,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  error.correct.first,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-          );
+      children: tokens.map((token) {
+        if (token.isNewline) {
+          return const SizedBox(width: double.infinity, height: 8);
         }
 
-        final Widget wordWidget = GestureDetector(
-          onTap: () => _onTokenTap(item, i),
-          child: CustomPaint(
-            painter: isSelected
-                ? _DashedBorderPainter(
-                    color: state.isCorrectFeedback
-                        ? appColors.textSecondary
-                        : Colors.red,
-                    strokeWidth: 1.5,
-                    gap: 3,
-                    borderRadius: 8,
-                  )
-                : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        final isSolved = token.isError &&
+            token.errorId != null &&
+            (state.solvedErrorIds.contains(token.errorId) || state.passed);
+
+        final isSelected = _selectedTokenIndex == token.index;
+
+        if (isSolved) {
+          // Find correct word from metadata
+          // If we have multiple tokens for same error, how do we handle text?
+          // The logic assumes 1-1 mapping or we reconstruct.
+          // For simplicity, we just look up correction for this specific error ID and display it once?
+          // React implementation handles "First token of error" to display correction block involving multiple words.
+          // Here we simplify: If it's the FIRST match for this errorID in tokens that we've encountered?
+          // Since `_buildTokensWidget` iterates, we cannot peek easily without index.
+          // Let's just assume simple word-for-word or group.
+          // React: "if (isFirst && errorDef)".
+          // We can verify if this is the first token of this errorId.
+          final isFirstOfError =
+              tokens.firstWhere((t) => t.errorId == token.errorId).index ==
+                  token.index;
+
+          if (isFirstOfError && token.errorId != null) {
+            final errorDef =
+                item.errors.where((e) => e.id == token.errorId).firstOrNull;
+            final errorTokens =
+                tokens.where((t) => t.errorId == token.errorId).toList();
+            final originalText = errorTokens.map((t) => t.text).join(' ');
+            final correctText = errorDef?.correct.first ?? '';
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? (state.isCorrectFeedback
-                        ? appColors.textSecondary.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1))
-                    : Colors.transparent,
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
-              child: Text(
-                word,
-                style: TextStyle(
-                  fontSize: 20,
-                  height: 1.5,
-                  color: appColors.textPrimary,
-                  fontWeight: FontWeight.normal,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    originalText,
+                    style: TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                      decorationColor: Colors.red.withValues(alpha: 0.5),
+                      color: Colors.red.withValues(alpha: 0.7),
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    correctText,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          if (!isFirstOfError)
+            return const SizedBox
+                .shrink(); // Hide subsequent tokens of same error
+        }
+
+        // Normal render
+        final Widget wordWidget = GestureDetector(
+          onTap: () => _onTokenTap(item, token),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? (state.isCorrectFeedback
+                      ? appColors.textSecondary.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: isSelected
+                  ? Border.all(
+                      color: state.isCorrectFeedback
+                          ? appColors.textSecondary
+                          : Colors.red,
+                      width: 1.5,
+                    )
+                  : null,
+            ),
+            child: Text(
+              token.text,
+              style: TextStyle(
+                fontSize: 20,
+                height: 1.5,
+                color: appColors.textPrimary,
+                fontWeight: FontWeight.normal,
+                decoration: token.isUnderline
+                    ? TextDecoration.underline
+                    : TextDecoration.none,
+                decorationStyle: TextDecorationStyle.dotted,
               ),
             ),
           ),
         );
 
-        final savedCorrection = state.corrections[i] ?? '';
+        final savedCorrection = state.corrections[token.index] ?? '';
         final displayValue = isSelected ? _inputValue : savedCorrection;
 
         if (displayValue.isNotEmpty &&
@@ -517,7 +658,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
             mainAxisSize: MainAxisSize.min,
             children: [
               wordWidget,
-              const SizedBox(width: 4),
               const SizedBox(width: 4),
               Icon(
                 Icons.chevron_right_rounded,
@@ -571,58 +711,62 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CustomPaint(
-            painter: _DashedBorderPainter(
-              color: state.isCorrectFeedback ? appColors.primary : Colors.red,
-              strokeWidth: 1.5,
-              gap: 4,
-              borderRadius: 12,
-            ),
-            child: TextField(
-              controller: _inputController,
-              autofocus: true,
-              onChanged: (val) {
-                setState(() {
-                  _inputValue = val;
-                  if (_selectedTokenIndex != null) {
-                    final newCorrections =
-                        Map<int, String>.from(state.corrections);
-                    if (val.isEmpty) {
-                      newCorrections.remove(_selectedTokenIndex);
-                    } else {
-                      newCorrections[_selectedTokenIndex!] = val;
-                    }
-                    _itemStates[item.id] =
-                        state.copyWith(corrections: newCorrections);
+          TextField(
+            controller: _inputController,
+            autofocus: true,
+            onChanged: (val) {
+              setState(() {
+                _inputValue = val;
+                if (_selectedTokenIndex != null) {
+                  final newCorrections =
+                      Map<int, String>.from(state.corrections);
+                  if (val.isEmpty) {
+                    newCorrections.remove(_selectedTokenIndex);
+                  } else {
+                    newCorrections[_selectedTokenIndex!] = val;
                   }
-                });
-              },
-              onSubmitted: (_) => _checkAnswer(),
-              style: TextStyle(fontSize: 16, color: appColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Type correction...',
-                hintStyle: TextStyle(color: appColors.textSecondary),
-                filled: true,
-                fillColor: appColors.inputBackground,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.check_circle_outline),
-                  color: appColors.primary,
-                  onPressed: _checkAnswer,
-                ),
+                  _itemStates[item.id] =
+                      state.copyWith(corrections: newCorrections);
+                }
+              });
+            },
+            onSubmitted: (_) => _checkAnswer(),
+            style: TextStyle(fontSize: 16, color: appColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Type correction...',
+              hintStyle: TextStyle(color: appColors.textSecondary),
+              filled: true,
+              fillColor: appColors.inputBackground,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: state.isCorrectFeedback
+                        ? appColors.primary
+                        : Colors.red,
+                    width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: state.isCorrectFeedback
+                        ? appColors.primary
+                        : Colors.red,
+                    width: 2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                    color: state.isCorrectFeedback
+                        ? appColors.primary
+                        : Colors.red,
+                    width: 2),
+              ),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.check_circle_outline),
+                color: appColors.primary,
+                onPressed: _checkAnswer,
               ),
             ),
           ),
@@ -838,4 +982,24 @@ class _DashedBorderPainter extends CustomPainter {
         oldDelegate.strokeWidth != strokeWidth ||
         oldDelegate.gap != gap;
   }
+}
+
+class _Token {
+  final String id;
+  final String text;
+  final bool isError;
+  final String? errorId;
+  final int index;
+  final bool isUnderline;
+  final bool isNewline;
+
+  _Token({
+    required this.id,
+    required this.text,
+    required this.isError,
+    this.errorId,
+    required this.index,
+    this.isUnderline = false,
+    this.isNewline = false,
+  });
 }

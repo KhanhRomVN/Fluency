@@ -239,7 +239,7 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: appColors.textSecondary,
-                                    fontSize: 14,
+                                    fontSize: 18,
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -360,6 +360,12 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
           context,
           item.question!,
           isQuestion: true,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: appColors.textPrimary,
+            height: 1.4,
+          ),
           onGapFound: (gapId) {
             final answerObj = item.answers?.firstWhere(
               (a) => a.id == gapId,

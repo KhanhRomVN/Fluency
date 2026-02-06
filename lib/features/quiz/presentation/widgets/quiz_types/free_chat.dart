@@ -4,13 +4,9 @@ import 'dart:convert';
 import 'package:fluency/core/services/llm_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/core/services/tts/tts_service.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
-import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
-import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
-import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
@@ -279,11 +275,16 @@ class _FreeChatState extends State<FreeChat> {
           ? 'Hello! $context'
           : 'Hello! Let\'s have a conversation.';
 
-      final response =
-          await _sendMessageWithRetry(() => _llmService.sendInitialMessage(
-                systemPrompt: prompt,
-                userMessage: initialUserMessage,
-              ));
+      final response = await _sendMessageWithRetry(() async {
+        final res = await _llmService.sendInitialMessage(
+          systemPrompt: prompt,
+          userMessage: initialUserMessage,
+        );
+        if (res.message.content.trim().isEmpty) {
+          throw Exception('Empty response from AI');
+        }
+        return res;
+      });
 
       setState(() {
         _conversationId = response.conversationId;
@@ -370,11 +371,16 @@ class _FreeChatState extends State<FreeChat> {
         }
       }
 
-      final response =
-          await _sendMessageWithRetry(() => _llmService.sendMessage(
-                messages: apiMessages,
-                conversationId: _conversationId ?? '',
-              ));
+      final response = await _sendMessageWithRetry(() async {
+        final res = await _llmService.sendMessage(
+          messages: apiMessages,
+          conversationId: _conversationId ?? '',
+        );
+        if (res.message.content.trim().isEmpty) {
+          throw Exception('Empty response from AI');
+        }
+        return res;
+      });
 
       setState(() {
         _conversationId = response.conversationId;
@@ -444,6 +450,8 @@ class _FreeChatState extends State<FreeChat> {
     displayContent = displayContent.replaceAll('[*END*]', '').trim();
 
     debugPrint('Parsed Display Content: "$displayContent"');
+
+    if (displayContent.isEmpty) return;
 
     setState(() {
       _messages.add(

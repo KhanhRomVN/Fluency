@@ -61,9 +61,33 @@ class TtsProvider extends ChangeNotifier {
     _isInitialized = false;
 
     try {
-      if (_activeEngine == 'Piper' && _selectedPiperModel != null) {
-        // Try Piper first
-        _activeTtsService = await _createPiperService();
+      if (_activeEngine == 'Piper') {
+        // Validation: If no model selected, try to find default male voice model
+        if (_selectedPiperModel == null && _defaultMaleVoice != null) {
+          final appDir = await getApplicationDocumentsDirectory();
+          final voiceCode = _defaultMaleVoice!;
+          final extractedFolder = 'vits-piper-$voiceCode';
+          final modelPath = path.join(
+            appDir.path,
+            'piper_models',
+            extractedFolder,
+            '$voiceCode.onnx',
+          );
+          if (File(modelPath).existsSync()) {
+            _selectedPiperModel = modelPath;
+            await _prefs.setString(_selectedModelKey, modelPath);
+            debugPrint('Auto-selected default Piper model: $modelPath');
+          }
+        }
+
+        if (_selectedPiperModel != null) {
+          // Try Piper first
+          _activeTtsService = await _createPiperService();
+        } else {
+          debugPrint(
+              'Piper selected but no model found. Falling back to System.');
+          _activeTtsService = SystemTtsService();
+        }
       } else {
         // Use System TTS
         _activeTtsService = SystemTtsService();
@@ -138,6 +162,12 @@ class TtsProvider extends ChangeNotifier {
     }
 
     // Fallback to current voice
+    await _activeTtsService?.speak(text);
+  }
+
+  // Speak using the currently active model/engine without switching
+  Future<void> speak(String text) async {
+    if (!_isInitialized || _activeTtsService == null) return;
     await _activeTtsService?.speak(text);
   }
 

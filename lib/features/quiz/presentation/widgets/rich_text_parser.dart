@@ -18,7 +18,7 @@ class RichTextParser {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     final combinedRegex = RegExp(
-      r"(</gap id='.*?'>)|(</n\s*?>)|(<p.*?>)|(</p>)",
+      r"(</gap id='.*?'>)|(</n\s*?>)|(<br\s*/?>)|(<p.*?>)|(</p>)|(<b>)|(</b>)",
       caseSensitive: false,
     );
 
@@ -62,7 +62,8 @@ class RichTextParser {
             }
           }
         }
-      } else if (tag.toLowerCase().startsWith('</n')) {
+      } else if (tag.toLowerCase().startsWith('</n') ||
+          tag.toLowerCase().startsWith('<br')) {
         _addNewline(widgets);
       } else if (tag.toLowerCase().startsWith('<p')) {
         isBold = tag.contains('bold');
@@ -83,6 +84,10 @@ class RichTextParser {
         if (!isCenter) {
           // Optional: Add break after paragraph?
         }
+      } else if (tag.toLowerCase() == '<b>') {
+        isBold = true;
+      } else if (tag.toLowerCase() == '</b>') {
+        isBold = false;
       }
 
       lastIndex = match.end;
@@ -121,10 +126,13 @@ class RichTextParser {
     TextStyle? textStyle,
     TextAlign textAlign = TextAlign.start,
   }) {
+    final baseWeight = textStyle?.fontWeight ?? FontWeight.normal;
+    final displayWeight = isBold ? FontWeight.bold : baseWeight;
+
     final style =
         (textStyle ?? Theme.of(context).textTheme.bodyMedium)?.copyWith(
       color: appColors.textPrimary,
-      fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+      fontWeight: displayWeight,
       fontSize: fontSize,
       height: 1.5,
     );
@@ -212,7 +220,7 @@ class RichTextParser {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     final combinedRegex = RegExp(
-      r"(</gap id='.*?'>)|(</n\s*?>)|(<p.*?>)|(</p>)",
+      r"(</gap id='.*?'>)|(</n\s*?>)|(<br\s*/?>)|(<p.*?>)|(</p>)|(<b>)|(</b>)",
       caseSensitive: false,
     );
 
@@ -223,13 +231,16 @@ class RichTextParser {
     double? fontSize;
 
     void addTextSpan(String text) {
+      final baseWeight = style?.fontWeight ?? FontWeight.normal;
+      final displayWeight = isBold ? FontWeight.bold : baseWeight;
+
       final textStyle = (style ??
               TextStyle(
                 fontSize: fontSize,
                 color: appColors.textPrimary,
               ))
           .copyWith(
-        fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        fontWeight: displayWeight,
         fontSize: fontSize,
         color: appColors.textPrimary,
       );
@@ -286,7 +297,8 @@ class RichTextParser {
             }
           }
         }
-      } else if (tag.toLowerCase().startsWith('</n')) {
+      } else if (tag.toLowerCase().startsWith('</n') ||
+          tag.toLowerCase().startsWith('<br')) {
         spans.add(const TextSpan(text: '\n'));
       } else if (tag.toLowerCase().startsWith('<p')) {
         isBold = tag.contains('bold');
@@ -297,6 +309,10 @@ class RichTextParser {
       } else if (tag.toLowerCase() == '</p>') {
         isBold = false;
         fontSize = null;
+      } else if (tag.toLowerCase() == '<b>') {
+        isBold = true;
+      } else if (tag.toLowerCase() == '</b>') {
+        isBold = false;
       }
 
       lastIndex = match.end;

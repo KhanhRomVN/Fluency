@@ -291,26 +291,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Instruction
-            if (widget.quiz.instruction.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: DefaultTextStyle(
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium!
-                      .copyWith(fontSize: 15, color: appColors.textPrimary),
-                  child: Text.rich(
-                    TextSpan(
-                      children: RichTextParser.buildTextSpans(
-                        context,
-                        widget.quiz.instruction,
-                        onWordLongPress: widget.onWordLongPress,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+// Instruction removed
 
             // Dashed Border Card
             Expanded(
@@ -459,9 +440,9 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                                                   item.ipa!,
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
-                                                    color: appColors.primary,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w500,
+                                                    color:
+                                                        appColors.textSecondary,
+                                                    fontSize: 18,
                                                   ),
                                                 ),
 
@@ -477,9 +458,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                                                     style: TextStyle(
                                                       color: appColors
                                                           .textSecondary,
-                                                      fontStyle:
-                                                          FontStyle.italic,
-                                                      fontSize: 15,
+                                                      fontSize: 18,
                                                     ),
                                                   ),
                                                 ),
@@ -566,10 +545,10 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
         content,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.normal,
+          fontSize: 32,
+          fontWeight: FontWeight.w900,
           color: appColors.textPrimary,
-          height: 1.5,
+          height: 1.3,
         ),
       );
     }
@@ -638,9 +617,10 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
       TextSpan(
         children: spans,
         style: TextStyle(
-          fontSize: 20,
+          fontSize: 32,
+          fontWeight: FontWeight.w900,
           color: appColors.textPrimary,
-          height: 1.5,
+          height: 1.3,
         ),
       ),
       textAlign: TextAlign.center,

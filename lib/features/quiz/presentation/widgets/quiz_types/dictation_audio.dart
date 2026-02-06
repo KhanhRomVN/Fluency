@@ -330,26 +330,8 @@ class _DictationAudioState extends State<DictationAudio> {
 
     return Column(
       children: [
-        // 1. Instruction
-        if (widget.quiz.instruction.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: Opacity(
-                opacity: 0.8,
-                child: RichTextParser.buildRichText(
-                  context,
-                  widget.quiz.instruction,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        color: appColors.textPrimary,
-                      ),
-                  onWordLongPress: widget.onWordLongPress,
-                ).first,
-              ),
-            ),
-          ),
+        // 1. Instruction (Hidden)
+        // if (widget.quiz.instruction.isNotEmpty) ...
 
         // 2. Card Area
         Expanded(

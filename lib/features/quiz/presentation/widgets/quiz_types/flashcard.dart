@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
@@ -47,6 +48,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
 
   // Audio
   final AudioPlayer _audioPlayer = AudioPlayer();
+  Timer? _speakTimer;
 
   @override
   void initState() {
@@ -150,6 +152,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _speakTimer?.cancel();
     _flipController.dispose();
     _pageController.dispose();
     _audioPlayer.dispose();
@@ -163,7 +166,14 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
       _flipController.reset();
     });
     _saveProgress();
-    _speakCurrentCard();
+
+    // Debounce speaking to prevent lag during rapid swiping
+    _speakTimer?.cancel();
+    _speakTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _speakCurrentCard();
+      }
+    });
   }
 
   void _handleFlipRequest() {
@@ -332,18 +342,23 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                           child: Row(
                             children: [
                               Expanded(
-                                child: Text(
-                                  option,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: isSelected
-                                        ? (isActuallyCorrect
-                                            ? Colors.green
-                                            : Colors.red)
-                                        : appColors.textPrimary,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: RichTextParser.buildTextSpans(
+                                      context,
+                                      option,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: isSelected
+                                            ? (isActuallyCorrect
+                                                ? Colors.green
+                                                : Colors.red)
+                                            : appColors.textPrimary,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -400,10 +415,10 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
         debugPrint(
             'Flashcard: TtsProvider initialized=${ttsProvider.isInitialized}');
         if (ttsProvider.isInitialized) {
-          debugPrint('Flashcard: Calling speakWithGender for term="$term"');
-          // Use male voice as default since gender cannot be determined
-          await ttsProvider.speakWithGender(term, gender: 'male');
-          debugPrint('Flashcard: speakWithGender completed');
+          debugPrint('Flashcard: Calling speak for term="$term"');
+          // Use default/active voice instead of forcing male/switching
+          await ttsProvider.speak(term);
+          debugPrint('Flashcard: speak completed');
         }
       }
     } catch (e) {

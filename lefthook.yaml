@@ -1,4 +1,4 @@
-pre-commit:
+do k â ma pre-commit:
   parallel: true
   commands:
     analyze:

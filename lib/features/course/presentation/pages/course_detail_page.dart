@@ -100,6 +100,17 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
 
     final displayCourse = _course!;
 
+    // Sort lessons by ID (numerically if possible)
+    final sortedLessons = List<Lesson>.from(displayCourse.lessons)
+      ..sort((a, b) {
+        final idA = int.tryParse(a.id);
+        final idB = int.tryParse(b.id);
+        if (idA != null && idB != null) {
+          return idA.compareTo(idB);
+        }
+        return a.id.compareTo(b.id);
+      });
+
     return Scaffold(
       backgroundColor: appColors.background,
       body: SafeArea(
@@ -205,53 +216,63 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
               ),
             ),
             // 5. Info Section Label
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
-                child: Text(
-                  'Information',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
-                      ),
+            if (displayCourse.author.isNotEmpty ||
+                displayCourse.adapter.isNotEmpty ||
+                displayCourse.publisher.isNotEmpty ||
+                displayCourse.publicationYear > 0 ||
+                displayCourse.skill.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
+                  child: Text(
+                    'Information',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: appColors.textPrimary,
+                        ),
+                  ),
                 ),
               ),
-            ),
-            // Info Section Content
-            SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: _buildDetailedInfo(context, displayCourse, appColors),
+              // Info Section Content
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: _buildDetailedInfo(context, displayCourse, appColors),
+                ),
               ),
-            ),
+            ],
             // 6. About this course (Reduced size)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 12),
-                    Text(
-                      'About this course',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold, // Reduced from Large
-                            color: appColors.textPrimary,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      displayCourse.fullDescription,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            height: 1.6,
-                            color: appColors.textSecondary,
-                          ),
-                    ),
-                  ],
+            if (displayCourse.fullDescription.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      Text(
+                        'About this course',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold, // Reduced from Large
+                              color: appColors.textPrimary,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        displayCourse.fullDescription,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              height: 1.6,
+                              color: appColors.textSecondary,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             // 7. Lessons Header (Renamed from Detail Syllabus)
             SliverToBoxAdapter(
               child: Padding(
@@ -281,7 +302,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       );
                     }
 
-                    final lesson = displayCourse.lessons[itemIndex];
+                    final lesson = sortedLessons[itemIndex];
                     final isCompleted =
                         itemIndex < displayCourse.completedLessons;
                     const isLocked = false; // Always unlocked for now
@@ -293,7 +314,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       onTap: () => _handleLessonTap(context, lesson),
                     );
                   },
-                  childCount: displayCourse.lessons.length * 2 - 1,
+                  childCount: sortedLessons.length * 2 - 1,
                 ),
               ),
             ),
@@ -309,6 +330,45 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     Course course,
     AppColorsExtension appColors,
   ) {
+    final infoItems = <Widget>[];
+
+    if (course.author.isNotEmpty) {
+      infoItems.add(_buildInfoRow(context, 'Author', course.author, appColors));
+    }
+
+    if (course.adapter.isNotEmpty) {
+      infoItems
+          .add(_buildInfoRow(context, 'Adapter', course.adapter, appColors));
+    }
+
+    if (course.publisher.isNotEmpty) {
+      infoItems.add(
+          _buildInfoRow(context, 'Publisher', course.publisher, appColors));
+    }
+
+    if (course.publicationYear > 0) {
+      infoItems.add(_buildInfoRow(
+        context,
+        'Year',
+        course.publicationYear.toString(),
+        appColors,
+      ));
+    }
+
+    if (course.skill.isNotEmpty) {
+      infoItems.add(_buildSkillRow(context, 'Skill', course.skill, appColors));
+    }
+
+    if (infoItems.isEmpty) return const SizedBox.shrink();
+
+    final children = <Widget>[];
+    for (int i = 0; i < infoItems.length; i++) {
+      children.add(infoItems[i]);
+      if (i < infoItems.length - 1) {
+        children.add(_buildDivider(appColors));
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -324,22 +384,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
         ],
       ),
       child: Column(
-        children: [
-          _buildInfoRow(context, 'Author', course.author, appColors),
-          _buildDivider(appColors),
-          _buildInfoRow(context, 'Adapter', course.adapter, appColors),
-          _buildDivider(appColors),
-          _buildInfoRow(context, 'Publisher', course.publisher, appColors),
-          _buildDivider(appColors),
-          _buildInfoRow(
-            context,
-            'Year',
-            course.publicationYear.toString(),
-            appColors,
-          ),
-          _buildDivider(appColors),
-          _buildSkillRow(context, 'Skill', course.skill, appColors),
-        ],
+        children: children,
       ),
     );
   }
