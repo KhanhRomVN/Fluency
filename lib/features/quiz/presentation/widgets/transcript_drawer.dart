@@ -257,9 +257,6 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
                       audioPath: widget.audioPath!,
                       title: widget.audioPath!.split('/').last,
                       externalPlayer: widget.audioPlayer,
-                      keyTimestamps:
-                          (_transcriptData?.metadata['key_timestamps'] as List?)
-                              ?.cast<String>(),
                     ),
                   ],
                 ],

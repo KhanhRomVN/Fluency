@@ -60,12 +60,8 @@ class _QuizPageState extends State<QuizPage> {
   late AudioPlayer _audioPlayer;
   late PageController _pageController;
 
-  // Audio segmentation
   double? _currentSegmentStart; // Question-level (for looping)
   double? _currentSegmentEnd; // Question-level (for looping)
-  double? _quizSegmentStart; // Quiz-level (for MediaPlayer UI)
-  double? _quizSegmentEnd; // Quiz-level (for MediaPlayer UI)
-  List<String>? _keyTimestamps;
 
   // Track target question index for each quiz ID to support navigation from drawer
   final Map<String, int> _targetQuestionIndices = {};
@@ -82,21 +78,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> _initAudio() async {
-    _audioPlayer.onPositionChanged.listen((p) {
-      // Check if audio exceeds quiz-level segment boundary
-      if (_quizSegmentEnd != null) {
-        final currentSeconds = p.inMilliseconds / 1000.0;
-        if (currentSeconds >= _quizSegmentEnd! &&
-            _audioPlayer.state == PlayerState.playing) {
-          debugPrint(
-              'QuizPage: Audio exceeded quiz segment end. Current: $currentSeconds, End: ${_quizSegmentEnd}. Pausing.');
-          _audioPlayer.pause();
-        }
-      }
-    });
-
-    // Reset segment when audio source changes or completes?
-    // Actually source changes happen in MediaPlayer, but player is shared.
+    _audioPlayer.onPositionChanged.listen((p) {});
   }
 
   @override
@@ -173,11 +155,7 @@ class _QuizPageState extends State<QuizPage> {
     setState(() {
       _activeQuizIndex = index;
       _isQuizChecked = false;
-      // Clear timestamps and segments when switching quiz,
-      // they will be re-emitted by the quiz widget if it has them.
-      _keyTimestamps = null;
-      _quizSegmentStart = null;
-      _quizSegmentEnd = null;
+      _isQuizChecked = false;
       _currentSegmentStart = null;
       _currentSegmentEnd = null;
     });
@@ -192,25 +170,6 @@ class _QuizPageState extends State<QuizPage> {
     });
     // Note: We don't auto-seek here. The looping logic in _initAudio handles playback.
     // Auto-seeking would jump to the segment start immediately, which is not desired on page load.
-  }
-
-  void _handleQuizSegmentChange(double? start, double? end) {
-    if (_quizSegmentStart == start && _quizSegmentEnd == end) return;
-    debugPrint(
-        'QuizPage: Received QUIZ-level segment change. Start: $start, End: $end');
-    setState(() {
-      _quizSegmentStart = start;
-      _quizSegmentEnd = end;
-    });
-  }
-
-  void _handleKeyTimestampsChange(List<String>? timestamps) {
-    if (listEquals(_keyTimestamps, timestamps)) return;
-    debugPrint(
-        'QuizPage: Received Key Timestamps change. Count: ${timestamps?.length ?? 0}');
-    setState(() {
-      _keyTimestamps = timestamps;
-    });
   }
 
   @override
@@ -434,9 +393,7 @@ class _QuizPageState extends State<QuizPage> {
                   audioPath: audioPath,
                   title: audioFileName, // Use audio filename
                   externalPlayer: _audioPlayer,
-                  segmentStart: _quizSegmentStart,
-                  segmentEnd: _quizSegmentEnd,
-                  keyTimestamps: _keyTimestamps,
+                  transcriptPath: activeQuiz?.transcript,
                 )
               : null,
         ),
@@ -672,8 +629,6 @@ class _QuizPageState extends State<QuizPage> {
           },
           onWordLongPress: _onWordLongPress,
           onSegmentChange: _handleSegmentChange,
-          onQuizSegmentChange: _handleQuizSegmentChange,
-          onKeyTimestampsChange: _handleKeyTimestampsChange,
           targetQuestionIndex: _targetQuestionIndices[quiz.id],
         );
       case 'speech-builder':

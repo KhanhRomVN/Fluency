@@ -226,8 +226,6 @@ class Quiz {
     this.aiRole,
     this.userRole,
     this.minTurns,
-    this.startTime,
-    this.endTime,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
@@ -371,8 +369,6 @@ class Quiz {
       aiRole: json['aiRole']?.toString(),
       userRole: json['userRole']?.toString(),
       minTurns: json['minTurns'] as int?,
-      startTime: json['startTime']?.toString(),
-      endTime: json['endTime']?.toString(),
     );
   }
   final String id;
@@ -408,8 +404,6 @@ class Quiz {
   final String? aiRole; // AI role name (e.g., "Alex (Friend)")
   final String? userRole; // User role name (e.g., "You")
   final int? minTurns; // Minimum number of conversation turns
-  final String? startTime;
-  final String? endTime;
 
   Quiz copyWith({
     String? id,
@@ -441,8 +435,6 @@ class Quiz {
     String? aiRole,
     String? userRole,
     int? minTurns,
-    String? startTime,
-    String? endTime,
   }) {
     return Quiz(
       id: id ?? this.id,
@@ -475,8 +467,6 @@ class Quiz {
       aiRole: aiRole ?? this.aiRole,
       userRole: userRole ?? this.userRole,
       minTurns: minTurns ?? this.minTurns,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
     );
   }
 
@@ -518,8 +508,6 @@ class Quiz {
       'aiRole': aiRole,
       'userRole': userRole,
       'minTurns': minTurns,
-      'startTime': startTime,
-      'endTime': endTime,
     };
   }
 }
@@ -576,8 +564,6 @@ class QuizQuestion {
     this.image,
     this.images,
     this.audioSegmentId,
-    this.startTime,
-    this.endTime,
   });
 
   factory QuizQuestion.fromJson(Map<String, dynamic> json) {
@@ -628,8 +614,6 @@ class QuizQuestion {
       image: json['image']?.toString() ?? json['imageUrl']?.toString(),
       images: (json['images'] as List?)?.map((e) => e.toString()).toList(),
       audioSegmentId: json['audioSegmentId']?.toString(),
-      startTime: json['startTime']?.toString(),
-      endTime: json['endTime']?.toString(),
     );
   }
   final String id;
@@ -642,8 +626,6 @@ class QuizQuestion {
   final String? image;
   final List<String>? images;
   final String? audioSegmentId;
-  final String? startTime;
-  final String? endTime;
 
   QuizQuestion copyWith({
     String? id,
@@ -655,8 +637,6 @@ class QuizQuestion {
     String? image,
     List<String>? images,
     String? audioSegmentId,
-    String? startTime,
-    String? endTime,
   }) {
     return QuizQuestion(
       id: id ?? this.id,
@@ -668,8 +648,6 @@ class QuizQuestion {
       image: image ?? this.image,
       images: images ?? this.images,
       audioSegmentId: audioSegmentId ?? this.audioSegmentId,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
     );
   }
 
@@ -684,8 +662,6 @@ class QuizQuestion {
       'image': image,
       'images': images,
       'audioSegmentId': audioSegmentId,
-      'startTime': startTime,
-      'endTime': endTime,
     };
   }
 }

@@ -20,8 +20,6 @@ class ListeningChoice extends StatefulWidget {
     this.onShowExplain,
     this.onWordLongPress,
     this.onSegmentChange,
-    this.onQuizSegmentChange,
-    this.onKeyTimestampsChange,
     this.targetQuestionIndex,
     super.key,
   });
@@ -34,8 +32,7 @@ class ListeningChoice extends StatefulWidget {
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
   final void Function(double? start, double? end)? onSegmentChange;
-  final void Function(double? start, double? end)? onQuizSegmentChange;
-  final void Function(List<String>? timestamps)? onKeyTimestampsChange;
+
   final int? targetQuestionIndex;
 
   @override
@@ -83,15 +80,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
       // Use addPostFrameCallback to avoid setState during build
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_transcriptData != null) {
-          if (_transcriptData!.transcript.isNotEmpty) {
-            final firstSegment = _transcriptData!.transcript.first;
-            final lastSegment = _transcriptData!.transcript.last;
-            final quizStart = firstSegment.timestamps.startSeconds.toDouble();
-            final quizEnd = lastSegment.timestamps.endSeconds.toDouble();
-            widget.onQuizSegmentChange?.call(quizStart, quizEnd);
-          }
-
-          _emitKeyTimestamps();
+          debugPrint('ListeningChoice: Re-emitting segment change');
         }
         _triggerSegmentChange();
       });
@@ -127,18 +116,6 @@ class _ListeningChoiceState extends State<ListeningChoice> {
     return 0;
   }
 
-  void _emitKeyTimestamps() {
-    final timestamps = widget.quiz.questions
-        .map((q) => q.startTime)
-        .where((t) => t != null && t.isNotEmpty)
-        .cast<String>()
-        .toList();
-
-    debugPrint(
-        'ListeningChoice: Emitting ${timestamps.length} key timestamps from questions: $timestamps');
-    widget.onKeyTimestampsChange?.call(timestamps);
-  }
-
   Future<void> _loadTranscript() async {
     final transcriptPath = widget.quiz.transcript;
     if (transcriptPath == null || transcriptPath.isEmpty) return;
@@ -170,18 +147,8 @@ class _ListeningChoiceState extends State<ListeningChoice> {
             'ListeningChoice: Transcript loaded successfully. Segments: ${data.transcript.length}');
 
         // Calculate quiz-level segment (entire transcript range)
-        if (data.transcript.isNotEmpty) {
-          final firstSegment = data.transcript.first;
-          final lastSegment = data.transcript.last;
-          final quizStart = firstSegment.timestamps.startSeconds.toDouble();
-          final quizEnd = lastSegment.timestamps.endSeconds.toDouble();
-          debugPrint(
-              'ListeningChoice: Quiz-level segment. Start: $quizStart, End: $quizEnd, Duration: ${quizEnd - quizStart}s');
-          widget.onQuizSegmentChange?.call(quizStart, quizEnd);
-        }
-
-        // Notify about key timestamps
-        _emitKeyTimestamps();
+        // Moved to MediaPlayer, no need to calculate here unless needed for other logic
+        // if (data.transcript.isNotEmpty) { ... }
 
         _triggerSegmentChange();
       }

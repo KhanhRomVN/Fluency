@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
+import 'package:fluency/features/quiz/domain/entities/transcript_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:universal_io/io.dart';
 
@@ -14,7 +17,7 @@ class MediaPlayer extends StatefulWidget {
     this.externalPlayer,
     this.segmentStart,
     this.segmentEnd,
-    this.keyTimestamps,
+    this.transcriptPath,
   });
 
   final String audioPath;
@@ -22,7 +25,7 @@ class MediaPlayer extends StatefulWidget {
   final AudioPlayer? externalPlayer;
   final double? segmentStart;
   final double? segmentEnd;
-  final List<String>? keyTimestamps;
+  final String? transcriptPath;
 
   @override
   State<MediaPlayer> createState() => _MediaPlayerState();
@@ -39,91 +42,59 @@ class _MediaPlayerState extends State<MediaPlayer> {
   StreamSubscription<void>? _playerCompleteSubscription;
   StreamSubscription<PlayerState>? _playerStateChangeSubscription;
 
-  List<double>? _parsedKeyTimestamps;
+  // Internal segment state from transcript
+  double? _internalSegmentStart;
+  double? _internalSegmentEnd;
 
   bool get _isPlaying => _playerState == PlayerState.playing;
 
-  double _parseTime(String time) {
-    if (!time.contains(':')) return 0;
-    try {
-      final parts = time.split(':');
-      if (parts.length == 2) {
-        return int.parse(parts[0]) * 60 + double.parse(parts[1]);
-      } else if (parts.length == 3) {
-        return int.parse(parts[0]) * 3600 +
-            int.parse(parts[1]) * 60 +
-            double.parse(parts[2]);
-      }
-    } catch (e) {
-      debugPrint('MediaPlayer: Error parsing time string $time: $e');
-    }
-    return 0;
-  }
-
   void _handleSkipForward() {
-    if (_parsedKeyTimestamps == null || _parsedKeyTimestamps!.isEmpty) return;
-
     final currentSeconds = _position.inMilliseconds / 1000.0;
+    final targetSeconds = currentSeconds + 5.0;
 
-    // Find first timestamp > current + 0.5
-    final target = _parsedKeyTimestamps!.firstWhere(
-      (t) => t > currentSeconds + 0.5,
-      orElse: () => -1.0,
-    );
-
-    if (target != -1.0) {
-      // Check if within segment
-      if (widget.segmentEnd != null && target > widget.segmentEnd!) return;
-      _player.seek(Duration(milliseconds: (target * 1000).round()));
+    // Check if within segment bounds
+    final effectiveEnd = widget.segmentEnd ?? _internalSegmentEnd;
+    if (effectiveEnd != null && targetSeconds > effectiveEnd) {
+      // Don't skip beyond segment end
+      return;
     }
+
+    _player.seek(Duration(milliseconds: (targetSeconds * 1000).round()));
   }
 
   void _handleSkipBack() {
-    if (_parsedKeyTimestamps == null || _parsedKeyTimestamps!.isEmpty) return;
-
     final currentSeconds = _position.inMilliseconds / 1000.0;
+    final targetSeconds = currentSeconds - 5.0;
 
-    // Find first timestamp < current - 1.5
-    final target = _parsedKeyTimestamps!.reversed.firstWhere(
-      (t) => t < currentSeconds - 1.5,
-      orElse: () => -1.0,
-    );
+    // Check if within segment bounds
+    // Fix: effectiveStart was undefined in previous broken logic
+    final effectiveStart = widget.segmentStart ?? _internalSegmentStart;
 
-    if (target != -1.0) {
-      if (widget.segmentStart != null && target < widget.segmentStart!) {
-        _player.seek(
-            Duration(milliseconds: (widget.segmentStart! * 1000).round()));
-      } else {
-        _player.seek(Duration(milliseconds: (target * 1000).round()));
-      }
-    } else if (widget.segmentStart != null) {
-      _player
-          .seek(Duration(milliseconds: (widget.segmentStart! * 1000).round()));
-    } else {
+    if (effectiveStart != null && targetSeconds < effectiveStart) {
+      // Go to segment start instead
+      _player.seek(Duration(milliseconds: (effectiveStart * 1000).round()));
+    } else if (targetSeconds < 0) {
+      // Don't go below 0
       _player.seek(Duration.zero);
+    } else {
+      _player.seek(Duration(milliseconds: (targetSeconds * 1000).round()));
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _parsedKeyTimestamps = widget.keyTimestamps?.map(_parseTime).toList();
-    debugPrint(
-        'MediaPlayer: Initial keyTimestamps count: ${_parsedKeyTimestamps?.length ?? 0}');
     // Use external player if provided, otherwise create a new one
     _player = widget.externalPlayer ?? AudioPlayer();
     _initAudio();
+    _loadTranscript();
   }
 
   @override
   void didUpdateWidget(MediaPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.keyTimestamps != oldWidget.keyTimestamps) {
-      setState(() {
-        _parsedKeyTimestamps = widget.keyTimestamps?.map(_parseTime).toList();
-      });
-      debugPrint(
-          'MediaPlayer: Updated keyTimestamps count: ${_parsedKeyTimestamps?.length ?? 0}');
+    if (widget.transcriptPath != oldWidget.transcriptPath) {
+      _loadTranscript();
     }
   }
 
@@ -154,6 +125,17 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
     _positionSubscription = _player.onPositionChanged.listen((p) {
       setState(() => _position = p);
+
+      // Check auto-pause/boundary
+      final effectiveEnd = widget.segmentEnd ?? _internalSegmentEnd;
+      if (effectiveEnd != null) {
+        final currentSeconds = p.inMilliseconds / 1000.0;
+        if (currentSeconds >= effectiveEnd && _isPlaying) {
+          debugPrint(
+              'MediaPlayer: Audio exceeded segment end ($effectiveEnd). Pausing.');
+          _player.pause();
+        }
+      }
     });
 
     _playerCompleteSubscription = _player.onPlayerComplete.listen((event) {
@@ -223,6 +205,58 @@ class _MediaPlayerState extends State<MediaPlayer> {
     }
   }
 
+  Future<void> _loadTranscript() async {
+    final path = widget.transcriptPath;
+    if (path == null || path.isEmpty) {
+      setState(() {
+        _internalSegmentStart = null;
+        _internalSegmentEnd = null;
+      });
+      return;
+    }
+
+    try {
+      String jsonString;
+      if (path.startsWith('http')) {
+        return; // Download handling usually separate
+      } else if (path.startsWith('/')) {
+        final file = File(path);
+        if (await file.exists()) {
+          jsonString = await file.readAsString();
+        } else {
+          debugPrint('MediaPlayer: Transcript file not found at $path');
+          return;
+        }
+      } else {
+        jsonString = await rootBundle.loadString(path);
+      }
+
+      final jsonMap = json.decode(jsonString);
+      if (jsonMap is Map<String, dynamic>) {
+        final data = TranscriptData.fromJson(jsonMap);
+        if (data.transcript.isNotEmpty) {
+          final firstSegment = data.transcript.first;
+          final lastSegment = data.transcript.last;
+          final start = firstSegment.timestamps.startSeconds.toDouble();
+          final end = lastSegment.timestamps.endSeconds.toDouble();
+
+          setState(() {
+            _internalSegmentStart = start;
+            _internalSegmentEnd = end;
+          });
+
+          // Move player to start of new segment immediately
+          await _player.seek(Duration(milliseconds: (start * 1000).round()));
+
+          debugPrint(
+              'MediaPlayer: Parsed transcript. Start: $start, End: $end, Duration: ${end - start}s');
+        }
+      }
+    } catch (e) {
+      debugPrint('MediaPlayer: Error loading transcript: $e');
+    }
+  }
+
   @override
   void dispose() {
     _durationSubscription?.cancel();
@@ -246,17 +280,21 @@ class _MediaPlayerState extends State<MediaPlayer> {
   }
 
   Duration get _effectiveDuration {
-    if (widget.segmentStart != null && widget.segmentEnd != null) {
-      final segmentLength = widget.segmentEnd! - widget.segmentStart!;
+    final start = widget.segmentStart ?? _internalSegmentStart;
+    final end = widget.segmentEnd ?? _internalSegmentEnd;
+
+    if (start != null && end != null) {
+      final segmentLength = end - start;
       return Duration(milliseconds: (segmentLength * 1000).round());
     }
     return _duration;
   }
 
   Duration get _effectivePosition {
-    if (widget.segmentStart != null) {
-      final relativePosition =
-          _position.inMilliseconds / 1000.0 - widget.segmentStart!;
+    final start = widget.segmentStart ?? _internalSegmentStart;
+
+    if (start != null) {
+      final relativePosition = _position.inMilliseconds / 1000.0 - start;
       return Duration(
           milliseconds:
               (relativePosition.clamp(0, double.infinity) * 1000).round());
@@ -274,54 +312,37 @@ class _MediaPlayerState extends State<MediaPlayer> {
       // If we are at the end part of the segment (or full audio), resume normally
       // But if we're at the very end, we might want to reset.
       // Logic from TSX: If at segment end, seek to segment start first.
-      if (widget.segmentEnd != null &&
-          _position.inMilliseconds / 1000.0 >= widget.segmentEnd! - 0.1) {
-        await _player.seek(
-            Duration(milliseconds: (widget.segmentStart! * 1000).round()));
+      final start = widget.segmentStart ?? _internalSegmentStart;
+      final end = widget.segmentEnd ?? _internalSegmentEnd;
+
+      if (start != null &&
+          end != null &&
+          _position.inMilliseconds / 1000.0 >= end - 0.1) {
+        await _player.seek(Duration(milliseconds: (start * 1000).round()));
       }
       await _player.resume();
     }
   }
 
   bool get _canSkipForward {
-    if (_parsedKeyTimestamps == null || _parsedKeyTimestamps!.isEmpty) {
+    final currentSeconds = _position.inMilliseconds / 1000.0;
+    final targetSeconds = currentSeconds + 5.0;
+
+    // Can skip if target is within segment bounds (or no segment limit)
+    final effectiveEnd = widget.segmentEnd ?? _internalSegmentEnd;
+    if (effectiveEnd != null && targetSeconds > effectiveEnd) {
       return false;
     }
-    final currentSeconds = _position.inMilliseconds / 1000.0;
-    // Check if there is a timestamp > current + 0.5 within segment
-    final target = _parsedKeyTimestamps!.firstWhere(
-      (t) => t > currentSeconds + 0.5,
-      orElse: () => -1.0,
-    );
-    if (target == -1.0) return false;
-    if (widget.segmentEnd != null && target > widget.segmentEnd!) return false;
+
     return true;
   }
 
   bool get _canSkipBack {
-    if (_parsedKeyTimestamps == null || _parsedKeyTimestamps!.isEmpty) {
-      // Even if no timestamps, we can skip back to start if position > 0.5 (logic below)
-      // But button is primarily for "Key Timestamps". If none, maybe disable?
-      // Existing logic implies it skips key timestamps.
-      // If no key timestamps, user might still want to replay segment?
-      // Logic in _handleSkipBack handles case where no target found:
-      // "else if (widget.segmentStart != null)" seek to start.
-      // So let's allow "skip back" if we are not at the very start (with some buffer).
-      return (_position.inMilliseconds / 1000.0) >
-          ((widget.segmentStart ?? 0) + 0.5);
-    }
-
-    // With timestamps:
     final currentSeconds = _position.inMilliseconds / 1000.0;
-    final target = _parsedKeyTimestamps!.reversed.firstWhere(
-      (t) => t < currentSeconds - 1.5,
-      orElse: () => -1.0,
-    );
+    final minPosition = widget.segmentStart ?? _internalSegmentStart ?? 0.0;
 
-    if (target != -1.0) return true;
-
-    // If no explicit timestamp before, check if we can go to start
-    return currentSeconds > ((widget.segmentStart ?? 0) + 0.5);
+    // Can skip back if we're not at the very start (with some buffer)
+    return currentSeconds > minPosition + 0.5;
   }
 
   @override
@@ -424,16 +445,22 @@ class _MediaPlayerState extends State<MediaPlayer> {
                           padding: const EdgeInsets.symmetric(horizontal: 14),
                           child: CustomPaint(
                             painter: MarkersPainter(
-                              timestamps: _parsedKeyTimestamps ?? [],
-                              duration: widget.segmentEnd != null
-                                  ? widget.segmentEnd! -
-                                      (widget.segmentStart ?? 0)
-                                  : _duration.inMilliseconds / 1000.0,
-                              segmentStart: widget.segmentStart ?? 0,
-                              segmentEnd: widget.segmentEnd,
+                              duration:
+                                  (widget.segmentEnd ?? _internalSegmentEnd) !=
+                                          null
+                                      ? (widget.segmentEnd ??
+                                              _internalSegmentEnd)! -
+                                          (widget.segmentStart ??
+                                              _internalSegmentStart ??
+                                              0)
+                                      : _duration.inMilliseconds / 1000.0,
+                              segmentStart: widget.segmentStart ??
+                                  _internalSegmentStart ??
+                                  0,
+                              segmentEnd:
+                                  widget.segmentEnd ?? _internalSegmentEnd,
                               currentPosition:
                                   _effectivePosition.inMilliseconds / 1000.0,
-                              markerColor: Colors.white,
                               activeTrackColor: appColors.primary,
                               inactiveTrackColor: appColors.border,
                             ),
@@ -470,9 +497,10 @@ class _MediaPlayerState extends State<MediaPlayer> {
                             max: (_effectiveDuration.inMilliseconds / 1000)
                                 .clamp(0.001, double.infinity),
                             onChanged: (value) {
-                              final seekTime = widget.segmentStart != null
-                                  ? widget.segmentStart! + value
-                                  : value;
+                              final start =
+                                  widget.segmentStart ?? _internalSegmentStart;
+                              final seekTime =
+                                  start != null ? start + value : value;
                               final position = Duration(
                                 milliseconds: (seekTime * 1000).round(),
                               );
@@ -537,23 +565,18 @@ class _MediaPlayerState extends State<MediaPlayer> {
 }
 
 class MarkersPainter extends CustomPainter {
-  final List<double> timestamps;
   final double duration;
   final double segmentStart;
   final double? segmentEnd;
   final double currentPosition; // Add current position for active track
-  final Color
-      markerColor; // Make this technically 'markerColor' but we use white for markers
   final Color activeTrackColor;
   final Color inactiveTrackColor;
 
   MarkersPainter({
-    required this.timestamps,
     required this.duration,
     required this.segmentStart,
     this.segmentEnd,
     required this.currentPosition,
-    required this.markerColor,
     required this.activeTrackColor,
     required this.inactiveTrackColor,
   });
@@ -595,42 +618,11 @@ class MarkersPainter extends CustomPainter {
           RRect.fromRectAndRadius(activeRect, Radius.circular(trackHeight / 2)),
           activePaint);
     }
-
-    // 3. Draw Markers (White, z-index 10 in TSX)
-    final markerPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-
-    // Optional shadow
-    final shadowPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.5)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
-
-    for (final t in timestamps) {
-      if (segmentEnd != null && (t < segmentStart || t > segmentEnd!)) continue;
-
-      final relativeT = t - segmentStart;
-      final x = (relativeT / duration) * size.width;
-
-      if (x < 0 || x > size.width) continue;
-
-      // Draw vertical line inside the track
-      // Width 1.5px, Height matches trackHeight (3.0)
-      final rect = Rect.fromCenter(
-          center: Offset(x, size.height / 2), width: 1.5, height: trackHeight);
-
-      // Draw shadow first
-      canvas.drawRect(rect, shadowPaint);
-
-      // Draw main line
-      canvas.drawRect(rect, markerPaint);
-    }
   }
 
   @override
   bool shouldRepaint(MarkersPainter oldDelegate) {
-    return oldDelegate.timestamps != timestamps ||
-        oldDelegate.duration != duration ||
+    return oldDelegate.duration != duration ||
         oldDelegate.segmentStart != segmentStart ||
         oldDelegate.segmentEnd != segmentEnd ||
         oldDelegate.currentPosition != currentPosition ||
