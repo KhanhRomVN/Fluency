@@ -1,3 +1,5 @@
+import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
+import 'package:fluency/features/collection/domain/repositories/collection_repository.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/quiz/data/services/bookmark_storage.dart';
 import 'package:fluency/features/quiz/data/services/directory_storage.dart'
@@ -13,12 +15,14 @@ class DirectoryDrawer extends StatefulWidget {
     required this.isOpen,
     required this.onClose,
     required this.word,
+    this.onTermAdded,
     super.key,
   });
 
   final bool isOpen;
   final VoidCallback onClose;
   final String? word;
+  final VoidCallback? onTermAdded;
 
   @override
   State<DirectoryDrawer> createState() => _DirectoryDrawerState();
@@ -29,6 +33,7 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
   bool _loading = false;
   String? _error;
   bool _isBookmarked = false;
+  final CollectionRepository _collectionRepository = CollectionRepositoryImpl();
 
   @override
   void initState() {
@@ -73,6 +78,15 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
         _loading = false;
         _isBookmarked = bookmarkStorage.isBookmarked(widget.word!);
       });
+
+      // Also check collection repository
+      final inCollection =
+          await _collectionRepository.isTermInAnyCollection(widget.word!);
+      if (mounted) {
+        setState(() {
+          _isBookmarked = _isBookmarked || inCollection;
+        });
+      }
     }
   }
 
@@ -83,12 +97,18 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddToCollectionDrawer(entry: _entry!),
-    ).then((_) {
-      // Refresh bookmark status if needed (though collection status is separate for now)
+      builder: (context) => AddToCollectionDrawer(
+        entry: _entry!,
+        onAdded: widget.onTermAdded,
+      ),
+    ).then((_) async {
+      // Refresh bookmark status if needed
       if (mounted && widget.word != null) {
+        final inCollection =
+            await _collectionRepository.isTermInAnyCollection(widget.word!);
         setState(() {
-          _isBookmarked = bookmarkStorage.isBookmarked(widget.word!);
+          _isBookmarked =
+              bookmarkStorage.isBookmarked(widget.word!) || inCollection;
         });
       }
     });
@@ -130,7 +150,7 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.75,
               decoration: BoxDecoration(
-                color: appColors.background,
+                color: appColors.drawerBackground,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
@@ -183,9 +203,11 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
     final term = widget.word ?? '';
 
     // Icons SVGs
-    // Bookmark icon provided by user
+    // Bookmark icon (outline and filled)
     const bookmarkSvg =
         '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bookmark-icon lucide-bookmark"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"/></svg>''';
+    const bookmarkFilledSvg =
+        '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bookmark-icon lucide-bookmark"><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"/></svg>''';
     // X icon provided by user
     const closeSvg =
         '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>''';
@@ -250,11 +272,11 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
               IconButton(
                 onPressed: _openCollectionDrawer,
                 icon: SvgPicture.string(
-                  bookmarkSvg,
+                  _isBookmarked ? bookmarkFilledSvg : bookmarkSvg,
                   width: 24,
                   height: 24,
                   colorFilter: ColorFilter.mode(
-                    _isBookmarked ? appColors.primary : appColors.textSecondary,
+                    _isBookmarked ? Colors.amber : appColors.textSecondary,
                     BlendMode.srcIn,
                   ),
                 ),

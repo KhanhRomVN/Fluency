@@ -1,0 +1,3793 @@
+{
+  "id": "1",
+  "title": "Relationship (1): Stages & Status",
+  "instruction": "<p>Học về các giai đoạn và trạng thái của một mối quan hệ qua Flashcards.</p>",
+  "quizzes": [
+    {
+      "id": "quiz_relationship_stages",
+      "type": "flashcard",
+      "title": "Stages & Status",
+      "instruction": "<p>Chọn định nghĩa đúng Tiếng Việt và xem chi tiết ở mặt sau.</p>",
+      "flashcards": [
+        {
+          "id": "fc_crush",
+          "front": {
+            "term": "have a crush on someone",
+            "ipa": "/hæv ə krʌʃ ɒn ˈsʌmwʌn/",
+            "contextSentence": "I've had a crush on her since the first day of high school."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To have a strong but usually temporary feeling of love for someone.",
+            "mainDefinitionTrans": "Cảm nắng, thích thầm ai đó.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "having a crush",
+                "example": "She's having a crush on her new neighbor."
+              },
+              {
+                "label": "V2",
+                "value": "had a crush",
+                "example": "He had a crush on his teacher last year."
+              },
+              {
+                "label": "V3",
+                "value": "had a crush",
+                "example": "She has had a crush on him for months."
+              }
+            ],
+            "example": "It's just a teenage crush, it will pass.",
+            "synonyms": [
+              { "word": "be infatuated with", "meaning": "say mê" },
+              { "word": "fancy someone", "meaning": "thích ai đó" }
+            ],
+            "antonyms": [
+              { "word": "detest", "meaning": "ghét cay ghét đắng" },
+              { "word": "loathe", "meaning": "ghê tởm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Cảm nắng, thích thầm",
+                "example": "Many students have a crush on their music teacher."
+              }
+            ],
+            "collocations": [
+              { "phrase": "secret crush", "meaning": "tình cảm thầm kín" },
+              { "phrase": "childhood crush", "meaning": "mối tình thời thơ ấu" },
+              { "phrase": "develop a crush", "meaning": "bắt đầu cảm nắng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Thích thầm, cảm nắng", "isCorrect": true },
+            { "text": "Ghét bỏ", "isCorrect": false },
+            { "text": "Phản bội", "isCorrect": false },
+            { "text": "Kết hôn", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_flirt",
+          "front": {
+            "term": "flirt / hit on someone",
+            "ipa": "/flɜːrt/ /hɪt ɒn ˈsʌmwʌn/",
+            "contextSentence": "He was flirting with the waitress all evening."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To behave as if sexually attracted to someone, usually in a playful way.",
+            "mainDefinitionTrans": "Tán tỉnh, cưa cẩm ai đó.",
+            "wordForms": [
+              { "label": "V-ing", "value": "flirting", "example": "Stop flirting with my sister!" },
+              { "label": "V2", "value": "flirted", "example": "He flirted with her at the party." },
+              { "label": "V3", "value": "flirted", "example": "She has flirted with many guys." }
+            ],
+            "example": "Stop hitting on my best friend!",
+            "synonyms": [
+              { "word": "chat up", "meaning": "tán tỉnh" },
+              { "word": "make advances", "meaning": "tỏ ý tán tỉnh" }
+            ],
+            "antonyms": [
+              { "word": "ignore", "meaning": "phớt lờ" },
+              { "word": "reject", "meaning": "từ chối" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Tán tỉnh",
+                "example": "Some people flirt just for fun."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Người hay tán tỉnh",
+                "example": "He's a terrible flirt."
+              }
+            ],
+            "collocations": [
+              { "phrase": "flirt shamelessly", "meaning": "tán tỉnh trắng trợn" },
+              { "phrase": "harmless flirt", "meaning": "tán tỉnh vô hại" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Tán tỉnh, cưa cẩm", "isCorrect": true },
+            { "text": "Cãi nhau", "isCorrect": false },
+            { "text": "Làm bạn", "isCorrect": false },
+            { "text": "Tránh mặt", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_date",
+          "front": {
+            "term": "go on a date / date someone",
+            "ipa": "/ɡoʊ ɒn ə deɪt/ /deɪt ˈsʌmwʌn/",
+            "contextSentence": "Are you dating anyone at the moment?"
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To go out with someone romantically.",
+            "mainDefinitionTrans": "Đi hẹn hò / Hẹn hò với ai.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "dating",
+                "example": "They've been dating for three months."
+              },
+              {
+                "label": "V2",
+                "value": "dated",
+                "example": "He dated several women before getting married."
+              },
+              { "label": "V3", "value": "dated", "example": "She has dated many famous people." }
+            ],
+            "example": "They've been dating for about six months.",
+            "synonyms": [
+              { "word": "go out with", "meaning": "hẹn hò" },
+              { "word": "see someone", "meaning": "gặp gỡ ai đó (theo nghĩa hẹn hò)" }
+            ],
+            "antonyms": [
+              { "word": "break up", "meaning": "chia tay" },
+              { "word": "split up", "meaning": "chia tay" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Hẹn hò",
+                "example": "Would you like to date my friend?"
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Cuộc hẹn hò",
+                "example": "We had a lovely date last night."
+              }
+            ],
+            "collocations": [
+              { "phrase": "blind date", "meaning": "hẹn hò mù" },
+              { "phrase": "first date", "meaning": "buổi hẹn đầu tiên" },
+              { "phrase": "double date", "meaning": "hẹn hò đôi" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Chia tay", "isCorrect": false },
+            { "text": "Hẹn hò", "isCorrect": true },
+            { "text": "Làm quen lý thuyết", "isCorrect": false },
+            { "text": "Đính hôn", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_seeing",
+          "front": {
+            "term": "go out with / be seeing someone",
+            "ipa": "/ɡoʊ aʊt wɪð/ /biː ˈsiːɪŋ ˈsʌmwʌn/",
+            "contextSentence": "Is he seeing anyone seriously?"
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To be in a romantic relationship with someone, often meaning more than just dating.",
+            "mainDefinitionTrans": "Đang hẹn hò (nghiêm túc hơn 'date').",
+            "example": "I've been going out with him for two years.",
+            "synonyms": [
+              { "word": "be in a relationship", "meaning": "trong mối quan hệ" },
+              { "word": "be together", "meaning": "ở bên nhau" }
+            ],
+            "antonyms": [
+              { "word": "be single", "meaning": "độc thân" },
+              { "word": "be available", "meaning": "còn độc thân" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Đang hẹn hò nghiêm túc",
+                "example": "They are seeing each other exclusively."
+              }
+            ],
+            "collocations": [
+              { "phrase": "exclusively seeing", "meaning": "chỉ hẹn hò với một người" },
+              { "phrase": "casually seeing", "meaning": "hẹn hò không nghiêm túc" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Đang hẹn hò nghiêm túc", "isCorrect": true },
+            { "text": "Chỉ là bạn", "isCorrect": false },
+            { "text": "Đã cưới", "isCorrect": false },
+            { "text": "Vừa chia tay", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_relationship",
+          "front": {
+            "term": "be in a relationship",
+            "ipa": "/biː ɪn ə rɪˈleɪʃnʃɪp/",
+            "contextSentence": "She's finally in a relationship after being single for a long time."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To be officially and romantically involved with another person.",
+            "mainDefinitionTrans": "Đang trong một mối quan hệ chính thức.",
+            "example": "They are in a committed relationship.",
+            "synonyms": [
+              { "word": "be together", "meaning": "ở bên nhau" },
+              { "word": "be involved", "meaning": "có liên quan tình cảm" }
+            ],
+            "antonyms": [
+              { "word": "be single", "meaning": "độc thân" },
+              { "word": "be unattached", "meaning": "không ràng buộc" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Trong mối quan hệ",
+                "example": "Are you currently in a relationship?"
+              }
+            ],
+            "collocations": [
+              { "phrase": "serious relationship", "meaning": "mối quan hệ nghiêm túc" },
+              { "phrase": "long-term relationship", "meaning": "mối quan hệ dài hạn" },
+              { "phrase": "stable relationship", "meaning": "mối quan hệ ổn định" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Tìm hiểu sơ qua", "isCorrect": false },
+            { "text": "Mối quan hệ chính thức", "isCorrect": true },
+            { "text": "Độc thân", "isCorrect": false },
+            { "text": "Ly thân", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_item",
+          "front": {
+            "term": "be together / be an item",
+            "ipa": "/biː təˈɡeðər/ /biː ən ˈaɪtəm/",
+            "contextSentence": "Are those two an item now? They're always together."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Two people having a romantic relationship with each other.",
+            "mainDefinitionTrans": "Là một cặp.",
+            "example": "Everyone was surprised when they became an item.",
+            "synonyms": [
+              { "word": "be a couple", "meaning": "là một đôi" },
+              { "word": "be paired", "meaning": "ghép đôi" }
+            ],
+            "antonyms": [
+              { "word": "be separated", "meaning": "ly thân" },
+              { "word": "be broken up", "meaning": "đã chia tay" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Là một cặp",
+                "example": "Rumors say they're an item now."
+              }
+            ],
+            "collocations": [
+              { "phrase": "hot new item", "meaning": "cặp đôi mới nổi" },
+              { "phrase": "become an item", "meaning": "trở thành một cặp" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Là một cặp", "isCorrect": true },
+            { "text": "Là kẻ thù", "isCorrect": false },
+            { "text": "Là đồng nghiệp", "isCorrect": false },
+            { "text": "Là anh em", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_in_love",
+          "front": {
+            "term": "be in love with someone",
+            "ipa": "/biː ɪn lʌv wɪð ˈsʌmwʌn/",
+            "contextSentence": "I think I'm deeply in love with her."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To feel a strong romantic attraction for someone.",
+            "mainDefinitionTrans": "Yêu (sâu đậm) ai đó.",
+            "example": "He's head over heels in love.",
+            "synonyms": [
+              { "word": "adore", "meaning": "yêu quý" },
+              { "word": "cherish", "meaning": "trân trọng" }
+            ],
+            "antonyms": [
+              { "word": "hate", "meaning": "ghét" },
+              { "word": "despise", "meaning": "khinh miệt" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Yêu ai đó",
+                "example": "She's truly in love with him."
+              }
+            ],
+            "collocations": [
+              { "phrase": "madly in love", "meaning": "yêu điên cuồng" },
+              { "phrase": "deeply in love", "meaning": "yêu sâu đậm" },
+              { "phrase": "fall in love", "meaning": "phải lòng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Yêu chân thành", "isCorrect": true },
+            { "text": "Thích nhẹ", "isCorrect": false },
+            { "text": "Ghen tuông", "isCorrect": false },
+            { "text": "Ghét cay ghét đắng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_infatuated",
+          "front": {
+            "term": "be infatuated with",
+            "ipa": "/biː ɪnˈfætʃueɪtɪd wɪð/",
+            "contextSentence": "He's completely infatuated with the new girl at the office."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Having a very strong but usually short-lived interest or passion for someone.",
+            "mainDefinitionTrans": "Say mê, si mê (thường thiếu chiều sâu).",
+            "example": "It's not real love; you're just infatuated.",
+            "synonyms": [
+              { "word": "obsessed", "meaning": "ám ảnh" },
+              { "word": "besotted", "meaning": "mê mẩn" }
+            ],
+            "antonyms": [
+              { "word": "indifferent", "meaning": "thờ ơ" },
+              { "word": "uninterested", "meaning": "không quan tâm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Say mê, si mê",
+                "example": "He has an infatuated look whenever he sees her."
+              }
+            ],
+            "collocations": [
+              { "phrase": "temporarily infatuated", "meaning": "say mê tạm thời" },
+              { "phrase": "hopelessly infatuated", "meaning": "say mê không lối thoát" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Thấu hiểu sâu sắc", "isCorrect": false },
+            { "text": "Si mê, say mê mù quáng", "isCorrect": true },
+            { "text": "Tôn trọng bạn bè", "isCorrect": false },
+            { "text": "Lạnh nhạt", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_engaged",
+          "front": {
+            "term": "be engaged",
+            "ipa": "/biː ɪnˈɡeɪdʒd/",
+            "contextSentence": "They got engaged on Christmas Eve."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Having formally agreed to marry.",
+            "mainDefinitionTrans": "Đính hôn.",
+            "example": "How long have they been engaged?",
+            "synonyms": [
+              { "word": "betrothed", "meaning": "đã đính hôn" },
+              { "word": "pledged", "meaning": "đã hứa hôn" }
+            ],
+            "antonyms": [
+              { "word": "single", "meaning": "độc thân" },
+              { "word": "unattached", "meaning": "không ràng buộc" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Đã đính hôn",
+                "example": "She showed me her engagement ring."
+              }
+            ],
+            "collocations": [
+              { "phrase": "get engaged", "meaning": "đính hôn" },
+              { "phrase": "engagement ring", "meaning": "nhẫn đính hôn" },
+              { "phrase": "engagement party", "meaning": "tiệc đính hôn" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Đính hôn", "isCorrect": true },
+            { "text": "Ly hôn", "isCorrect": false },
+            { "text": "Sống chung", "isCorrect": false },
+            { "text": "Hẹn hò đầu tiên", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_married",
+          "front": {
+            "term": "be married / get married",
+            "ipa": "/biː ˈmærid/ /ɡet ˈmærid/",
+            "contextSentence": "They've been married for over 20 years."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Joined in marriage.",
+            "mainDefinitionTrans": "Kết hôn / Lấy nhau.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "getting married",
+                "example": "They're getting married next month."
+              },
+              {
+                "label": "V2",
+                "value": "got married",
+                "example": "They got married in a small ceremony."
+              },
+              {
+                "label": "V3",
+                "value": "gotten married",
+                "example": "They have been married for 10 years."
+              }
+            ],
+            "example": "When did you get married?",
+            "synonyms": [
+              { "word": "wed", "meaning": "kết hôn" },
+              { "word": "tie the knot", "meaning": "kết hôn (thành ngữ)" }
+            ],
+            "antonyms": [
+              { "word": "divorce", "meaning": "ly dị" },
+              { "word": "separate", "meaning": "ly thân" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Kết hôn",
+                "example": "They plan to marry in the spring."
+              },
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Đã kết hôn",
+                "example": "Are you married or single?"
+              }
+            ],
+            "collocations": [
+              { "phrase": "happily married", "meaning": "kết hôn hạnh phúc" },
+              { "phrase": "newly married", "meaning": "mới cưới" },
+              { "phrase": "marriage certificate", "meaning": "giấy chứng nhận kết hôn" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Kết hôn", "isCorrect": true },
+            { "text": "Ly thân", "isCorrect": false },
+            { "text": "Hẹn hò", "isCorrect": false },
+            { "text": "Độc thân", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_separated",
+          "front": {
+            "term": "be separated",
+            "ipa": "/biː ˈsepreɪtɪd/",
+            "contextSentence": "They are separated but not yet divorced."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Living apart but not yet legally divorced.",
+            "mainDefinitionTrans": "Ly thân.",
+            "example": "They've been separated for six months.",
+            "synonyms": [
+              { "word": "live apart", "meaning": "sống riêng" },
+              { "word": "split up", "meaning": "chia tay" }
+            ],
+            "antonyms": [
+              { "word": "reconcile", "meaning": "hòa giải" },
+              { "word": "reunite", "meaning": "đoàn tụ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Ly thân",
+                "example": "They're legally separated now."
+              }
+            ],
+            "collocations": [
+              { "phrase": "legally separated", "meaning": "ly thân theo luật" },
+              { "phrase": "trial separation", "meaning": "ly thân thử" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ly thân", "isCorrect": true },
+            { "text": "Quay lại với nhau", "isCorrect": false },
+            { "text": "Hạnh phúc", "isCorrect": false },
+            { "text": "Làm lành", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_divorced",
+          "front": {
+            "term": "be divorced",
+            "ipa": "/biː dɪˈvɔːrst/",
+            "contextSentence": "His parents got divorced when he was only five."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "No longer married because the marriage has been legally dissolved.",
+            "mainDefinitionTrans": "Đã ly dị.",
+            "example": "She is a divorced mother of two.",
+            "synonyms": [
+              { "word": "split up", "meaning": "chia tay" },
+              { "word": "separated", "meaning": "ly thân" }
+            ],
+            "antonyms": [
+              { "word": "married", "meaning": "đã kết hôn" },
+              { "word": "united", "meaning": "đoàn tụ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Đã ly dị",
+                "example": "He's been divorced for three years now."
+              }
+            ],
+            "collocations": [
+              { "phrase": "get divorced", "meaning": "ly dị" },
+              { "phrase": "divorce papers", "meaning": "giấy ly dị" },
+              { "phrase": "bitter divorce", "meaning": "vụ ly dị đắng cay" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ly dị", "isCorrect": true },
+            { "text": "Đính hôn", "isCorrect": false },
+            { "text": "Sống thử", "isCorrect": false },
+            { "text": "Cưới", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_break_up_l1",
+          "front": {
+            "term": "break up / split up",
+            "ipa": "/breɪk ʌp/ /splɪt ʌp/",
+            "contextSentence": "They broke up because they wanted different things in life."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To end a romantic relationship.",
+            "mainDefinitionTrans": "Chia tay.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "breaking up",
+                "example": "I'm thinking about breaking up with him."
+              },
+              { "label": "V2", "value": "broke up", "example": "They broke up last summer." },
+              {
+                "label": "V3",
+                "value": "broken up",
+                "example": "They have broken up several times."
+              }
+            ],
+            "example": "They split up last month.",
+            "synonyms": [
+              { "word": "separate", "meaning": "chia tay" },
+              { "word": "part ways", "meaning": "đường ai nấy đi" }
+            ],
+            "antonyms": [
+              { "word": "get together", "meaning": "đến với nhau" },
+              { "word": "reconcile", "meaning": "hòa giải" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Chia tay",
+                "example": "It's hard to break up with someone you love."
+              }
+            ],
+            "collocations": [
+              { "phrase": "messy breakup", "meaning": "chia tay lộn xộn" },
+              { "phrase": "amicable breakup", "meaning": "chia tay trong hòa bình" },
+              { "phrase": "breakup text", "meaning": "tin nhắn chia tay" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Chia tay", "isCorrect": true },
+            { "text": "Hẹn hò", "isCorrect": false },
+            { "text": "Yêu nhau", "isCorrect": false },
+            { "text": "Kết hôn", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_drift_apart",
+          "front": {
+            "term": "drift apart",
+            "ipa": "/drɪft əˈpɑːrt/",
+            "contextSentence": "Over the years, they just slowly drifted apart."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To gradually become less friendly and eventually end a relationship.",
+            "mainDefinitionTrans": "Dần xa cách, rời xa nhau.",
+            "example": "The couple drifted apart as their interests changed.",
+            "synonyms": [
+              { "word": "grow apart", "meaning": "xa cách dần" },
+              { "word": "distance oneself", "meaning": "tự tách ra" }
+            ],
+            "antonyms": [
+              { "word": "grow closer", "meaning": "thân thiết hơn" },
+              { "word": "bond", "meaning": "gắn kết" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Xa cách dần",
+                "example": "Many friendships drift apart over time."
+              }
+            ],
+            "collocations": [
+              { "phrase": "slowly drift apart", "meaning": "xa cách dần" },
+              { "phrase": "inevitably drift apart", "meaning": "xa cách không tránh khỏi" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Dần xa cách", "isCorrect": true },
+            { "text": "Thân thiết hơn", "isCorrect": false },
+            { "text": "Quay lại với nhau", "isCorrect": false },
+            { "text": "Kết hôn", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_reconcile",
+          "front": {
+            "term": "patch things up / reconcile",
+            "ipa": "/pætʃ θɪŋz ʌp/ /ˈrekənsaɪl/",
+            "contextSentence": "They managed to patch things up after a long talk."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To restore friendly relations between people.",
+            "mainDefinitionTrans": "Làm lành, hàn gắn.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "reconciling",
+                "example": "They are reconciling after the fight."
+              },
+              { "label": "V2", "value": "reconciled", "example": "They reconciled last week." },
+              {
+                "label": "V3",
+                "value": "reconciled",
+                "example": "They have reconciled their differences."
+              }
+            ],
+            "example": "They finally reconciled after the argument.",
+            "synonyms": [
+              { "word": "make up", "meaning": "làm lành" },
+              { "word": "mend fences", "meaning": "hàn gắn (thành ngữ)" }
+            ],
+            "antonyms": [
+              { "word": "quarrel", "meaning": "cãi nhau" },
+              { "word": "estrange", "meaning": "làm xa cách" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Hòa giải, làm lành",
+                "example": "It's time to reconcile with your brother."
+              }
+            ],
+            "collocations": [
+              { "phrase": "reconcile differences", "meaning": "hòa giải khác biệt" },
+              { "phrase": "attempt to reconcile", "meaning": "cố gắng hòa giải" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Hàn gắn, làm lành", "isCorrect": true },
+            { "text": "Chia tay hẳn", "isCorrect": false },
+            { "text": "Cãi nhau to", "isCorrect": false },
+            { "text": "Tránh mặt nhau", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_on_off",
+          "front": {
+            "term": "on-again, off-again relationship",
+            "ipa": "/ɒn əˈɡen ɒf əˈɡen rɪˈleɪʃnʃɪp/",
+            "contextSentence": "They've had an on-again, off-again relationship for years."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A relationship that keeps ending and starting again.",
+            "mainDefinitionTrans": "Mối quan hệ lúc có lúc không, không ổn định.",
+            "example": "It's an unstable on-again, off-again romance.",
+            "synonyms": [
+              { "word": "rocky relationship", "meaning": "mối quan hệ chông chênh" },
+              { "word": "turbulent relationship", "meaning": "mối quan hệ sóng gió" }
+            ],
+            "antonyms": [
+              { "word": "stable relationship", "meaning": "mối quan hệ ổn định" },
+              { "word": "steady relationship", "meaning": "mối quan hệ vững chắc" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Mối quan hệ bấp bênh",
+                "example": "Their on-again, off-again relationship is exhausting."
+              }
+            ],
+            "collocations": [
+              { "phrase": "typical on-again off-again", "meaning": "kiểu bấp bênh điển hình" },
+              { "phrase": "endless cycle", "meaning": "vòng luẩn quẩn" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mối quan hệ tan hợp thất thường", "isCorrect": true },
+            { "text": "Mối quan hệ bền vững", "isCorrect": false },
+            { "text": "Mối quan hệ một chiều", "isCorrect": false },
+            { "text": "Mối quan hệ bí mật", "isCorrect": false }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-03-01T10:00:00Z",
+      "updated_at": "2024-03-01T10:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_relationship_types",
+      "type": "flashcard",
+      "title": "Types of Relationships",
+      "instruction": "<p>Chọn định nghĩa đúng Tiếng Việt.</p>",
+      "flashcards": [
+        {
+          "id": "fc_platonic",
+          "front": {
+            "term": "Platonic relationship",
+            "ipa": "/pləˈtɒnɪk rɪˈleɪʃnʃɪp/",
+            "contextSentence": "They have a purely platonic relationship."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A relationship that is friendly but not romantic or sexual.",
+            "mainDefinitionTrans": "Mối quan hệ thuần túy bạn bè.",
+            "example": "They've been close friends for years in a platonic way.",
+            "synonyms": [
+              { "word": "non-romantic relationship", "meaning": "quan hệ không lãng mạn" },
+              { "word": "friendship", "meaning": "tình bạn" }
+            ],
+            "antonyms": [
+              { "word": "romantic relationship", "meaning": "quan hệ lãng mạn" },
+              { "word": "sexual relationship", "meaning": "quan hệ tình dục" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ bạn bè trong sáng",
+                "example": "A platonic relationship can be very meaningful."
+              }
+            ],
+            "collocations": [
+              { "phrase": "purely platonic", "meaning": "hoàn toàn trong sáng" },
+              { "phrase": "platonic love", "meaning": "tình yêu thuần túy tinh thần" },
+              { "phrase": "platonic friendship", "meaning": "tình bạn thuần túy" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mối quan hệ bạn bè trong sáng", "isCorrect": true },
+            { "text": "Mối quan hệ lãng mạn", "isCorrect": false },
+            { "text": "Quan hệ công việc", "isCorrect": false },
+            { "text": "Quan hệ gia đình", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_casual",
+          "front": {
+            "term": "Casual relationship",
+            "ipa": "/ˈkæʒuəl rɪˈleɪʃnʃɪp/",
+            "contextSentence": "They are just in a casual relationship, nothing serious."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A physical and emotional relationship between two people who may have sex without demanding the extra commitments of a more formal romantic relationship.",
+            "mainDefinitionTrans": "Quan hệ bình thường, không ràng buộc.",
+            "example": "He's not looking for anything more than a casual relationship.",
+            "synonyms": [
+              { "word": "no-strings-attached relationship", "meaning": "quan hệ không ràng buộc" },
+              { "word": "fling", "meaning": "mối quan hệ ngắn hạn" }
+            ],
+            "antonyms": [
+              { "word": "serious relationship", "meaning": "quan hệ nghiêm túc" },
+              { "word": "committed relationship", "meaning": "quan hệ cam kết" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ không nghiêm túc",
+                "example": "Casual relationships are common among young adults."
+              }
+            ],
+            "collocations": [
+              { "phrase": "casual dating", "meaning": "hẹn hò không nghiêm túc" },
+              { "phrase": "casual encounter", "meaning": "cuộc gặp gỡ không nghiêm túc" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Quan hệ không ràng buộc", "isCorrect": true },
+            { "text": "Quan hệ nghiêm túc", "isCorrect": false },
+            { "text": "Quan hệ hôn nhân", "isCorrect": false },
+            { "text": "Quan hệ bạn cũ", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_serious",
+          "front": {
+            "term": "Serious / Long-term relationship",
+            "ipa": "/ˈsɪəriəs/ /ˌlɒŋ ˈtɜːm rɪˈleɪʃnʃɪp/",
+            "contextSentence": "They've been in a serious relationship for five years."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A committed and long-lasting romantic involvement.",
+            "mainDefinitionTrans": "Mối quan hệ nghiêm túc, lâu dài.",
+            "example": "Are you ready for a long-term relationship?",
+            "synonyms": [
+              { "word": "committed relationship", "meaning": "quan hệ cam kết" },
+              { "word": "steady relationship", "meaning": "quan hệ ổn định" }
+            ],
+            "antonyms": [
+              { "word": "casual relationship", "meaning": "quan hệ không nghiêm túc" },
+              { "word": "short-term relationship", "meaning": "quan hệ ngắn hạn" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ nghiêm túc dài hạn",
+                "example": "They're looking for a serious relationship."
+              }
+            ],
+            "collocations": [
+              { "phrase": "serious commitment", "meaning": "cam kết nghiêm túc" },
+              { "phrase": "long-term commitment", "meaning": "cam kết dài hạn" },
+              { "phrase": "serious dating", "meaning": "hẹn hò nghiêm túc" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mối quan hệ nghiêm túc", "isCorrect": true },
+            { "text": "Hẹn hò qua đường", "isCorrect": false },
+            { "text": "Tình bạn mới", "isCorrect": false },
+            { "text": "Mối quan hệ đồng nghiệp", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_ldr",
+          "front": {
+            "term": "Long-distance relationship (LDR)",
+            "ipa": "/ˌlɒŋ ˈdɪstəns rɪˈleɪʃnʃɪp/",
+            "contextSentence": "LDRs can be very challenging but rewarding."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A romantic relationship between two people who live far apart.",
+            "mainDefinitionTrans": "Yêu xa.",
+            "example": "They maintained a long-distance relationship for three years.",
+            "synonyms": [
+              { "word": "remote relationship", "meaning": "quan hệ từ xa" },
+              {
+                "word": "geographically separated relationship",
+                "meaning": "quan hệ cách trở địa lý"
+              }
+            ],
+            "antonyms": [
+              { "word": "close-distance relationship", "meaning": "quan hệ gần nhau" },
+              { "word": "local relationship", "meaning": "quan hệ cùng địa phương" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ yêu xa",
+                "example": "Many couples struggle with long-distance relationships."
+              }
+            ],
+            "collocations": [
+              { "phrase": "maintain a LDR", "meaning": "duy trì yêu xa" },
+              { "phrase": "challenges of LDR", "meaning": "thách thức của yêu xa" },
+              { "phrase": "LDR success", "meaning": "thành công trong yêu xa" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Yêu xa", "isCorrect": true },
+            { "text": "Sống chung", "isCorrect": false },
+            { "text": "Hẹn hò bí mật", "isCorrect": false },
+            { "text": "Mới chia tay", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_toxic_l2",
+          "front": {
+            "term": "Toxic relationship",
+            "ipa": "/ˈtɒksɪk rɪˈleɪʃnʃɪp/",
+            "contextSentence": "It took her years to realize she was in a toxic relationship."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A relationship characterized by behaviors that are emotionally or physically damaging.",
+            "mainDefinitionTrans": "Mối quan hệ độc hại.",
+            "example": "Arguments and manipulation are common in toxic relationships.",
+            "synonyms": [
+              { "word": "unhealthy relationship", "meaning": "quan hệ không lành mạnh" },
+              { "word": "destructive relationship", "meaning": "quan hệ phá hoại" }
+            ],
+            "antonyms": [
+              { "word": "healthy relationship", "meaning": "quan hệ lành mạnh" },
+              { "word": "positive relationship", "meaning": "quan hệ tích cực" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ độc hại",
+                "example": "Getting out of a toxic relationship is necessary for mental health."
+              }
+            ],
+            "collocations": [
+              { "phrase": "toxic patterns", "meaning": "khuôn mẫu độc hại" },
+              { "phrase": "toxic behavior", "meaning": "hành vi độc hại" },
+              { "phrase": "toxic partner", "meaning": "đối tác độc hại" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mối quan hệ độc hại", "isCorrect": true },
+            { "text": "Mối quan hệ lành mạnh", "isCorrect": false },
+            { "text": "Mối quan hệ bạn bè", "isCorrect": false },
+            { "text": "Mối quan hệ tạm thời", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_abusive",
+          "front": {
+            "term": "Abusive relationship",
+            "ipa": "/əˈbjuːsɪv rɪˈleɪʃnʃɪp/",
+            "contextSentence": "He suffered in an abusive relationship for a long time."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A relationship where one person exerts power and control over another through physical, emotional, or verbal harm.",
+            "mainDefinitionTrans": "Mối quan hệ lạm dụng (tinh thần/thể xác).",
+            "example": "An abusive relationship can leave deep psychological scars.",
+            "synonyms": [
+              { "word": "violent relationship", "meaning": "quan hệ bạo lực" },
+              { "word": "controlling relationship", "meaning": "quan hệ kiểm soát" }
+            ],
+            "antonyms": [
+              { "word": "respectful relationship", "meaning": "quan hệ tôn trọng" },
+              { "word": "loving relationship", "meaning": "quan hệ yêu thương" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ lạm dụng",
+                "example": "Nobody deserves to be in an abusive relationship."
+              }
+            ],
+            "collocations": [
+              { "phrase": "emotionally abusive", "meaning": "lạm dụng tinh thần" },
+              { "phrase": "physically abusive", "meaning": "lạm dụng thể xác" },
+              { "phrase": "verbally abusive", "meaning": "lạm dụng lời nói" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mối quan hệ lạm dụng", "isCorrect": true },
+            { "text": "Mối quan hệ tôn trọng", "isCorrect": false },
+            { "text": "Mối quan hệ cổ vũ", "isCorrect": false },
+            { "text": "Mối quan hệ hỗ trợ", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_open",
+          "front": {
+            "term": "Open relationship",
+            "ipa": "/ˈəʊpən rɪˈleɪʃnʃɪp/",
+            "contextSentence": "They decided to try an open relationship."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A relationship in which both partners agree that each may have other sexual or romantic partners.",
+            "mainDefinitionTrans": "Mối quan hệ mở.",
+            "example": "Open relationships require a lot of communication and trust.",
+            "synonyms": [
+              {
+                "word": "non-monogamous relationship",
+                "meaning": "quan hệ không một vợ một chồng"
+              },
+              { "word": "polyamorous relationship", "meaning": "quan hệ đa ái" }
+            ],
+            "antonyms": [
+              { "word": "monogamous relationship", "meaning": "quan hệ một vợ một chồng" },
+              { "word": "exclusive relationship", "meaning": "quan hệ độc quyền" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ mở",
+                "example": "An open relationship isn't for everyone."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "ethically non-monogamous",
+                "meaning": "không một vợ một chồng có đạo đức"
+              },
+              { "phrase": "open marriage", "meaning": "hôn nhân mở" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mối quan hệ mở", "isCorrect": true },
+            { "text": "Quan hệ khép kín", "isCorrect": false },
+            { "text": "Hôn nhân một vợ một chồng", "isCorrect": false },
+            { "text": "Hẹn hò giấu diếm", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_affair",
+          "front": {
+            "term": "Extramarital affair",
+            "ipa": "/ˌekstrəˈmærɪtl əˈfeə/",
+            "contextSentence": "The marriage ended after he had an extramarital affair."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A sexual relationship between a married person and someone who is not their spouse.",
+            "mainDefinitionTrans": "Ngoại tình.",
+            "example": "News of the extramarital affair shocked the public.",
+            "synonyms": [
+              { "word": "cheating", "meaning": "ngoại tình" },
+              { "word": "infidelity", "meaning": "không chung thủy" }
+            ],
+            "antonyms": [
+              { "word": "fidelity", "meaning": "chung thủy" },
+              { "word": "loyalty", "meaning": "trung thành" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Ngoại tình",
+                "example": "Extramarital affairs often lead to divorce."
+              }
+            ],
+            "collocations": [
+              { "phrase": "secret affair", "meaning": "cuộc tình bí mật" },
+              { "phrase": "love affair", "meaning": "cuộc tình" },
+              { "phrase": "have an affair", "meaning": "ngoại tình" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ngoại tình", "isCorrect": true },
+            { "text": "Lễ kỷ niệm ngày cưới", "isCorrect": false },
+            { "text": "Tuần trăng mật", "isCorrect": false },
+            { "text": "Lục đục nội bộ", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_complicated",
+          "front": {
+            "term": "Complicated relationship",
+            "ipa": "/ˈkɒmplɪkeɪtɪd rɪˈleɪʃnʃɪp/",
+            "contextSentence": "Their status is a bit of a complicated relationship."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A relationship that is difficult to define or has many problems.",
+            "mainDefinitionTrans": "Mối quan hệ phức tạp.",
+            "example": "It's a complicated relationship with many ups and downs.",
+            "synonyms": [
+              { "word": "complex relationship", "meaning": "quan hệ phức tạp" },
+              { "word": "messy relationship", "meaning": "quan hệ rối ren" }
+            ],
+            "antonyms": [
+              { "word": "simple relationship", "meaning": "quan hệ đơn giản" },
+              { "word": "straightforward relationship", "meaning": "quan hệ rõ ràng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Quan hệ phức tạp",
+                "example": "Complicated relationships can be emotionally draining."
+              }
+            ],
+            "collocations": [
+              { "phrase": "it's complicated", "meaning": "nó phức tạp" },
+              { "phrase": "complicated love life", "meaning": "đời sống tình cảm phức tạp" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mối quan hệ phức tạp", "isCorrect": true },
+            { "text": "Mối quan hệ đơn giản", "isCorrect": false },
+            { "text": "Mối quan hệ rõ ràng", "isCorrect": false },
+            { "text": "Mối quan hệ ngắn ngủi", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_understanding",
+          "front": {
+            "term": "Mutual understanding",
+            "ipa": "/ˈmjuːtʃuəl ˌʌndəˈstændɪŋ/",
+            "contextSentence": "A good relationship is based on mutual understanding."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A situation where two people understand each other's feelings and motives.",
+            "mainDefinitionTrans": "Sự thấu hiểu lẫn nhau.",
+            "example": "The couple reached a mutual understanding about their finances.",
+            "synonyms": [
+              { "word": "mutual agreement", "meaning": "thỏa thuận chung" },
+              { "word": "shared understanding", "meaning": "hiểu biết chung" }
+            ],
+            "antonyms": [
+              { "word": "misunderstanding", "meaning": "hiểu lầm" },
+              { "word": "disagreement", "meaning": "bất đồng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Sự thấu hiểu lẫn nhau",
+                "example": "Mutual understanding is key to any partnership."
+              }
+            ],
+            "collocations": [
+              { "phrase": "reach mutual understanding", "meaning": "đạt được sự thấu hiểu" },
+              { "phrase": "based on mutual understanding", "meaning": "dựa trên sự thấu hiểu" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Sự thấu hiểu lẫn nhau", "isCorrect": true },
+            { "text": "Sự hiểu lầm", "isCorrect": false },
+            { "text": "Sự tranh cãi", "isCorrect": false },
+            { "text": "Sự oán giận", "isCorrect": false }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-03-01T10:00:00Z",
+      "updated_at": "2024-03-01T10:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_relationship_positive",
+      "type": "flashcard",
+      "title": "Positive Emotions",
+      "instruction": "<p>Chọn định nghĩa đúng Tiếng Việt.</p>",
+      "flashcards": [
+        {
+          "id": "fc_attract",
+          "front": {
+            "term": "Attract / be attracted to someone",
+            "ipa": "/əˈtrækt/ /biː əˈtræktɪd tu ˈsʌmwʌn/",
+            "contextSentence": "I was immediately attracted to her intellect."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To cause someone to have a liking for or interest in something.",
+            "mainDefinitionTrans": "Thu hút / Bị thu hút bởi ai.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "attracting",
+                "example": "He has a way of attracting people."
+              },
+              { "label": "V2", "value": "attracted", "example": "She attracted many admirers." },
+              {
+                "label": "V3",
+                "value": "attracted",
+                "example": "He has always been attracted to strong women."
+              }
+            ],
+            "example": "Opposites often attract each other.",
+            "synonyms": [
+              { "word": "draw", "meaning": "lôi cuốn" },
+              { "word": "appeal to", "meaning": "thu hút" }
+            ],
+            "antonyms": [
+              { "word": "repel", "meaning": "đẩy lùi" },
+              { "word": "deter", "meaning": "ngăn cản" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Thu hút",
+                "example": "The new art exhibition attracted many visitors."
+              },
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Bị thu hút",
+                "example": "I'm physically attracted to him."
+              }
+            ],
+            "collocations": [
+              { "phrase": "mutual attraction", "meaning": "sự thu hút lẫn nhau" },
+              { "phrase": "instant attraction", "meaning": "sự thu hút tức thì" },
+              { "phrase": "attract attention", "meaning": "thu hút sự chú ý" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Thu hút, hấp dẫn", "isCorrect": true },
+            { "text": "Xua đuổi", "isCorrect": false },
+            { "text": "Thờ ơ", "isCorrect": false },
+            { "text": "Khinh miệt", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_bond",
+          "front": {
+            "term": "Bond with someone",
+            "ipa": "/bɒnd wɪð ˈsʌmwʌn/",
+            "contextSentence": "The holiday was a great chance to bond with the family."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To develop a close connection or strong relationship with someone.",
+            "mainDefinitionTrans": "Gắn kết, tạo sự thân thiết.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "bonding",
+                "example": "Team building activities are great for bonding."
+              },
+              {
+                "label": "V2",
+                "value": "bonded",
+                "example": "We bonded over our shared experiences."
+              },
+              {
+                "label": "V3",
+                "value": "bonded",
+                "example": "They have bonded deeply over the years."
+              }
+            ],
+            "example": "They bonded over their shared love of music.",
+            "synonyms": [
+              { "word": "connect", "meaning": "kết nối" },
+              { "word": "unite", "meaning": "đoàn kết" }
+            ],
+            "antonyms": [
+              { "word": "disconnect", "meaning": "ngắt kết nối" },
+              { "word": "separate", "meaning": "tách ra" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Gắn kết",
+                "example": "Parents bond with their children from birth."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Mối liên kết",
+                "example": "There's a strong bond between the twins."
+              }
+            ],
+            "collocations": [
+              { "phrase": "emotional bond", "meaning": "liên kết tình cảm" },
+              { "phrase": "bond strongly", "meaning": "gắn kết mạnh mẽ" },
+              { "phrase": "bond over something", "meaning": "gắn kết qua việc gì đó" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Gắn kết, kết nối", "isCorrect": true },
+            { "text": "Xa lánh", "isCorrect": false },
+            { "text": "Tranh chấp", "isCorrect": false },
+            { "text": "Hiểu lầm", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_trust",
+          "front": {
+            "term": "Trust / have trust in someone",
+            "ipa": "/trʌst/ /hæv trʌst ɪn ˈsʌmwʌn/",
+            "contextSentence": "It takes time to build trust in a relationship."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Belief in the reliability, truth, or ability of someone.",
+            "mainDefinitionTrans": "Tin tưởng.",
+            "example": "You have to trust your partner.",
+            "synonyms": [
+              { "word": "rely on", "meaning": "dựa vào" },
+              { "word": "have faith in", "meaning": "có niềm tin" }
+            ],
+            "antonyms": [
+              { "word": "distrust", "meaning": "không tin tưởng" },
+              { "word": "doubt", "meaning": "nghi ngờ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự tin tưởng",
+                "example": "Trust is the foundation of any good relationship."
+              },
+              {
+                "partOfSpeech": "verb",
+                "trans": "Tin tưởng",
+                "example": "I trust you completely."
+              }
+            ],
+            "collocations": [
+              { "phrase": "build trust", "meaning": "xây dựng niềm tin" },
+              { "phrase": "break trust", "meaning": "phá vỡ niềm tin" },
+              { "phrase": "blind trust", "meaning": "tin tưởng mù quáng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Nghi ngờ", "isCorrect": false },
+            { "text": "Tin tưởng", "isCorrect": true },
+            { "text": "Lừa dối", "isCorrect": false },
+            { "text": "Phản bội", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_respect",
+          "front": {
+            "term": "Respect someone",
+            "ipa": "/rɪˈspekt ˈsʌmwʌn/",
+            "contextSentence": "They respect each other's privacy."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A feeling of deep admiration for someone elicited by their qualities or achievements.",
+            "mainDefinitionTrans": "Tôn trọng.",
+            "example": "Respect is fundamental to any healthy relationship.",
+            "synonyms": [
+              { "word": "esteem", "meaning": "quý trọng" },
+              { "word": "honor", "meaning": "tôn kính" }
+            ],
+            "antonyms": [
+              { "word": "disrespect", "meaning": "thiếu tôn trọng" },
+              { "word": "insult", "meaning": "xúc phạm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Tôn trọng",
+                "example": "We should respect our elders."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự tôn trọng",
+                "example": "He commands respect from his colleagues."
+              }
+            ],
+            "collocations": [
+              { "phrase": "mutual respect", "meaning": "sự tôn trọng lẫn nhau" },
+              { "phrase": "earn respect", "meaning": "kiếm được sự tôn trọng" },
+              { "phrase": "respect boundaries", "meaning": "tôn trọng ranh giới" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Coi thường", "isCorrect": false },
+            { "text": "Tôn trọng", "isCorrect": true },
+            { "text": "Ganh tị", "isCorrect": false },
+            { "text": "Nhạo báng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_support",
+          "front": {
+            "term": "Support / be supportive",
+            "ipa": "/səˈpɔːt/ /biː səˈpɔːtɪv/",
+            "contextSentence": "My husband was very supportive during my illness."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Providing encouragement or emotional help.",
+            "mainDefinitionTrans": "Ủng hộ, hỗ trợ.",
+            "example": "We support each other through hard times.",
+            "synonyms": [
+              { "word": "encourage", "meaning": "khuyến khích" },
+              { "word": "back up", "meaning": "ủng hộ" }
+            ],
+            "antonyms": [
+              { "word": "oppose", "meaning": "phản đối" },
+              { "word": "undermine", "meaning": "làm suy yếu" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Hỗ trợ",
+                "example": "He supported her decision to go back to school."
+              },
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Hỗ trợ, ủng hộ",
+                "example": "She has a very supportive family."
+              }
+            ],
+            "collocations": [
+              { "phrase": "emotional support", "meaning": "hỗ trợ tinh thần" },
+              { "phrase": "support system", "meaning": "hệ thống hỗ trợ" },
+              { "phrase": "financial support", "meaning": "hỗ trợ tài chính" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Cản trở", "isCorrect": false },
+            { "text": "Ủng hộ, hỗ trợ", "isCorrect": true },
+            { "text": "Chỉ trích", "isCorrect": false },
+            { "text": "Bỏ mặc", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_cherish_l3",
+          "front": {
+            "term": "Cherish someone",
+            "ipa": "/ˈtʃerɪʃ ˈsʌmwʌn/",
+            "contextSentence": "I will always cherish the time we spent together."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To protect and care for someone or something lovingly.",
+            "mainDefinitionTrans": "Trân trọng, nâng niu.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "cherishing",
+                "example": "She's cherishing every moment with her newborn."
+              },
+              {
+                "label": "V2",
+                "value": "cherished",
+                "example": "He cherished their friendship deeply."
+              },
+              {
+                "label": "V3",
+                "value": "cherished",
+                "example": "I have always cherished our memories."
+              }
+            ],
+            "example": "He cherishes his wife dearly.",
+            "synonyms": [
+              { "word": "treasure", "meaning": "trân quý" },
+              { "word": "value highly", "meaning": "đánh giá cao" }
+            ],
+            "antonyms": [
+              { "word": "neglect", "meaning": "bỏ bê" },
+              { "word": "disregard", "meaning": "coi thường" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Trân trọng, nâng niu",
+                "example": "Parents cherish their children's achievements."
+              }
+            ],
+            "collocations": [
+              { "phrase": "cherish memories", "meaning": "trân trọng kỷ niệm" },
+              { "phrase": "cherish the moment", "meaning": "trân trọng khoảnh khắc" },
+              { "phrase": "deeply cherish", "meaning": "vô cùng trân trọng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Trân trọng, nâng niu", "isCorrect": true },
+            { "text": "Quên lãng", "isCorrect": false },
+            { "text": "Phí phạm", "isCorrect": false },
+            { "text": "Lơ là", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_adore",
+          "front": {
+            "term": "Adore someone",
+            "ipa": "/əˈdɔː ˈsʌmwʌn/",
+            "contextSentence": "She adores her grandchildren."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To love and respect someone deeply.",
+            "mainDefinitionTrans": "Yêu quý, ngưỡng mộ.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "adoring",
+                "example": "He has an adoring look in his eyes."
+              },
+              { "label": "V2", "value": "adored", "example": "She adored her grandmother." },
+              {
+                "label": "V3",
+                "value": "adored",
+                "example": "He has always adored classical music."
+              }
+            ],
+            "example": "I absolutely adore him.",
+            "synonyms": [
+              { "word": "love deeply", "meaning": "yêu sâu sắc" },
+              { "word": "idolize", "meaning": "tôn sùng" }
+            ],
+            "antonyms": [
+              { "word": "detest", "meaning": "ghét cay ghét đắng" },
+              { "word": "abhor", "meaning": "ghê tởm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Yêu quý, ngưỡng mộ",
+                "example": "Children often adore their parents."
+              }
+            ],
+            "collocations": [
+              { "phrase": "absolutely adore", "meaning": "vô cùng yêu quý" },
+              { "phrase": "adore unconditionally", "meaning": "yêu thương vô điều kiện" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ghét cay ghét đắng", "isCorrect": false },
+            { "text": "Yêu quý, ngưỡng mộ", "isCorrect": true },
+            { "text": "Sợ hãi", "isCorrect": false },
+            { "text": "Lạnh nhạt", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_care",
+          "front": {
+            "term": "Care for someone",
+            "ipa": "/keə fɔː ˈsʌmwʌn/",
+            "contextSentence": "He deeply cares for his partner's well-being."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "The provision of what is necessary for the health, welfare, maintenance, and protection of someone.",
+            "mainDefinitionTrans": "Quan tâm, chăm sóc.",
+            "example": "It's clear they care for each other deeply.",
+            "synonyms": [
+              { "word": "look after", "meaning": "chăm sóc" },
+              { "word": "be concerned about", "meaning": "quan tâm đến" }
+            ],
+            "antonyms": [
+              { "word": "neglect", "meaning": "bỏ bê" },
+              { "word": "ignore", "meaning": "phớt lờ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Quan tâm, chăm sóc",
+                "example": "I really care for you as a friend."
+              }
+            ],
+            "collocations": [
+              { "phrase": "deeply care", "meaning": "quan tâm sâu sắc" },
+              { "phrase": "genuinely care", "meaning": "thực sự quan tâm" },
+              { "phrase": "care deeply about", "meaning": "quan tâm sâu sắc đến" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Bỏ bê", "isCorrect": false },
+            { "text": "Quan tâm, chăm sóc", "isCorrect": true },
+            { "text": "Lợi dụng", "isCorrect": false },
+            { "text": "Quát mắng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_chemistry",
+          "front": {
+            "term": "Have chemistry with someone",
+            "ipa": "/hæv ˈkemɪstri wɪð ˈsʌmwʌn/",
+            "contextSentence": "They had great chemistry on the first date."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A strong mutual attraction or connection between two people.",
+            "mainDefinitionTrans": "Có sự ăn ý, hợp nhau.",
+            "example": "The actors have amazing chemistry on screen.",
+            "synonyms": [
+              { "word": "spark", "meaning": "tia lửa" },
+              { "word": "connection", "meaning": "sự kết nối" }
+            ],
+            "antonyms": [
+              { "word": "incompatibility", "meaning": "không tương hợp" },
+              { "word": "disconnection", "meaning": "ngắt kết nối" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Có sự ăn ý",
+                "example": "We had instant chemistry when we met."
+              }
+            ],
+            "collocations": [
+              { "phrase": "instant chemistry", "meaning": "sự ăn ý ngay lập tức" },
+              { "phrase": "sexual chemistry", "meaning": "sự hòa hợp tình dục" },
+              { "phrase": "undeniable chemistry", "meaning": "sự ăn ý không thể phủ nhận" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Có sự ăn ý, hợp nhau", "isCorrect": true },
+            { "text": "Không hợp nhau", "isCorrect": false },
+            { "text": "Lạ lẫm", "isCorrect": false },
+            { "text": "Hay cãi vã", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_compatible_l3",
+          "front": {
+            "term": "Be compatible",
+            "ipa": "/biː kəmˈpætəbl/",
+            "contextSentence": "We are very compatible in our lifestyles."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Able to exist or occur together without conflict.",
+            "mainDefinitionTrans": "Tương hợp, hợp nhau.",
+            "example": "They are a highly compatible couple.",
+            "synonyms": [
+              { "word": "well-matched", "meaning": "phù hợp với nhau" },
+              { "word": "harmonious", "meaning": "hài hòa" }
+            ],
+            "antonyms": [
+              { "word": "incompatible", "meaning": "không tương thích" },
+              { "word": "mismatched", "meaning": "không phù hợp" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Tương hợp",
+                "example": "Their personalities are highly compatible."
+              }
+            ],
+            "collocations": [
+              { "phrase": "compatible personalities", "meaning": "tính cách tương hợp" },
+              { "phrase": "compatible values", "meaning": "giá trị tương hợp" },
+              { "phrase": "compatibility test", "meaning": "bài kiểm tra độ tương hợp" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Khác biệt, xung đột", "isCorrect": false },
+            { "text": "Tương hợp, hợp nhau", "isCorrect": true },
+            { "text": "Xa cách", "isCorrect": false },
+            { "text": "Lạ lẫm", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_compromise",
+          "front": {
+            "term": "Compromise",
+            "ipa": "/ˈkɒmprəmaɪz/",
+            "contextSentence": "In any marriage, you have to learn to compromise."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "An agreement or a settlement of a dispute that is reached by each side making concessions.",
+            "mainDefinitionTrans": "Thỏa hiệp, nhường nhịn.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "compromising",
+                "example": "They are compromising on the wedding plans."
+              },
+              { "label": "V2", "value": "compromised", "example": "We compromised on the price." },
+              {
+                "label": "V3",
+                "value": "compromised",
+                "example": "They have compromised their principles."
+              }
+            ],
+            "example": "A successful relationship involves healthy compromise.",
+            "synonyms": [
+              { "word": "meet halfway", "meaning": "gặp nhau ở giữa" },
+              { "word": "negotiate", "meaning": "đàm phán" }
+            ],
+            "antonyms": [
+              { "word": "insist", "meaning": "khăng khăng" },
+              { "word": "refuse to budge", "meaning": "từ chối nhượng bộ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự thỏa hiệp",
+                "example": "Compromise is essential in any partnership."
+              },
+              {
+                "partOfSpeech": "verb",
+                "trans": "Thỏa hiệp",
+                "example": "I'm willing to compromise on this issue."
+              }
+            ],
+            "collocations": [
+              { "phrase": "reach a compromise", "meaning": "đạt được thỏa hiệp" },
+              { "phrase": "mutual compromise", "meaning": "thỏa hiệp lẫn nhau" },
+              { "phrase": "compromise solution", "meaning": "giải pháp thỏa hiệp" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Cứng đầu", "isCorrect": false },
+            { "text": "Thỏa hiệp, nhường nhịn", "isCorrect": true },
+            { "text": "Chiến đấu", "isCorrect": false },
+            { "text": "Bỏ cuộc", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_communicate",
+          "front": {
+            "term": "Communicate effectively",
+            "ipa": "/kəˈmjuːnɪkeɪt ɪˈfektɪvli/",
+            "contextSentence": "It's important to communicate effectively about your needs."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To share information or ideas in a clear and successful way.",
+            "mainDefinitionTrans": "Giao tiếp hiệu quả.",
+            "example": "Learning to communicate effectively can save a relationship.",
+            "synonyms": [
+              { "word": "convey clearly", "meaning": "truyền đạt rõ ràng" },
+              { "word": "express effectively", "meaning": "biểu đạt hiệu quả" }
+            ],
+            "antonyms": [
+              { "word": "miscommunicate", "meaning": "giao tiếp sai" },
+              { "word": "fail to communicate", "meaning": "thất bại trong giao tiếp" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Giao tiếp hiệu quả",
+                "example": "Couples who communicate effectively have stronger relationships."
+              }
+            ],
+            "collocations": [
+              { "phrase": "open communication", "meaning": "giao tiếp cởi mở" },
+              { "phrase": "honest communication", "meaning": "giao tiếp trung thực" },
+              { "phrase": "clear communication", "meaning": "giao tiếp rõ ràng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Giao tiếp hiệu quả", "isCorrect": true },
+            { "text": "Nói dối", "isCorrect": false },
+            { "text": "Im lặng", "isCorrect": false },
+            { "text": "Cãi vã", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_common_interests",
+          "front": {
+            "term": "Share common interests",
+            "ipa": "/ʃeə ˈkɒmən ˈɪntrəsts/",
+            "contextSentence": "They share many common interests, like hiking and photography."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To have the same hobbies or things that you enjoy doing.",
+            "mainDefinitionTrans": "Có chung sở thích.",
+            "example": "Sharing common interests helps keep a relationship strong.",
+            "synonyms": [
+              { "word": "have similar hobbies", "meaning": "có sở thích tương tự" },
+              { "word": "share passions", "meaning": "chia sẻ đam mê" }
+            ],
+            "antonyms": [
+              { "word": "have different interests", "meaning": "có sở thích khác nhau" },
+              { "word": "conflicting interests", "meaning": "sở thích xung đột" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Có chung sở thích",
+                "example": "Finding someone who shares your interests is wonderful."
+              }
+            ],
+            "collocations": [
+              { "phrase": "shared interests", "meaning": "sở thích chung" },
+              { "phrase": "common ground", "meaning": "điểm chung" },
+              { "phrase": "mutual interests", "meaning": "sở thích chung" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Có chung sở thích", "isCorrect": true },
+            { "text": "Sở thích khác biệt", "isCorrect": false },
+            { "text": "Không có đam mê", "isCorrect": false },
+            { "text": "Đối lập tính cách", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_commitment",
+          "front": {
+            "term": "Make (a) commitment",
+            "ipa": "/meɪk ə kəˈmɪtmənt/",
+            "contextSentence": "They aren't ready to make a long-term commitment yet."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A promise to be loyal to someone or something.",
+            "mainDefinitionTrans": "Sự cam kết.",
+            "example": "Marriage is a major life commitment.",
+            "synonyms": [
+              { "word": "pledge", "meaning": "lời hứa" },
+              { "word": "vow", "meaning": "lời thề" }
+            ],
+            "antonyms": [
+              { "word": "betrayal", "meaning": "sự phản bội" },
+              { "word": "disloyalty", "meaning": "sự không trung thành" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự cam kết",
+                "example": "He made a commitment to be more attentive."
+              }
+            ],
+            "collocations": [
+              { "phrase": "long-term commitment", "meaning": "cam kết dài hạn" },
+              { "phrase": "serious commitment", "meaning": "cam kết nghiêm túc" },
+              { "phrase": "commitment issues", "meaning": "vấn đề về cam kết" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Sự cam kết", "isCorrect": true },
+            { "text": "Sự phản bội", "isCorrect": false },
+            { "text": "Sự tự do", "isCorrect": false },
+            { "text": "Sự do dự", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_loyal",
+          "front": {
+            "term": "Loyalty / be loyal",
+            "ipa": "/ˈlɔɪəlti/ /biː ˈlɔɪəl/",
+            "contextSentence": "Loyalty is a very important quality in a friend."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "The quality of staying firm in your support for someone.",
+            "mainDefinitionTrans": "Lòng trung thành / Chung thủy.",
+            "example": "She has always been a loyal partner.",
+            "synonyms": [
+              { "word": "faithfulness", "meaning": "sự chung thủy" },
+              { "word": "allegiance", "meaning": "lòng trung thành" }
+            ],
+            "antonyms": [
+              { "word": "disloyalty", "meaning": "sự bất trung" },
+              { "word": "treachery", "meaning": "sự phản bội" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Lòng trung thành",
+                "example": "His loyalty to the company is unquestionable."
+              },
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Trung thành",
+                "example": "Dogs are known to be loyal companions."
+              }
+            ],
+            "collocations": [
+              { "phrase": "unwavering loyalty", "meaning": "lòng trung thành không lay chuyển" },
+              { "phrase": "brand loyalty", "meaning": "lòng trung thành thương hiệu" },
+              { "phrase": "loyal customer", "meaning": "khách hàng trung thành" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Phản bội", "isCorrect": false },
+            { "text": "Trung thành, chung thủy", "isCorrect": true },
+            { "text": "Vô tâm", "isCorrect": false },
+            { "text": "Tham lam", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_intimacy",
+          "front": {
+            "term": "Intimacy",
+            "ipa": "/ˈɪntɪməsi/",
+            "contextSentence": "Emotional intimacy is just as important as physical intimacy."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Close familiarity or friendship; closeness.",
+            "mainDefinitionTrans": "Sự thân mật (cảm xúc/thể xác).",
+            "example": "They shared a deep sense of intimacy.",
+            "synonyms": [
+              { "word": "closeness", "meaning": "sự gần gũi" },
+              { "word": "familiarity", "meaning": "sự thân thiết" }
+            ],
+            "antonyms": [
+              { "word": "distance", "meaning": "khoảng cách" },
+              { "word": "formality", "meaning": "sự trang trọng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự thân mật",
+                "example": "Intimacy requires vulnerability and trust."
+              }
+            ],
+            "collocations": [
+              { "phrase": "emotional intimacy", "meaning": "sự thân mật tình cảm" },
+              { "phrase": "physical intimacy", "meaning": "sự thân mật thể xác" },
+              { "phrase": "intimate relationship", "meaning": "mối quan hệ thân mật" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Sự thân mật, gần gũi", "isCorrect": true },
+            { "text": "Sự xa cách", "isCorrect": false },
+            { "text": "Sự thờ ơ", "isCorrect": false },
+            { "text": "Sự thù hận", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_affection",
+          "front": {
+            "term": "Affection",
+            "ipa": "/əˈfekʃn/",
+            "contextSentence": "He showed his affection by buying her flowers."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A gentle feeling of fondness or liking.",
+            "mainDefinitionTrans": "Sự âu yếm, yêu thương.",
+            "example": "They have great affection for each other.",
+            "synonyms": [
+              { "word": "fondness", "meaning": "sự yêu mến" },
+              { "word": "tenderness", "meaning": "sự dịu dàng" }
+            ],
+            "antonyms": [
+              { "word": "hostility", "meaning": "sự thù địch" },
+              { "word": "coldness", "meaning": "sự lạnh lùng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự âu yếm",
+                "example": "The mother showed affection to her child."
+              }
+            ],
+            "collocations": [
+              { "phrase": "show affection", "meaning": "thể hiện tình cảm" },
+              { "phrase": "public affection", "meaning": "tình cảm nơi công cộng" },
+              { "phrase": "affectionate gesture", "meaning": "cử chỉ âu yếm" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Sự âu yếm, yêu thương", "isCorrect": true },
+            { "text": "Sự ghét bỏ", "isCorrect": false },
+            { "text": "Sự giận dữ", "isCorrect": false },
+            { "text": "Sự buồn bã", "isCorrect": false }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-03-01T10:00:00Z",
+      "updated_at": "2024-03-01T10:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_relationship_conflicts",
+      "type": "flashcard",
+      "title": "Conflicts & Issues",
+      "instruction": "<p>Chọn định nghĩa đúng Tiếng Việt.</p>",
+      "flashcards": [
+        {
+          "id": "fc_argue",
+          "front": {
+            "term": "Argue / have an argument",
+            "ipa": "/ˈɑːɡjuː/ /hæv ən ˈɑːɡjumənt/",
+            "contextSentence": "They argue about money all the time."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To give reasons for or against something; to disagree or fight with words.",
+            "mainDefinitionTrans": "Tranh cãi.",
+            "wordForms": [
+              {
+                "label": "V-ing",
+                "value": "arguing",
+                "example": "Stop arguing about trivial matters."
+              },
+              { "label": "V2", "value": "argued", "example": "They argued for hours last night." },
+              { "label": "V3", "value": "argued", "example": "We have argued about this before." }
+            ],
+            "example": "We had a big argument last night.",
+            "synonyms": [
+              { "word": "quarrel", "meaning": "cãi nhau" },
+              { "word": "dispute", "meaning": "tranh chấp" }
+            ],
+            "antonyms": [
+              { "word": "agree", "meaning": "đồng ý" },
+              { "word": "concur", "meaning": "tán thành" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Tranh cãi",
+                "example": "It's pointless to argue with him."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Cuộc tranh cãi",
+                "example": "They had a heated argument."
+              }
+            ],
+            "collocations": [
+              { "phrase": "heated argument", "meaning": "cuộc tranh cãi nóng nảy" },
+              { "phrase": "constant arguing", "meaning": "tranh cãi liên tục" },
+              { "phrase": "argue passionately", "meaning": "tranh cãi nhiệt tình" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Tranh cãi", "isCorrect": true },
+            { "text": "Đồng ý", "isCorrect": false },
+            { "text": "Khen ngợi", "isCorrect": false },
+            { "text": "Im lặng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_quarrel",
+          "front": {
+            "term": "Quarrel / fight",
+            "ipa": "/ˈkwɒrəl/ /faɪt/",
+            "contextSentence": "They are always quarreling over small things."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "An angry argument or disagreement.",
+            "mainDefinitionTrans": "Cãi nhau / Đánh nhau (lời nói).",
+            "example": "He had a long-running quarrel with his neighbor.",
+            "synonyms": [
+              { "word": "argument", "meaning": "tranh cãi" },
+              { "word": "squabble", "meaning": "cãi vặt" }
+            ],
+            "antonyms": [
+              { "word": "make up", "meaning": "làm lành" },
+              { "word": "reconcile", "meaning": "hòa giải" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Cuộc cãi vã",
+                "example": "They had a silly quarrel about the TV remote."
+              },
+              {
+                "partOfSpeech": "verb",
+                "trans": "Cãi nhau",
+                "example": "The children quarreled over toys."
+              }
+            ],
+            "collocations": [
+              { "phrase": "bitter quarrel", "meaning": "cuộc cãi vã đắng cay" },
+              { "phrase": "family quarrel", "meaning": "cãi nhau trong gia đình" },
+              { "phrase": "quarrel constantly", "meaning": "cãi nhau liên tục" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Hòa giải", "isCorrect": false },
+            { "text": "Cãi nhau", "isCorrect": true },
+            { "text": "Giúp đỡ", "isCorrect": false },
+            { "text": "Vui vẻ", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_row",
+          "front": {
+            "term": "Have a row (UK)",
+            "ipa": "/hæv ə raʊ/",
+            "contextSentence": "The couple next door are having a row again."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A noisy argument or fight.",
+            "mainDefinitionTrans": "Cãi nhau to (ồn ào).",
+            "example": "They had a terrible row and didn't speak for days.",
+            "synonyms": [
+              { "word": "loud argument", "meaning": "tranh cãi ồn ào" },
+              { "word": "shouting match", "meaning": "cuộc cãi nhau hét vào mặt nhau" }
+            ],
+            "antonyms": [
+              { "word": "quiet discussion", "meaning": "thảo luận yên lặng" },
+              { "word": "peaceful conversation", "meaning": "cuộc trò chuyện hòa bình" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Cuộc cãi nhau ồn ào",
+                "example": "They had a blazing row about money."
+              }
+            ],
+            "collocations": [
+              { "phrase": "blazing row", "meaning": "cuộc cãi nhau dữ dội" },
+              { "phrase": "have a row", "meaning": "cãi nhau" },
+              { "phrase": "row with someone", "meaning": "cãi nhau với ai" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Cãi nhau to, ồn ào", "isCorrect": true },
+            { "text": "Nói chuyện thì thầm", "isCorrect": false },
+            { "text": "Rời đi trong im lặng", "isCorrect": false },
+            { "text": "Tặng quà", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_conflict",
+          "front": {
+            "term": "Conflict / disagreement",
+            "ipa": "/ˈkɒnflɪkt/ /ˌdɪsəˈɡriːmənt/",
+            "contextSentence": "There's often a conflict between work and family life."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A serious disagreement or argument.",
+            "mainDefinitionTrans": "Mâu thuẫn / Bất đồng.",
+            "example": "They reached a disagreement about the project's direction.",
+            "synonyms": [
+              { "word": "dispute", "meaning": "tranh chấp" },
+              { "word": "clash", "meaning": "xung đột" }
+            ],
+            "antonyms": [
+              { "word": "agreement", "meaning": "thỏa thuận" },
+              { "word": "harmony", "meaning": "hòa hợp" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Xung đột, mâu thuẫn",
+                "example": "There's a conflict of interest here."
+              },
+              {
+                "partOfSpeech": "verb",
+                "trans": "Mâu thuẫn",
+                "example": "His story conflicts with hers."
+              }
+            ],
+            "collocations": [
+              { "phrase": "conflict resolution", "meaning": "giải quyết xung đột" },
+              { "phrase": "armed conflict", "meaning": "xung đột vũ trang" },
+              { "phrase": "inner conflict", "meaning": "xung đột nội tâm" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Mâu thuẫn, bất đồng", "isCorrect": true },
+            { "text": "Sự nhất trí", "isCorrect": false },
+            { "text": "Sự hợp tác", "isCorrect": false },
+            { "text": "Sự cam kết", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_misunderstanding",
+          "front": {
+            "term": "Misunderstanding",
+            "ipa": "/ˌmɪsʌndəˈstændɪŋ/",
+            "contextSentence": "A simple misunderstanding led to a big fight."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A failure to understand something correctly.",
+            "mainDefinitionTrans": "Hiểu lầm.",
+            "example": "It was just a slight misunderstanding.",
+            "synonyms": [
+              { "word": "misinterpretation", "meaning": "hiểu sai" },
+              { "word": "miscommunication", "meaning": "giao tiếp sai" }
+            ],
+            "antonyms": [
+              { "word": "understanding", "meaning": "sự hiểu biết" },
+              { "word": "clarity", "meaning": "sự rõ ràng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự hiểu lầm",
+                "example": "Let's clear up this misunderstanding."
+              }
+            ],
+            "collocations": [
+              { "phrase": "clear up misunderstanding", "meaning": "làm sáng tỏ hiểu lầm" },
+              { "phrase": "cultural misunderstanding", "meaning": "hiểu lầm văn hóa" },
+              { "phrase": "avoid misunderstanding", "meaning": "tránh hiểu lầm" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Hiểu biết", "isCorrect": false },
+            { "text": "Hiểu lầm", "isCorrect": true },
+            { "text": "Thấu cảm", "isCorrect": false },
+            { "text": "Bỏ qua", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_betrayal",
+          "front": {
+            "term": "Betray / betrayal",
+            "ipa": "/bɪˈtreɪ/ /bɪˈtreɪəl/",
+            "contextSentence": "She felt betrayed by her best friend."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To be disloyal to someone who trusts you.",
+            "mainDefinitionTrans": "Phản bội / Sự phản bội.",
+            "example": "The betrayal was hard to forgive.",
+            "synonyms": [
+              { "word": "cheat on", "meaning": "lừa dối" },
+              { "word": "deceive", "meaning": "lừa gạt" }
+            ],
+            "antonyms": [
+              { "word": "be loyal", "meaning": "trung thành" },
+              { "word": "support", "meaning": "ủng hộ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Phản bội",
+                "example": "He betrayed his country."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự phản bội",
+                "example": "This feels like a betrayal of trust."
+              }
+            ],
+            "collocations": [
+              { "phrase": "ultimate betrayal", "meaning": "sự phản bội tột cùng" },
+              { "phrase": "betrayal of trust", "meaning": "phản bội niềm tin" },
+              { "phrase": "feel betrayed", "meaning": "cảm thấy bị phản bội" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Trung thành", "isCorrect": false },
+            { "text": "Phản bội", "isCorrect": true },
+            { "text": "Ủng hộ", "isCorrect": false },
+            { "text": "Yêu thương", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_infidelity",
+          "front": {
+            "term": "Cheat on someone / infidelity",
+            "ipa": "/tʃiːt ɒn ˈsʌmwʌn/ /ˌɪnfɪˈdeləti/",
+            "contextSentence": "Infidelity is a leading cause of divorce."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Being unfaithful to a spouse or partner.",
+            "mainDefinitionTrans": "Ngoại tình / Sự không chung thủy.",
+            "example": "He admitted to cheating on her.",
+            "synonyms": [
+              { "word": "adultery", "meaning": "ngoại tình" },
+              { "word": "unfaithfulness", "meaning": "sự không chung thủy" }
+            ],
+            "antonyms": [
+              { "word": "fidelity", "meaning": "sự chung thủy" },
+              { "word": "loyalty", "meaning": "lòng trung thành" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Ngoại tình",
+                "example": "Cheating on your partner is a serious breach of trust."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự không chung thủy",
+                "example": "Marital infidelity destroys relationships."
+              }
+            ],
+            "collocations": [
+              { "phrase": "emotional infidelity", "meaning": "không chung thủy về tình cảm" },
+              { "phrase": "suspect infidelity", "meaning": "nghi ngờ ngoại tình" },
+              { "phrase": "consequences of infidelity", "meaning": "hậu quả của ngoại tình" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Chung thủy", "isCorrect": false },
+            { "text": "Ngoại tình", "isCorrect": true },
+            { "text": "Kết hôn", "isCorrect": false },
+            { "text": "Tôn trọng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_dishonesty",
+          "front": {
+            "term": "Lie / dishonesty",
+            "ipa": "/laɪ/ /dɪsˈɒnɪsti/",
+            "contextSentence": "Dishonesty can destroy any relationship."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Lack of honesty or truthfulness.",
+            "mainDefinitionTrans": "Nói dối / Sự không trung thực.",
+            "example": "She couldn't stand his lies.",
+            "synonyms": [
+              { "word": "untruthfulness", "meaning": "sự không trung thực" },
+              { "word": "deception", "meaning": "sự lừa dối" }
+            ],
+            "antonyms": [
+              { "word": "honesty", "meaning": "sự trung thực" },
+              { "word": "truthfulness", "meaning": "tính chân thật" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Nói dối",
+                "example": "Don't lie to me about what happened."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự không trung thực",
+                "example": "Dishonesty has no place in a healthy relationship."
+              }
+            ],
+            "collocations": [
+              { "phrase": "white lie", "meaning": "lời nói dối vô hại" },
+              { "phrase": "blatant lie", "meaning": "lời nói dối trắng trợn" },
+              { "phrase": "pathological liar", "meaning": "người nói dối bệnh lý" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Trung thực", "isCorrect": false },
+            { "text": "Không trung thực, giả dối", "isCorrect": true },
+            { "text": "Nhiệt tình", "isCorrect": false },
+            { "text": "Tốt bụng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_jealousy",
+          "front": {
+            "term": "Jealousy / be jealous",
+            "ipa": "/ˈdʒeləsi/ /biː ˈdʒeləs/",
+            "contextSentence": "His jealousy made her uncomfortable."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A feeling of unhappy suspicion, rivalry, or fear of being replaced in another's affection.",
+            "mainDefinitionTrans": "Ghen tuông.",
+            "example": "Are you jealous of his success?",
+            "synonyms": [
+              { "word": "envy", "meaning": "ghen tị" },
+              { "word": "possessiveness", "meaning": "tính chiếm hữu" }
+            ],
+            "antonyms": [
+              { "word": "trust", "meaning": "tin tưởng" },
+              { "word": "security", "meaning": "sự an tâm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự ghen tuông",
+                "example": "Jealousy can poison a relationship."
+              },
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Ghen tuông",
+                "example": "He gets jealous when she talks to other men."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "green-eyed monster",
+                "meaning": "con quái vật mắt xanh (thành ngữ chỉ sự ghen tuông)"
+              },
+              { "phrase": "jealous rage", "meaning": "cơn thịnh nộ vì ghen" },
+              { "phrase": "overcome jealousy", "meaning": "vượt qua sự ghen tuông" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ghen tuông", "isCorrect": true },
+            { "text": "Hâm mộ", "isCorrect": false },
+            { "text": "Đồng cảm", "isCorrect": false },
+            { "text": "Tin tưởng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_possessive",
+          "front": {
+            "term": "Possessiveness / be possessive",
+            "ipa": "/pəˈzesɪvnəs/ /biː pəˈzesɪv/",
+            "contextSentence": "He's very possessive and doesn't like her going out with friends."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Having or showing a desire to control or dominate another person and their interactions.",
+            "mainDefinitionTrans": "Tính chiếm hữu.",
+            "example": "A possessive partner can be very controlling.",
+            "synonyms": [
+              { "word": "controlling", "meaning": "kiểm soát" },
+              { "word": "domineering", "meaning": "độc đoán" }
+            ],
+            "antonyms": [
+              { "word": "trusting", "meaning": "tin tưởng" },
+              { "word": "liberal", "meaning": "rộng lượng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Tính chiếm hữu",
+                "example": "His possessiveness is suffocating."
+              },
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Có tính chiếm hữu",
+                "example": "She has a possessive boyfriend."
+              }
+            ],
+            "collocations": [
+              { "phrase": "possessive behavior", "meaning": "hành vi chiếm hữu" },
+              { "phrase": "overly possessive", "meaning": "quá chiếm hữu" },
+              { "phrase": "possessive jealousy", "meaning": "ghen tuông chiếm hữu" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Sự phóng khoáng", "isCorrect": false },
+            { "text": "Tính chiếm hữu", "isCorrect": true },
+            { "text": "Sự bao dung", "isCorrect": false },
+            { "text": "Sự hờ hững", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_granted_l4",
+          "front": {
+            "term": "Take someone for granted",
+            "ipa": "/teɪk ˈsʌmwʌn fɔː ˈɡrɑːntɪd/",
+            "contextSentence": "She felt taken for granted by her husband."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To fail to appreciate someone because they are always there.",
+            "mainDefinitionTrans": "Coi ai đó là hiển nhiên.",
+            "example": "Never take your friends for granted.",
+            "synonyms": [
+              { "word": "undervalue", "meaning": "đánh giá thấp" },
+              { "word": "underappreciate", "meaning": "không đánh giá đúng" }
+            ],
+            "antonyms": [
+              { "word": "appreciate", "meaning": "trân trọng" },
+              { "word": "value", "meaning": "đánh giá cao" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Coi là hiển nhiên",
+                "example": "Don't take your partner's love for granted."
+              }
+            ],
+            "collocations": [
+              { "phrase": "take for granted", "meaning": "coi là hiển nhiên" },
+              { "phrase": "feel taken for granted", "meaning": "cảm thấy bị coi thường" },
+              { "phrase": "stop taking for granted", "meaning": "ngừng coi là hiển nhiên" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Biết ơn", "isCorrect": false },
+            { "text": "Coi là hiển nhiên", "isCorrect": true },
+            { "text": "Trân trọng hàng ngày", "isCorrect": false },
+            { "text": "Ngưỡng mộ", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_neglect",
+          "front": {
+            "term": "Neglect",
+            "ipa": "/nɪˈɡlekt/",
+            "contextSentence": "Constant neglect led to the end of their marriage."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Fail to care for properly.",
+            "mainDefinitionTrans": "Lơ là, bỏ bê.",
+            "example": "He neglected his duties as a partner.",
+            "synonyms": [
+              { "word": "ignore", "meaning": "phớt lờ" },
+              { "word": "abandon", "meaning": "bỏ rơi" }
+            ],
+            "antonyms": [
+              { "word": "care for", "meaning": "chăm sóc" },
+              { "word": "attend to", "meaning": "chú ý đến" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "verb",
+                "trans": "Bỏ bê",
+                "example": "Parents should never neglect their children."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự lơ là",
+                "example": "The building shows signs of neglect."
+              }
+            ],
+            "collocations": [
+              { "phrase": "emotional neglect", "meaning": "bỏ bê tình cảm" },
+              { "phrase": "neglect responsibilities", "meaning": "bỏ bê trách nhiệm" },
+              { "phrase": "gross neglect", "meaning": "sự bỏ bê nghiêm trọng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Bản chất tốt", "isCorrect": false },
+            { "text": "Lơ là, bỏ bê", "isCorrect": true },
+            { "text": "Tỉ mỉ, chu đáo", "isCorrect": false },
+            { "text": "Kịp thời", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_lack_comm",
+          "front": {
+            "term": "Lack of communication",
+            "ipa": "/læk əv kəˌmjuːnɪˈkeɪʃn/",
+            "contextSentence": "Most problems stem from a lack of communication."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A failure to share information or talk about problems.",
+            "mainDefinitionTrans": "Thiếu giao tiếp.",
+            "example": "Lack of communication can cause major misunderstandings.",
+            "synonyms": [
+              { "word": "poor communication", "meaning": "giao tiếp kém" },
+              { "word": "communication breakdown", "meaning": "sự đổ vỡ giao tiếp" }
+            ],
+            "antonyms": [
+              { "word": "open communication", "meaning": "giao tiếp cởi mở" },
+              { "word": "effective communication", "meaning": "giao tiếp hiệu quả" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun phrase",
+                "trans": "Sự thiếu giao tiếp",
+                "example": "Their relationship suffered from a lack of communication."
+              }
+            ],
+            "collocations": [
+              { "phrase": "communication issues", "meaning": "vấn đề giao tiếp" },
+              { "phrase": "breakdown in communication", "meaning": "sự đổ vỡ trong giao tiếp" },
+              { "phrase": "improve communication", "meaning": "cải thiện giao tiếp" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Giao tiếp nhiều", "isCorrect": false },
+            { "text": "Thiếu giao tiếp", "isCorrect": true },
+            { "text": "Mâu thuẫn", "isCorrect": false },
+            { "text": "Tin tưởng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_grow_apart",
+          "front": {
+            "term": "Grow apart",
+            "ipa": "/ɡrəʊ əˈpɑːt/",
+            "contextSentence": "As they got older, they just seemed to grow apart."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To gradually become less friendly or interested in each other.",
+            "mainDefinitionTrans": "Trở nên xa cách.",
+            "example": "They grew apart after years of different paths.",
+            "synonyms": [
+              { "word": "drift apart", "meaning": "xa cách dần" },
+              { "word": "become distant", "meaning": "trở nên xa cách" }
+            ],
+            "antonyms": [
+              { "word": "grow closer", "meaning": "thân thiết hơn" },
+              { "word": "bond", "meaning": "gắn kết" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Xa cách dần",
+                "example": "Many childhood friends grow apart as adults."
+              }
+            ],
+            "collocations": [
+              { "phrase": "inevitably grow apart", "meaning": "xa cách không tránh khỏi" },
+              { "phrase": "grow apart over time", "meaning": "xa cách theo thời gian" },
+              { "phrase": "feel like growing apart", "meaning": "cảm thấy như đang xa cách" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Trở nên xa cách", "isCorrect": true },
+            { "text": "Thân thiết hơn", "isCorrect": false },
+            { "text": "Phát triển cùng nhau", "isCorrect": false },
+            { "text": "Hợp sức", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_fall_out_love",
+          "front": {
+            "term": "Fall out of love",
+            "ipa": "/fɔːl aʊt ɒv lʌv/",
+            "contextSentence": "It's sad when couples fall out of love."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To stop having romantic feelings for someone.",
+            "mainDefinitionTrans": "Hết yêu, không còn tình cảm.",
+            "example": "She felt she had fallen out of love with him.",
+            "synonyms": [
+              { "word": "lose feelings", "meaning": "mất cảm xúc" },
+              { "word": "stop loving", "meaning": "ngừng yêu" }
+            ],
+            "antonyms": [
+              { "word": "fall in love", "meaning": "phải lòng" },
+              { "word": "develop feelings", "meaning": "phát triển tình cảm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Hết yêu",
+                "example": "Sometimes people just fall out of love."
+              }
+            ],
+            "collocations": [
+              { "phrase": "gradually fall out of love", "meaning": "dần dần hết yêu" },
+              { "phrase": "fall out of love with", "meaning": "hết yêu ai" },
+              {
+                "phrase": "realize you've fallen out of love",
+                "meaning": "nhận ra mình đã hết yêu"
+              }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Yêu say đắm", "isCorrect": false },
+            { "text": "Hết yêu, cạn tình", "isCorrect": true },
+            { "text": "Đang yêu đơn phương", "isCorrect": false },
+            { "text": "Tình yêu chớm nở", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_resentment",
+          "front": {
+            "term": "Resentment",
+            "ipa": "/rɪˈzentmənt/",
+            "contextSentence": "Resentment can poison a relationship over time."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A feeling of deep and bitter anger and ill-will.",
+            "mainDefinitionTrans": "Sự oán giận, hận thù.",
+            "example": "She felt a lot of resentment towards her ex.",
+            "synonyms": [
+              { "word": "bitterness", "meaning": "sự cay đắng" },
+              { "word": "animosity", "meaning": "sự thù địch" }
+            ],
+            "antonyms": [
+              { "word": "forgiveness", "meaning": "sự tha thứ" },
+              { "word": "contentment", "meaning": "sự hài lòng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sự oán giận",
+                "example": "Years of resentment built up between them."
+              }
+            ],
+            "collocations": [
+              { "phrase": "harbor resentment", "meaning": "nuôi dưỡng sự oán giận" },
+              { "phrase": "deep-seated resentment", "meaning": "oán giận sâu sắc" },
+              { "phrase": "overcome resentment", "meaning": "vượt qua oán giận" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Sự bao dung", "isCorrect": false },
+            { "text": "Sự oán giận, hận thù", "isCorrect": true },
+            { "text": "Sự hối hận", "isCorrect": false },
+            { "text": "Sự thỏa mãn", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_heartbroken",
+          "front": {
+            "term": "Be heartbroken / heartbreak",
+            "ipa": "/biː ˈhɑːtbrəʊkən/ /ˈhɑːtbreɪk/",
+            "contextSentence": "He was absolutely heartbroken after the breakup."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Feeling extremely sad or crushed because of a lost love.",
+            "mainDefinitionTrans": "Đau lòng, thất tình.",
+            "example": "It takes time to heal a heartbreak.",
+            "synonyms": [
+              { "word": "devastated", "meaning": "tan nát" },
+              { "word": "crushed", "meaning": "bị đè bẹp" }
+            ],
+            "antonyms": [
+              { "word": "overjoyed", "meaning": "vui mừng khôn xiết" },
+              { "word": "elated", "meaning": "phấn khởi" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Đau lòng",
+                "example": "She was heartbroken when he left."
+              },
+              {
+                "partOfSpeech": "noun",
+                "trans": "Nỗi đau lòng",
+                "example": "First heartbreak is often the hardest."
+              }
+            ],
+            "collocations": [
+              { "phrase": "absolutely heartbroken", "meaning": "hoàn toàn đau lòng" },
+              { "phrase": "heartbreak hotel", "meaning": "khách sạn của những trái tim tan vỡ" },
+              { "phrase": "get over heartbreak", "meaning": "vượt qua nỗi đau lòng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Vui sướng", "isCorrect": false },
+            { "text": "Đau lòng, thất tình", "isCorrect": true },
+            { "text": "Mạnh mẽ", "isCorrect": false },
+            { "text": "Thanh thản", "isCorrect": false }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-03-01T10:00:00Z",
+      "updated_at": "2024-03-01T10:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_relationship_personality",
+      "type": "flashcard",
+      "title": "Personality & Behavior",
+      "instruction": "<p>Chọn nghĩa đúng Tiếng Việt.</p>",
+      "flashcards": [
+        {
+          "id": "fc_considerate",
+          "front": {
+            "term": "considerate",
+            "ipa": "/kənˈsɪdərət/",
+            "contextSentence": "It was very considerate of you to bring me flowers."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Careful not to cause inconvenience or hurt to others.",
+            "mainDefinitionTrans": "Chu đáo, ân cần, biết nghĩ cho người khác.",
+            "example": "He's always very considerate towards his neighbors.",
+            "synonyms": [
+              { "word": "thoughtful", "meaning": "chu đáo" },
+              { "word": "attentive", "meaning": "chú ý" }
+            ],
+            "antonyms": [
+              { "word": "inconsiderate", "meaning": "vô tâm" },
+              { "word": "thoughtless", "meaning": "thiếu suy nghĩ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Chu đáo, ân cần",
+                "example": "A considerate gesture like holding the door open."
+              }
+            ],
+            "collocations": [
+              { "phrase": "considerate person", "meaning": "người chu đáo" },
+              { "phrase": "considerate behavior", "meaning": "hành vi chu đáo" },
+              { "phrase": "be considerate of", "meaning": "chu đáo với" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ích kỷ", "isCorrect": false },
+            { "text": "Chu đáo, ân cần", "isCorrect": true },
+            { "text": "Nóng nảy", "isCorrect": false },
+            { "text": "Vô tâm", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_manipulative",
+          "front": {
+            "term": "manipulative",
+            "ipa": "/məˈnɪpjələtɪv/",
+            "contextSentence": "She's very manipulative and always gets her own way."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Characterized by unscrupulous control of a situation or person.",
+            "mainDefinitionTrans": "Có tính thao túng, hay điều khiển người khác.",
+            "example": "A manipulative person uses your emotions against you.",
+            "synonyms": [
+              { "word": "controlling", "meaning": "kiểm soát" },
+              { "word": "scheming", "meaning": "mưu mô" }
+            ],
+            "antonyms": [
+              { "word": "genuine", "meaning": "chân thành" },
+              { "word": "straightforward", "meaning": "thẳng thắn" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Thao túng",
+                "example": "Manipulative behavior in relationships is toxic."
+              }
+            ],
+            "collocations": [
+              { "phrase": "manipulative behavior", "meaning": "hành vi thao túng" },
+              { "phrase": "emotionally manipulative", "meaning": "thao túng cảm xúc" },
+              { "phrase": "manipulative tactics", "meaning": "chiến thuật thao túng" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Thẳng thắn", "isCorrect": false },
+            { "text": "Hay thao túng, điều khiển", "isCorrect": true },
+            { "text": "Hiền lành", "isCorrect": false },
+            { "text": "Trung thực", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_thoughtful",
+          "front": {
+            "term": "thoughtful",
+            "ipa": "/ˈθɔːtfl/",
+            "contextSentence": "He's very thoughtful and always remembers my birthday."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Showing consideration for the needs of other people.",
+            "mainDefinitionTrans": "Chu đáo, biết suy nghĩ.",
+            "example": "It was thoughtful of you to call.",
+            "synonyms": [
+              { "word": "considerate", "meaning": "chu đáo" },
+              { "word": "kind", "meaning": "tốt bụng" }
+            ],
+            "antonyms": [
+              { "word": "thoughtless", "meaning": "thiếu suy nghĩ" },
+              { "word": "inconsiderate", "meaning": "vô tâm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Chu đáo, biết suy nghĩ",
+                "example": "A thoughtful gift shows you care."
+              }
+            ],
+            "collocations": [
+              { "phrase": "thoughtful gesture", "meaning": "cử chỉ chu đáo" },
+              { "phrase": "thoughtful person", "meaning": "người chu đáo" },
+              { "phrase": "thoughtful present", "meaning": "món quà chu đáo" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Chu đáo, biết suy nghĩ", "isCorrect": true },
+            { "text": "Thờ ơ", "isCorrect": false },
+            { "text": "Thô lỗ", "isCorrect": false },
+            { "text": "Ngớ ngẩn", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_caring",
+          "front": {
+            "term": "caring",
+            "ipa": "/ˈkeərɪŋ/",
+            "contextSentence": "She has a very caring nature."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Displaying kindness and concern for others.",
+            "mainDefinitionTrans": "Quan tâm, chu đáo.",
+            "example": "He's a caring father.",
+            "synonyms": [
+              { "word": "compassionate", "meaning": "nhân ái" },
+              { "word": "kind-hearted", "meaning": "tốt bụng" }
+            ],
+            "antonyms": [
+              { "word": "uncaring", "meaning": "vô tâm" },
+              { "word": "indifferent", "meaning": "thờ ơ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Quan tâm, chu đáo",
+                "example": "A caring attitude makes a big difference."
+              }
+            ],
+            "collocations": [
+              { "phrase": "caring person", "meaning": "người biết quan tâm" },
+              { "phrase": "caring nature", "meaning": "bản chất quan tâm" },
+              { "phrase": "caring profession", "meaning": "nghề nghiệp chăm sóc" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Quan tâm, chu đáo", "isCorrect": true },
+            { "text": "Bỏ bê", "isCorrect": false },
+            { "text": "Hờ hững", "isCorrect": false },
+            { "text": "Lãnh đạm", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_affectionate_l5",
+          "front": {
+            "term": "affectionate",
+            "ipa": "/əˈfekʃənət/",
+            "contextSentence": "He's very affectionate with his children."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Readily showing fondness or tenderness.",
+            "mainDefinitionTrans": "Hay thể hiện tình cảm, âu yếm.",
+            "example": "She gave him an affectionate hug.",
+            "synonyms": [
+              { "word": "loving", "meaning": "yêu thương" },
+              { "word": "tender", "meaning": "dịu dàng" }
+            ],
+            "antonyms": [
+              { "word": "cold", "meaning": "lạnh lùng" },
+              { "word": "unaffectionate", "meaning": "không âu yếm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Âu yếm, thể hiện tình cảm",
+                "example": "Affectionate couples often hold hands."
+              }
+            ],
+            "collocations": [
+              { "phrase": "affectionate person", "meaning": "người hay thể hiện tình cảm" },
+              { "phrase": "affectionate gesture", "meaning": "cử chỉ âu yếm" },
+              { "phrase": "affectionate nature", "meaning": "bản chất âu yếm" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Âu yếm, thể hiện tình cảm", "isCorrect": true },
+            { "text": "Lạnh lùng", "isCorrect": false },
+            { "text": "Khó gần", "isCorrect": false },
+            { "text": "Xa cách", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_dependable",
+          "front": {
+            "term": "dependable / reliable",
+            "ipa": "/dɪˈpendəbl/ /rɪˈlaɪəbl/",
+            "contextSentence": "You can always count on him; he's very dependable."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Trustworthy and reliable.",
+            "mainDefinitionTrans": "Đáng tin cậy.",
+            "example": "A dependable friend is there when you need them.",
+            "synonyms": [
+              { "word": "trustworthy", "meaning": "đáng tin cậy" },
+              { "word": "responsible", "meaning": "có trách nhiệm" }
+            ],
+            "antonyms": [
+              { "word": "unreliable", "meaning": "không đáng tin" },
+              { "word": "untrustworthy", "meaning": "không đáng tin cậy" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Đáng tin cậy",
+                "example": "She's the most dependable employee we have."
+              }
+            ],
+            "collocations": [
+              { "phrase": "dependable person", "meaning": "người đáng tin cậy" },
+              { "phrase": "dependable service", "meaning": "dịch vụ đáng tin cậy" },
+              { "phrase": "dependable source", "meaning": "nguồn đáng tin cậy" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Đáng tin cậy", "isCorrect": true },
+            { "text": "Không đáng tin", "isCorrect": false },
+            { "text": "Bất cẩn", "isCorrect": false },
+            { "text": "Vô trách nhiệm", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_self_centered",
+          "front": {
+            "term": "self-centered / selfish",
+            "ipa": "/ˌself ˈsentəd/ /ˈselfɪʃ/",
+            "contextSentence": "He's too self-centered to think about others' feelings."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Preoccupied with oneself and one's own affairs.",
+            "mainDefinitionTrans": "Ích kỷ, chỉ nghĩ đến bản thân.",
+            "example": "A selfish person puts their own needs first.",
+            "synonyms": [
+              { "word": "egocentric", "meaning": "tự cho mình là trung tâm" },
+              { "word": "narcissistic", "meaning": "tự ái" }
+            ],
+            "antonyms": [
+              { "word": "selfless", "meaning": "vị tha" },
+              { "word": "altruistic", "meaning": "vị tha" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Ích kỷ",
+                "example": "Self-centered behavior can damage relationships."
+              }
+            ],
+            "collocations": [
+              { "phrase": "selfish attitude", "meaning": "thái độ ích kỷ" },
+              { "phrase": "selfish motives", "meaning": "động cơ ích kỷ" },
+              { "phrase": "act selfishly", "meaning": "hành động ích kỷ" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ích kỷ, chỉ nghĩ đến mình", "isCorrect": true },
+            { "text": "Vị tha", "isCorrect": false },
+            { "text": "Rộng lượng", "isCorrect": false },
+            { "text": "Hào phóng", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_inconsiderate",
+          "front": {
+            "term": "inconsiderate",
+            "ipa": "/ˌɪnkənˈsɪdərət/",
+            "contextSentence": "It was inconsiderate of him to be so late."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "Thoughtlessly causing hurt or inconvenience to others.",
+            "mainDefinitionTrans": "Vô tâm, thiếu suy nghĩ.",
+            "example": "Inconsiderate behavior shows lack of respect.",
+            "synonyms": [
+              { "word": "thoughtless", "meaning": "thiếu suy nghĩ" },
+              { "word": "unthinking", "meaning": "không suy nghĩ" }
+            ],
+            "antonyms": [
+              { "word": "considerate", "meaning": "chu đáo" },
+              { "word": "thoughtful", "meaning": "chu đáo" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "adjective",
+                "trans": "Vô tâm, thiếu suy nghĩ",
+                "example": "Playing loud music late at night is inconsiderate."
+              }
+            ],
+            "collocations": [
+              { "phrase": "inconsiderate behavior", "meaning": "hành vi vô tâm" },
+              { "phrase": "inconsiderate remark", "meaning": "lời nhận xét vô tâm" },
+              { "phrase": "act inconsiderately", "meaning": "hành động vô tâm" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Vô tâm, thiếu suy nghĩ", "isCorrect": true },
+            { "text": "Chu đáo", "isCorrect": false },
+            { "text": "Tế nhị", "isCorrect": false },
+            { "text": "Nhạy cảm", "isCorrect": false }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-03-01T10:00:00Z",
+      "updated_at": "2024-03-01T10:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_relationship_idioms",
+      "type": "flashcard",
+      "title": "Idioms & Phrases",
+      "instruction": "<p>Chọn nghĩa đúng Tiếng Việt.</p>",
+      "flashcards": [
+        {
+          "id": "fc_head_over_heels",
+          "front": {
+            "term": "fall head over heels in love",
+            "ipa": "/fɔːl hed ˈəʊvə hiːlz ɪn lʌv/",
+            "contextSentence": "He fell head over heels in love with her the moment they met."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To fall deeply and suddenly in love with someone.",
+            "mainDefinitionTrans": "Yêu say đắm, yêu cuồng nhiệt.",
+            "example": "They are perfectly head over heels in love.",
+            "synonyms": [
+              { "word": "madly in love", "meaning": "yêu điên cuồng" },
+              { "word": "passionately in love", "meaning": "yêu say đắm" }
+            ],
+            "antonyms": [
+              { "word": "fall out of love", "meaning": "hết yêu" },
+              { "word": "be indifferent", "meaning": "thờ ơ" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Yêu say đắm",
+                "example": "Completely head over heels for someone."
+              }
+            ],
+            "collocations": [
+              { "phrase": "head over heels", "meaning": "say đắm" },
+              { "phrase": "fall head over heels", "meaning": "yêu say đắm" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Hết yêu ai đó", "isCorrect": false },
+            { "text": "Yêu say đắm, cuồng nhiệt", "isCorrect": true },
+            { "text": "Cãi nhau với ai", "isCorrect": false },
+            { "text": "Chia tay bạn trai", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_tie_the_knot",
+          "front": {
+            "term": "tie the knot",
+            "ipa": "/taɪ ðə nɒt/",
+            "contextSentence": "They are finally tying the knot this summer after a long engagement."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To get married.",
+            "mainDefinitionTrans": "Kết hôn, lấy nhau.",
+            "example": "So when are you two going to tie the knot?",
+            "synonyms": [
+              { "word": "get married", "meaning": "kết hôn" },
+              { "word": "get hitched", "meaning": "kết hôn (thông tục)" }
+            ],
+            "antonyms": [
+              { "word": "get divorced", "meaning": "ly dị" },
+              { "word": "split up", "meaning": "chia tay" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Kết hôn",
+                "example": "They tied the knot in Vegas."
+              }
+            ],
+            "collocations": [
+              { "phrase": "tie the knot", "meaning": "kết hôn" },
+              { "phrase": "finally tie the knot", "meaning": "cuối cùng cũng kết hôn" },
+              { "phrase": "plan to tie the knot", "meaning": "dự định kết hôn" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Chia tay", "isCorrect": false },
+            { "text": "Kết hôn", "isCorrect": true },
+            { "text": "Đã đính hôn", "isCorrect": false },
+            { "text": "Hẹn hò", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_pop_question",
+          "front": {
+            "term": "pop the question",
+            "ipa": "/pɒp ðə ˈkwestʃən/",
+            "contextSentence": "He's planning to pop the question on their anniversary."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To propose marriage.",
+            "mainDefinitionTrans": "Cầu hôn.",
+            "example": "He finally popped the question last night.",
+            "synonyms": [
+              { "word": "propose", "meaning": "cầu hôn" },
+              { "word": "ask for someone's hand", "meaning": "cầu hôn" }
+            ],
+            "antonyms": [
+              { "word": "reject a proposal", "meaning": "từ chối lời cầu hôn" },
+              { "word": "break off an engagement", "meaning": "hủy đính hôn" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Cầu hôn",
+                "example": "He popped the question at the Eiffel Tower."
+              }
+            ],
+            "collocations": [
+              { "phrase": "pop the question", "meaning": "cầu hôn" },
+              { "phrase": "nervous to pop the question", "meaning": "hồi hộp khi cầu hôn" },
+              {
+                "phrase": "right time to pop the question",
+                "meaning": "thời điểm thích hợp để cầu hôn"
+              }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Cầu hôn", "isCorrect": true },
+            { "text": "Hỏi đường", "isCorrect": false },
+            { "text": "Đặt câu hỏi", "isCorrect": false },
+            { "text": "Thắc mắc", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_settle_down",
+          "front": {
+            "term": "settle down",
+            "ipa": "/ˈsetl daʊn/",
+            "contextSentence": "They want to settle down and start a family."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To establish a stable life in one place, especially by marrying.",
+            "mainDefinitionTrans": "Ổn định cuộc sống (thường sau khi lập gia đình).",
+            "example": "It's time to settle down and have kids.",
+            "synonyms": [
+              { "word": "start a family", "meaning": "bắt đầu gia đình" },
+              { "word": "put down roots", "meaning": "ổn định" }
+            ],
+            "antonyms": [
+              { "word": "live it up", "meaning": "sống phóng khoáng" },
+              { "word": "be footloose", "meaning": "tự do phiêu lưu" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Ổn định cuộc sống",
+                "example": "After traveling, he's ready to settle down."
+              }
+            ],
+            "collocations": [
+              { "phrase": "settle down with someone", "meaning": "ổn định với ai" },
+              { "phrase": "ready to settle down", "meaning": "sẵn sàng ổn định" },
+              { "phrase": "settle down and marry", "meaning": "ổn định và kết hôn" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Ổn định cuộc sống", "isCorrect": true },
+            { "text": "Bỏ cuộc", "isCorrect": false },
+            { "text": "Chuyển nhà", "isCorrect": false },
+            { "text": "Nghỉ ngơi", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_ups_downs",
+          "front": {
+            "term": "have ups and downs",
+            "ipa": "/hæv ʌps ənd daʊnz/",
+            "contextSentence": "Every relationship has its ups and downs."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To experience both good and bad periods.",
+            "mainDefinitionTrans": "Có lúc thăng lúc trầm.",
+            "example": "Marriage has its ups and downs.",
+            "synonyms": [
+              { "word": "highs and lows", "meaning": "cao và thấp" },
+              { "word": "good times and bad", "meaning": "thời điểm tốt và xấu" }
+            ],
+            "antonyms": [
+              { "word": "smooth sailing", "meaning": "thuận buồm xuôi gió" },
+              { "word": "consistent", "meaning": "ổn định" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Thăng trầm",
+                "example": "We've had our ups and downs, but we're still together."
+              }
+            ],
+            "collocations": [
+              { "phrase": "ups and downs of marriage", "meaning": "thăng trầm của hôn nhân" },
+              { "phrase": "ups and downs in life", "meaning": "thăng trầm trong cuộc sống" },
+              { "phrase": "weather the ups and downs", "meaning": "vượt qua thăng trầm" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Có lúc thăng lúc trầm", "isCorrect": true },
+            { "text": "Luôn hạnh phúc", "isCorrect": false },
+            { "text": "Toàn là xui xẻo", "isCorrect": false },
+            { "text": "Ổn định mãi", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_work_through",
+          "front": {
+            "term": "work through problems",
+            "ipa": "/wɜːrk θruː ˈprɒbləmz/",
+            "contextSentence": "They decided to work through their problems instead of breaking up."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To resolve difficulties by discussing and dealing with them.",
+            "mainDefinitionTrans": "Cùng nhau vượt qua khó khăn.",
+            "example": "Counseling helps couples work through their issues.",
+            "synonyms": [
+              { "word": "resolve issues", "meaning": "giải quyết vấn đề" },
+              { "word": "overcome problems", "meaning": "vượt qua vấn đề" }
+            ],
+            "antonyms": [
+              { "word": "ignore problems", "meaning": "phớt lờ vấn đề" },
+              { "word": "avoid issues", "meaning": "tránh né vấn đề" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Vượt qua vấn đề",
+                "example": "It takes effort to work through relationship problems."
+              }
+            ],
+            "collocations": [
+              { "phrase": "work through difficulties", "meaning": "vượt qua khó khăn" },
+              { "phrase": "work through issues", "meaning": "vượt qua vấn đề" },
+              { "phrase": "work through together", "meaning": "cùng nhau vượt qua" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Cùng nhau vượt qua khó khăn", "isCorrect": true },
+            { "text": "Tạo ra vấn đề", "isCorrect": false },
+            { "text": "Phớt lờ khó khăn", "isCorrect": false },
+            { "text": "Chạy trốn khó khăn", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_cold_shoulder",
+          "front": {
+            "term": "give someone the cold shoulder",
+            "ipa": "/ɡɪv ˈsʌmwʌn ðə kəʊld ˈʃəʊldə/",
+            "contextSentence": "She gave him the cold shoulder after their argument."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To deliberately ignore someone or treat them in an unfriendly way.",
+            "mainDefinitionTrans": "Thờ ơ, lạnh nhạt với ai.",
+            "example": "He's been giving me the cold shoulder all week.",
+            "synonyms": [
+              { "word": "ignore", "meaning": "phớt lờ" },
+              { "word": "snub", "meaning": "khinh thường" }
+            ],
+            "antonyms": [
+              { "word": "welcome", "meaning": "chào đón" },
+              { "word": "embrace", "meaning": "ôm ấp" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Thờ ơ, lạnh nhạt",
+                "example": "Getting the cold shoulder hurts."
+              }
+            ],
+            "collocations": [
+              { "phrase": "give the cold shoulder", "meaning": "thờ ơ" },
+              { "phrase": "get the cold shoulder", "meaning": "bị thờ ơ" },
+              { "phrase": "cold shoulder treatment", "meaning": "sự đối xử lạnh nhạt" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Thờ ơ, lạnh nhạt với ai", "isCorrect": true },
+            { "text": "Ôm ấp ai đó", "isCorrect": false },
+            { "text": "Chào đón ai đó", "isCorrect": false },
+            { "text": "Khích lệ ai đó", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_heart_to_heart",
+          "front": {
+            "term": "have a heart-to-heart talk",
+            "ipa": "/hæv ə hɑːt tə hɑːt tɔːk/",
+            "contextSentence": "We need to have a heart-to-heart talk about our future."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To have a sincere and intimate conversation.",
+            "mainDefinitionTrans": "Nói chuyện chân tình, cởi mở.",
+            "example": "After our heart-to-heart, I felt much better.",
+            "synonyms": [
+              { "word": "open conversation", "meaning": "cuộc trò chuyện cởi mở" },
+              { "word": "deep talk", "meaning": "nói chuyện sâu sắc" }
+            ],
+            "antonyms": [
+              { "word": "superficial chat", "meaning": "trò chuyện hời hợt" },
+              { "word": "small talk", "meaning": "trò chuyện xã giao" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Nói chuyện chân tình",
+                "example": "A heart-to-heart can solve many misunderstandings."
+              }
+            ],
+            "collocations": [
+              { "phrase": "heart-to-heart conversation", "meaning": "cuộc trò chuyện chân tình" },
+              { "phrase": "heart-to-heart talk", "meaning": "nói chuyện chân tình" },
+              { "phrase": "have a heart-to-heart", "meaning": "có cuộc nói chuyện chân tình" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Nói chuyện chân tình, cởi mở", "isCorrect": true },
+            { "text": "Nói chuyện phiếm", "isCorrect": false },
+            { "text": "Tranh cãi", "isCorrect": false },
+            { "text": "Độc thoại", "isCorrect": false }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-03-01T10:00:00Z",
+      "updated_at": "2024-03-01T10:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_relationship_verbs",
+      "type": "flashcard",
+      "title": "Verbs & Phrasal Verbs",
+      "instruction": "<p>Chọn nghĩa đúng Tiếng Việt.</p>",
+      "flashcards": [
+        {
+          "id": "fc_get_along",
+          "front": {
+            "term": "get along (with someone)",
+            "ipa": "/ɡet əˈlɒŋ wɪð ˈsʌmwʌn/",
+            "contextSentence": "I get along very well with my mother-in-law."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To have a harmonious or friendly relationship.",
+            "mainDefinitionTrans": "Hòa thuận, hợp nhau.",
+            "example": "Do you get along with your colleagues?",
+            "synonyms": [
+              { "word": "get on", "meaning": "hòa thuận" },
+              { "word": "be compatible", "meaning": "tương hợp" }
+            ],
+            "antonyms": [
+              { "word": "clash", "meaning": "xung đột" },
+              { "word": "not get along", "meaning": "không hòa thuận" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Hòa thuận",
+                "example": "They just don't get along."
+              }
+            ],
+            "collocations": [
+              { "phrase": "get along well", "meaning": "hòa thuận tốt" },
+              { "phrase": "get along famously", "meaning": "hòa thuận tuyệt vời" },
+              { "phrase": "struggle to get along", "meaning": "khó khăn để hòa thuận" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Tranh cãi với ai", "isCorrect": false },
+            { "text": "Hòa thuận, hợp nhau", "isCorrect": true },
+            { "text": "Ghét bỏ ai", "isCorrect": false },
+            { "text": "Yêu cầu ai", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_put_up_with",
+          "front": {
+            "term": "put up with someone",
+            "ipa": "/pʊt ʌp wɪð ˈsʌmwʌn/",
+            "contextSentence": "I don't know how she puts up with his constant complaining."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To tolerate or endure something or someone unpleasant.",
+            "mainDefinitionTrans": "Chịu đựng ai đó/điều gì đó.",
+            "example": "She put up with his bad temper for years.",
+            "synonyms": [
+              { "word": "tolerate", "meaning": "tha thứ, chịu đựng" },
+              { "word": "endure", "meaning": "chịu đựng" }
+            ],
+            "antonyms": [
+              { "word": "reject", "meaning": "từ chối" },
+              { "word": "refuse to tolerate", "meaning": "từ chối chịu đựng" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Chịu đựng",
+                "example": "I can't put up with it anymore."
+              }
+            ],
+            "collocations": [
+              { "phrase": "put up with nonsense", "meaning": "chịu đựng chuyện vô lý" },
+              { "phrase": "won't put up with", "meaning": "sẽ không chịu đựng" },
+              { "phrase": "put up with behavior", "meaning": "chịu đựng hành vi" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Chịu đựng ai đó", "isCorrect": true },
+            { "text": "Yêu quý ai đó", "isCorrect": false },
+            { "text": "Giúp đỡ ai đó", "isCorrect": false },
+            { "text": "Bỏ rơi ai đó", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_grow_on",
+          "front": {
+            "term": "grow on someone",
+            "ipa": "/ɡrəʊ ɒn ˈsʌmwʌn/",
+            "contextSentence": "I didn't like him at first, but he's grown on me."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To become more liked or enjoyable over time.",
+            "mainDefinitionTrans": "Dần trở nên thích ai/điều gì.",
+            "example": "This song grows on you after a few listens.",
+            "synonyms": [
+              { "word": "become appealing", "meaning": "trở nên hấp dẫn" },
+              { "word": "warm to", "meaning": "ấm lên với" }
+            ],
+            "antonyms": [
+              { "word": "repel", "meaning": "đẩy lùi" },
+              { "word": "become disliked", "meaning": "trở nên bị ghét" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Dần thích",
+                "example": "He's the kind of person who grows on you."
+              }
+            ],
+            "collocations": [
+              { "phrase": "grow on you", "meaning": "dần thích bạn" },
+              { "phrase": "slowly grow on", "meaning": "dần dần thích" },
+              { "phrase": "eventually grow on", "meaning": "cuối cùng cũng thích" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Dần trở nên thích", "isCorrect": true },
+            { "text": "Ngay lập tức ghét", "isCorrect": false },
+            { "text": "Làm ai đó phát triển", "isCorrect": false },
+            { "text": "Trồng cây trên ai", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_have_feelings",
+          "front": {
+            "term": "have feelings for someone",
+            "ipa": "/hæv ˈfiːlɪŋz fɔː ˈsʌmwʌn/",
+            "contextSentence": "I think he has feelings for her."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To have romantic feelings towards someone.",
+            "mainDefinitionTrans": "Có tình cảm với ai.",
+            "example": "She admitted she has feelings for her best friend.",
+            "synonyms": [
+              { "word": "be attracted to", "meaning": "bị thu hút bởi" },
+              { "word": "have a crush on", "meaning": "cảm nắng" }
+            ],
+            "antonyms": [
+              { "word": "be indifferent", "meaning": "thờ ơ" },
+              { "word": "have no feelings", "meaning": "không có tình cảm" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Có tình cảm",
+                "example": "Having feelings for someone can be confusing."
+              }
+            ],
+            "collocations": [
+              { "phrase": "develop feelings", "meaning": "phát triển tình cảm" },
+              { "phrase": "strong feelings", "meaning": "tình cảm mạnh mẽ" },
+              { "phrase": "mutual feelings", "meaning": "tình cảm hai chiều" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Có tình cảm với ai", "isCorrect": true },
+            { "text": "Ghét ai đó", "isCorrect": false },
+            { "text": "Thờ ơ với ai", "isCorrect": false },
+            { "text": "Giận ai đó", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_be_over",
+          "front": {
+            "term": "be over someone",
+            "ipa": "/biː ˈəʊvə ˈsʌmwʌn/",
+            "contextSentence": "It took me a year to be over my ex."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To have recovered from a past romantic relationship.",
+            "mainDefinitionTrans": "Vượt qua, hết yêu ai.",
+            "example": "She says she's completely over him now.",
+            "synonyms": [
+              { "word": "get over", "meaning": "vượt qua" },
+              { "word": "move on", "meaning": "tiến lên" }
+            ],
+            "antonyms": [
+              { "word": "still hung up on", "meaning": "vẫn còn vương vấn" },
+              { "word": "not over", "meaning": "chưa vượt qua" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Vượt qua ai đó",
+                "example": "Being over someone takes time."
+              }
+            ],
+            "collocations": [
+              { "phrase": "completely over", "meaning": "hoàn toàn vượt qua" },
+              { "phrase": "never be over", "meaning": "không bao giờ vượt qua" },
+              { "phrase": "finally over", "meaning": "cuối cùng cũng vượt qua" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Vượt qua, hết yêu ai", "isCorrect": true },
+            { "text": "Yêu ai đó", "isCorrect": false },
+            { "text": "Ở trên ai đó", "isCorrect": false },
+            { "text": "Theo dõi ai đó", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_lead_on",
+          "front": {
+            "term": "lead someone on",
+            "ipa": "/liːd ˈsʌmwʌn ɒn/",
+            "contextSentence": "He led her on by saying he loved her."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To make someone believe something that is not true, especially about your feelings.",
+            "mainDefinitionTrans": "Làm cho ai hiểu lầm về tình cảm của mình.",
+            "example": "Don't lead him on if you're not interested.",
+            "synonyms": [
+              { "word": "deceive", "meaning": "lừa dối" },
+              { "word": "give false hope", "meaning": "cho hy vọng sai" }
+            ],
+            "antonyms": [
+              { "word": "be honest", "meaning": "thành thật" },
+              { "word": "be straightforward", "meaning": "thẳng thắn" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrasal verb",
+                "trans": "Lừa dối tình cảm",
+                "example": "Leading someone on is cruel."
+              }
+            ],
+            "collocations": [
+              { "phrase": "lead someone on", "meaning": "lừa dối ai" },
+              { "phrase": "accuse of leading on", "meaning": "buộc tội lừa dối" },
+              { "phrase": "feel led on", "meaning": "cảm thấy bị lừa dối" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Làm ai hiểu lầm về tình cảm", "isCorrect": true },
+            { "text": "Dẫn đường cho ai", "isCorrect": false },
+            { "text": "Giúp đỡ ai", "isCorrect": false },
+            { "text": "Yêu thương ai", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_call_quits",
+          "front": {
+            "term": "call it quits",
+            "ipa": "/kɔːl ɪt kwɪts/",
+            "contextSentence": "After five years, they decided to call it quits."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To end a relationship or stop doing something.",
+            "mainDefinitionTrans": "Kết thúc, chia tay.",
+            "example": "It's time to call it quits on this project.",
+            "synonyms": [
+              { "word": "break up", "meaning": "chia tay" },
+              { "word": "end things", "meaning": "kết thúc" }
+            ],
+            "antonyms": [
+              { "word": "continue", "meaning": "tiếp tục" },
+              { "word": "keep going", "meaning": "tiếp tục" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "idiom",
+                "trans": "Kết thúc",
+                "example": "Sometimes it's best to call it quits."
+              }
+            ],
+            "collocations": [
+              { "phrase": "decide to call it quits", "meaning": "quyết định kết thúc" },
+              { "phrase": "time to call it quits", "meaning": "thời điểm để kết thúc" },
+              { "phrase": "call it quits on a relationship", "meaning": "kết thúc mối quan hệ" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Kết thúc, chia tay", "isCorrect": true },
+            { "text": "Gọi cho ai", "isCorrect": false },
+            { "text": "Tiếp tục làm gì", "isCorrect": false },
+            { "text": "Bắt đầu mới", "isCorrect": false }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc_work_on",
+          "front": {
+            "term": "work on a relationship",
+            "ipa": "/wɜːrk ɒn ə rɪˈleɪʃnʃɪp/",
+            "contextSentence": "They're working on their marriage with a counselor."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "To make efforts to improve or repair a relationship.",
+            "mainDefinitionTrans": "Cố gắng vun đắp cho mối quan hệ.",
+            "example": "You have to work on a relationship to keep it healthy.",
+            "synonyms": [
+              { "word": "improve a relationship", "meaning": "cải thiện mối quan hệ" },
+              { "word": "strengthen a relationship", "meaning": "củng cố mối quan hệ" }
+            ],
+            "antonyms": [
+              { "word": "neglect a relationship", "meaning": "bỏ bê mối quan hệ" },
+              { "word": "ignore problems", "meaning": "phớt lờ vấn đề" }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "phrase",
+                "trans": "Vun đắp mối quan hệ",
+                "example": "Working on communication helps relationships."
+              }
+            ],
+            "collocations": [
+              { "phrase": "work on communication", "meaning": "làm việc về giao tiếp" },
+              { "phrase": "work on trust", "meaning": "xây dựng lòng tin" },
+              { "phrase": "work on issues", "meaning": "giải quyết vấn đề" }
+            ]
+          },
+          "optionsTrans": [
+            { "text": "Cố gắng vun đắp mối quan hệ", "isCorrect": true },
+            { "text": "Phá hủy mối quan hệ", "isCorrect": false },
+            { "text": "Làm việc cùng ai", "isCorrect": false },
+            { "text": "Nghỉ việc", "isCorrect": false }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-03-01T10:00:00Z",
+      "updated_at": "2024-03-01T10:00:00Z",
+      "status": "active"
+    }
+  ],
+  "status": "active"
+}

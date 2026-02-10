@@ -5,7 +5,7 @@ class Term {
     required this.definition,
     required this.addedAt,
     this.phonetics = const [],
-    this.isMastered = false,
+    this.masteryLevel = 0.0,
   });
 
   factory Term.fromJson(Map<String, dynamic> json) {
@@ -17,7 +17,7 @@ class Term {
               ?.map((e) => e as String)
               .toList() ??
           [],
-      isMastered: json['isMastered'] as bool? ?? false,
+      masteryLevel: (json['masteryLevel'] as num?)?.toDouble() ?? 0.0,
       addedAt: DateTime.parse(json['addedAt'] as String),
     );
   }
@@ -26,7 +26,7 @@ class Term {
   final String term;
   final String definition; // JSON string chứa full dictionary data
   final List<String> phonetics;
-  final bool isMastered;
+  final double masteryLevel; // 0.0 to 1.0 (0% to 100%)
   final DateTime addedAt;
 
   Term copyWith({
@@ -34,7 +34,7 @@ class Term {
     String? term,
     String? definition,
     List<String>? phonetics,
-    bool? isMastered,
+    double? masteryLevel,
     DateTime? addedAt,
   }) {
     return Term(
@@ -42,7 +42,7 @@ class Term {
       term: term ?? this.term,
       definition: definition ?? this.definition,
       phonetics: phonetics ?? this.phonetics,
-      isMastered: isMastered ?? this.isMastered,
+      masteryLevel: masteryLevel ?? this.masteryLevel,
       addedAt: addedAt ?? this.addedAt,
     );
   }
@@ -53,7 +53,7 @@ class Term {
       'term': term,
       'definition': definition,
       'phonetics': phonetics,
-      'isMastered': isMastered,
+      'masteryLevel': masteryLevel,
       'addedAt': addedAt.toIso8601String(),
     };
   }

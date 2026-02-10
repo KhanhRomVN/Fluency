@@ -25,11 +25,11 @@ abstract class CollectionRepository {
   /// Xóa term khỏi collection
   Future<void> removeTermFromCollection(String collectionId, String termId);
 
-  /// Cập nhật mastery status của term
-  Future<void> updateTermMastery(
+  /// Cập nhật tiến độ của term (0.0 đến 1.0)
+  Future<void> updateTermProgress(
     String collectionId,
     String termId,
-    bool isMastered,
+    double progress,
   );
 
   /// Import collection từ file (CSV, Excel, etc.)
@@ -40,4 +40,7 @@ abstract class CollectionRepository {
 
   /// Kiểm tra xem term đã có trong collection chưa
   Future<bool> isTermInCollection(String collectionId, String term);
+
+  /// Kiểm tra xem term đã có trong bất kỳ collection nào chưa
+  Future<bool> isTermInAnyCollection(String term);
 }

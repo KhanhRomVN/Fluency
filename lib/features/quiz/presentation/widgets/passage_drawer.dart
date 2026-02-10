@@ -136,7 +136,7 @@ class _PassageDrawerState extends State<PassageDrawer> {
           height: MediaQuery.of(context).size.height * 0.75,
           child: Container(
             decoration: BoxDecoration(
-              color: appColors.background,
+              color: appColors.cardBackground,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(24),
               ),

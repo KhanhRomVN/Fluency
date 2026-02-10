@@ -1,6 +1,7 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 import 'package:fluency/features/collection/domain/entities/collection.dart';
+import 'package:fluency/features/collection/presentation/widgets/drawers/edit_collection_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -43,149 +44,15 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
     }
   }
 
-  Future<void> _editCollection() async {
-    Navigator.pop(context);
-    final nameController = TextEditingController(text: widget.collection.name);
-    final descController =
-        TextEditingController(text: widget.collection.description ?? '');
-
-    await showModalBottomSheet<void>(
+  void _editCollection() {
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: appColors.cardBackground,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Edit Collection',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: nameController,
-                  style: TextStyle(color: appColors.textPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Collection Name',
-                    labelStyle: TextStyle(color: appColors.textSecondary),
-                    filled: true,
-                    fillColor: appColors.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: appColors.primary, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descController,
-                  style: TextStyle(color: appColors.textPrimary),
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Description',
-                    labelStyle: TextStyle(color: appColors.textSecondary),
-                    filled: true,
-                    fillColor: appColors.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: appColors.primary, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final name = nameController.text.trim();
-                      if (name.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please enter a collection name'),
-                          ),
-                        );
-                        return;
-                      }
-
-                      final updated = widget.collection.copyWith(
-                        name: name,
-                        description: descController.text.trim().isEmpty
-                            ? null
-                            : descController.text.trim(),
-                      );
-
-                      await _repository.updateCollection(updated);
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        widget.onUpdated();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Collection updated!'),
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Save',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (context) => EditCollectionDrawer(
+        collection: widget.collection,
+        onUpdated: widget.onUpdated,
+      ),
     );
   }
 
@@ -269,7 +136,7 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                widget.collection.name,
+                'Collection Options',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -303,6 +170,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
                   _buildOption(
                     icon: Icons.share_outlined,
                     title: 'Share',
+                    subtitle: 'Share this collection with others',
+                    color: appColors.primary,
                     onTap: _shareCollection,
                     appColors: appColors,
                   ),
@@ -310,6 +179,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
                   _buildOption(
                     icon: Icons.edit_outlined,
                     title: 'Edit',
+                    subtitle: 'Change name or description',
+                    color: Colors.green,
                     onTap: _editCollection,
                     appColors: appColors,
                   ),
@@ -317,6 +188,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
                   _buildOption(
                     icon: Icons.download_outlined,
                     title: 'Export',
+                    subtitle: 'Save collection to your device',
+                    color: Colors.orange,
                     onTap: _exportCollection,
                     appColors: appColors,
                   ),
@@ -324,6 +197,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
                   _buildOption(
                     icon: Icons.delete_outline,
                     title: 'Delete',
+                    subtitle: 'Permanently remove this collection',
+                    color: Colors.red,
                     onTap: _deleteCollection,
                     appColors: appColors,
                     isDanger: true,
@@ -340,6 +215,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
   Widget _buildOption({
     required IconData icon,
     required String title,
+    required String subtitle,
+    required Color color,
     required VoidCallback onTap,
     required AppColorsExtension appColors,
     bool isDanger = false,
@@ -350,26 +227,41 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: isDanger ? Colors.red : appColors.primary,
-              size: 24,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isDanger ? Colors.red : appColors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDanger ? Colors.red : appColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: appColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: isDanger ? Colors.red : appColors.textSecondary,
             ),
           ],
         ),

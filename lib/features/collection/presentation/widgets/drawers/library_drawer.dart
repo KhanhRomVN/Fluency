@@ -21,7 +21,7 @@ class LibraryDrawer extends StatelessWidget {
       height: MediaQuery.of(context).size.height * 0.5,
       child: Container(
         decoration: BoxDecoration(
-          color: appColors.background,
+          color: appColors.cardBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
@@ -66,6 +66,7 @@ class LibraryDrawer extends StatelessWidget {
               icon: Icons.add_circle_outline,
               title: 'Create Collection',
               subtitle: 'Start a new collection from scratch',
+              color: appColors.primary,
               onTap: () {
                 Navigator.pop(context);
                 showModalBottomSheet<void>(
@@ -91,6 +92,7 @@ class LibraryDrawer extends StatelessWidget {
               icon: Icons.file_upload_outlined,
               title: 'Import Collection',
               subtitle: 'Import from CSV, Excel, or Sheets',
+              color: Colors.orange,
               onTap: () {
                 Navigator.pop(context);
                 showModalBottomSheet<void>(
@@ -116,6 +118,7 @@ class LibraryDrawer extends StatelessWidget {
               icon: Icons.folder_special_outlined,
               title: 'Fluency Files',
               subtitle: 'Pre-made collections by Fluency',
+              color: Colors.indigo,
               onTap: () {
                 // TODO(collection): Implement Fluency Files
                 Navigator.pop(context);
@@ -139,6 +142,7 @@ class LibraryDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
+    required Color color,
     required VoidCallback onTap,
     required AppColorsExtension appColors,
   }) {
@@ -149,7 +153,14 @@ class LibraryDrawer extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Row(
           children: [
-            Icon(icon, color: appColors.primary, size: 28),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

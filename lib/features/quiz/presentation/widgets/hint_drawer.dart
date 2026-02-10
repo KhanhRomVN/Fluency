@@ -41,7 +41,7 @@ class HintDrawer extends StatelessWidget {
           child: Container(
             height: MediaQuery.of(context).size.height * 0.5,
             decoration: BoxDecoration(
-              color: appColors.background,
+              color: appColors.cardBackground,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(24),
               ),

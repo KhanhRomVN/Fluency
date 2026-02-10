@@ -171,7 +171,7 @@ class _ExplainDrawerState extends State<ExplainDrawer>
                   child: Container(
                     height: MediaQuery.of(context).size.height * 0.70,
                     decoration: BoxDecoration(
-                      color: appColors.background,
+                      color: appColors.cardBackground,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(24),
                       ),

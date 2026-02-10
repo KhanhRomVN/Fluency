@@ -18,7 +18,7 @@ import 'package:uuid/uuid.dart';
 
 class CourseRepository {
   // List of known course files in assets
-  static const String _coursesAssetPath = 'lib/features/course/assets/courses';
+  static const String _coursesAssetPath = 'assets/courses';
   final ZipCourseLoader _zipLoader = ZipCourseLoader();
 
   // Web Only: specific cache for imported courses in current session

@@ -1,6 +1,8 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/setting/data/services/app_info_service.dart';
+import 'package:fluency/features/setting/presentation/pages/open_source_lib_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -42,227 +44,199 @@ class _AboutPageState extends State<AboutPage> {
     final primaryColor = colors?.primary ?? Theme.of(context).primaryColor;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Scrollable Header
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 48, 16, 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 20,
-                      color: colors?.textPrimary,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'About App',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colors?.textPrimary,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 24, 16, 16),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned(
+                      left: 0,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: SvgPicture.asset(
+                          'assets/icons/chevron_left.svg',
+                          width: 24,
+                          height: 24,
+                          colorFilter: ColorFilter.mode(
+                            colors?.textPrimary ?? Colors.black,
+                            BlendMode.srcIn,
+                          ),
                         ),
-                  ),
-                ],
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ),
+                    Text(
+                      'About App',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colors?.textPrimary,
+                          ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-
-          // Content
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // App Icon and Name
-                Center(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 24),
-                      Container(
-                        width: 110,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          color: primaryColor,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryColor.withValues(alpha: 0.3),
-                              blurRadius: 30,
-                              offset: const Offset(0, 15),
-                              spreadRadius: -2,
+            // Content
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // App Icon and Name
+                  Center(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 24),
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            color: primaryColor,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: primaryColor.withValues(alpha: 0.3),
+                                blurRadius: 30,
+                                offset: const Offset(0, 15),
+                                spreadRadius: -2,
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28),
+                            child: Image.asset(
+                              'assets/logo.png',
+                              fit: BoxFit.cover,
                             ),
-                          ],
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.school_rounded,
-                          size: 56,
-                          color: Colors.white,
+                        const SizedBox(height: 24),
+                        Text(
+                          _appName,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                                color: colors?.textPrimary,
+                              ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        _appName,
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                  color: colors?.textPrimary,
-                                ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Version $_version',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: primaryColor,
-                                  ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 48),
-
-                // Description
-                _buildPremiumCard(
-                  context,
-                  icon: Icons.description_rounded,
-                  title: 'Description',
-                  content:
-                      'Fluency is a premier language learning application designed to elevate your English proficiency through immersive interactive quizzes, comprehensive listening exercises, and curated reading materials.',
-                  primaryColor: primaryColor,
-                  colors: colors,
-                ),
-                const SizedBox(height: 16),
-
-                // Credits
-                _buildPremiumCard(
-                  context,
-                  icon: Icons.stars_rounded,
-                  title: 'Engineered by',
-                  primaryColor: primaryColor,
-                  colors: colors,
-                  child: Column(
-                    children: [
-                      _InfoRow(
-                        icon: Icons.person_rounded,
-                        iconColor: primaryColor,
-                        label: 'Lead Developer',
-                        value: 'KhanhRomVN',
-                        primaryColor: primaryColor,
-                      ),
-                      Divider(
-                        height: 32,
-                        color: colors?.divider?.withOpacity(0.5),
-                      ),
-                      _InfoRow(
-                        icon: Icons.flutter_dash_rounded,
-                        iconColor: primaryColor,
-                        label: 'Framework',
-                        value: 'Flutter Stable',
-                        primaryColor: primaryColor,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // License Tile
-                Card(
-                  elevation: 0,
-                  color: Theme.of(context).cardColor.withOpacity(0.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: colors?.divider?.withOpacity(0.1) ??
-                          Theme.of(context).dividerColor.withOpacity(0.05),
+                      ],
                     ),
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.article_rounded,
-                        color: primaryColor,
-                        size: 24,
-                      ),
-                    ),
-                    title: const Text(
-                      'Open Source Libraries',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text('View third-party licenses'),
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: colors?.textSecondary?.withOpacity(0.3),
-                    ),
+                  const SizedBox(height: 48),
+
+                  // Description
+                  _buildSection(
+                    context,
+                    icon: Icons.description_rounded,
+                    title: 'Description',
+                    content:
+                        'Fluency is a premier language learning application designed to elevate your English proficiency through immersive interactive quizzes, comprehensive listening exercises, and curated reading materials.',
+                    primaryColor: primaryColor,
+                    colors: colors,
+                  ),
+
+                  Divider(height: 32, color: colors?.divider.withOpacity(0.3)),
+
+                  // Open Source Libraries
+                  InkWell(
                     onTap: () {
-                      showLicensePage(
-                        context: context,
-                        applicationName: _appName,
-                        applicationVersion: _version,
+                      Navigator.push<void>(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (context) => OpenSourceLibPage(
+                            applicationName: _appName,
+                            applicationVersion: _version,
+                          ),
+                        ),
                       );
                     },
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.article_rounded,
+                            color: primaryColor,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            'Open Source Libraries',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colors?.textPrimary,
+                                ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: colors?.textSecondary.withOpacity(0.3),
+                          size: 20,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 48),
+                  const SizedBox(height: 48),
 
-                // Copyright
-                Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.favorite_rounded,
-                        color: Colors.red.withValues(alpha: 0.7),
-                        size: 20,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '© 2026 Fluency',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colors?.textSecondary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      Text(
-                        'Crafted with passion using Flutter',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colors?.textSecondary?.withOpacity(0.5),
-                              fontSize: 12,
-                            ),
-                      ),
-                    ],
+                  // Copyright
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.favorite_rounded,
+                          color: Colors.red.withValues(alpha: 0.7),
+                          size: 20,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '© 2026 Fluency',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colors?.textSecondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        Text(
+                          'Crafted with passion using Flutter',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                color: colors?.textSecondary.withOpacity(0.5),
+                                fontSize: 12,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 40),
-              ]),
+                  const SizedBox(height: 40),
+                ]),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPremiumCard(
+  Widget _buildSection(
     BuildContext context, {
     required IconData icon,
     required String title,
@@ -271,62 +245,51 @@ class _AboutPageState extends State<AboutPage> {
     required Color primaryColor,
     required AppColorsExtension? colors,
   }) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context).cardColor.withOpacity(0.5),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: colors?.divider?.withOpacity(0.1) ??
-              Theme.of(context).dividerColor.withOpacity(0.05),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: primaryColor,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            if (content != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                content,
-                style: TextStyle(
-                  height: 1.6,
-                  fontSize: 14,
-                  color: colors?.textSecondary,
-                ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-            ],
-            if (child != null) ...[
-              const SizedBox(height: 20),
-              child,
-            ],
+              child: Icon(
+                icon,
+                color: primaryColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colors?.textPrimary,
+                    ),
+              ),
+            ),
           ],
         ),
-      ),
+        if (content != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: TextStyle(
+              height: 1.6,
+              fontSize: 14,
+              color: colors?.textSecondary,
+            ),
+          ),
+        ],
+        if (child != null) ...[
+          const SizedBox(height: 16),
+          child,
+        ],
+      ],
     );
   }
 }

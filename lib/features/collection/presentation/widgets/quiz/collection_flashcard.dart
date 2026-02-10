@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
+import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 import 'package:fluency/features/collection/domain/entities/term.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
@@ -10,11 +11,13 @@ import 'package:provider/provider.dart';
 
 class CollectionFlashcard extends StatefulWidget {
   const CollectionFlashcard({
+    required this.collectionId,
     required this.terms,
     required this.initialIndex,
     super.key,
   });
 
+  final String collectionId;
   final List<Term> terms;
   final int initialIndex;
 
@@ -328,6 +331,40 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
                   else ...[
                     _buildFallbackDefinition(term, appColors),
                   ],
+                  const SizedBox(height: 24),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final repository = CollectionRepositoryImpl();
+                        final newProgress =
+                            (term.masteryLevel + 0.1).clamp(0.0, 1.0);
+                        repository.updateTermProgress(
+                          widget.collectionId,
+                          term.id,
+                          newProgress,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Progress updated for "${term.term}"'),
+                            duration: const Duration(milliseconds: 500),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.check_circle_outline,
+                          color: Colors.white),
+                      label: const Text('Got it! (+10%)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

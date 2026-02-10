@@ -9,7 +9,9 @@ class TermCard extends StatelessWidget {
     required this.index,
     required this.onTap,
     required this.onDelete,
-    required this.onMasteryToggle,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelectedChanged,
     super.key,
   });
 
@@ -17,7 +19,9 @@ class TermCard extends StatelessWidget {
   final int index;
   final VoidCallback onTap;
   final VoidCallback onDelete;
-  final VoidCallback onMasteryToggle;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final ValueChanged<bool?>? onSelectedChanged;
 
   String _getDisplayDefinition() {
     try {
@@ -44,18 +48,31 @@ class TermCard extends StatelessWidget {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     return InkWell(
-      onTap: onTap,
+      onTap:
+          isSelectionMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Row 1: <number>. <term> | Badge
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: RichText(
+            if (isSelectionMode)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Checkbox(
+                  value: isSelected,
+                  onChanged: onSelectedChanged,
+                  activeColor: appColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row 1: <number>. <term>
+                  RichText(
                     text: TextSpan(
                       style: TextStyle(
                         fontSize: 16,
@@ -78,42 +95,54 @@ class TermCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: onMasteryToggle,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                  const SizedBox(height: 4),
+                  // Row 2: Main Definition
+                  Text(
+                    _getDisplayDefinition(),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: appColors.textPrimary.withOpacity(0.9),
                     ),
-                    decoration: BoxDecoration(
-                      color: term.isMastered
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      term.isMastered ? 'Mastered' : 'Learning',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: term.isMastered ? Colors.green : Colors.orange,
-                      ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              width: 32,
+              height: 32,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: term.masteryLevel,
+                    strokeWidth: 3,
+                    backgroundColor:
+                        appColors.textSecondary.withValues(alpha: 0.1),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      term.masteryLevel >= 0.7
+                          ? Colors.green
+                          : term.masteryLevel >= 0.3
+                              ? Colors.orange
+                              : Colors.red,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            // Row 2: Main Definition
-            Text(
-              _getDisplayDefinition(),
-              style: TextStyle(
-                fontSize: 14,
-                color: appColors.textPrimary.withOpacity(0.9),
+                  Text(
+                    '${(term.masteryLevel * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: term.masteryLevel >= 0.7
+                          ? Colors.green
+                          : term.masteryLevel >= 0.3
+                              ? Colors.orange
+                              : Colors.red,
+                    ),
+                  ),
+                ],
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

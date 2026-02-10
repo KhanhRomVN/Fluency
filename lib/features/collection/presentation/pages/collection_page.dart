@@ -69,12 +69,14 @@ class _CollectionPageState extends State<CollectionPage> {
   }
 
   void _navigateToDetail(String collectionId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (context) => CollectionDetailPage(collectionId: collectionId),
-      ),
-    ).then((_) => _loadCollections());
+    Navigator.of(context, rootNavigator: true)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (context) =>
+                CollectionDetailPage(collectionId: collectionId),
+          ),
+        )
+        .then((_) => _loadCollections());
   }
 
   Future<void> _performSearch() async {

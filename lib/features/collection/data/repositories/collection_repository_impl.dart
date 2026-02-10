@@ -189,10 +189,10 @@ class CollectionRepositoryImpl implements CollectionRepository {
   }
 
   @override
-  Future<void> updateTermMastery(
+  Future<void> updateTermProgress(
     String collectionId,
     String termId,
-    bool isMastered,
+    double progress,
   ) async {
     final collection = await getCollection(collectionId);
     if (collection == null) {
@@ -201,7 +201,7 @@ class CollectionRepositoryImpl implements CollectionRepository {
 
     final updatedTerms = collection.terms.map((t) {
       if (t.id == termId) {
-        return t.copyWith(isMastered: isMastered);
+        return t.copyWith(masteryLevel: progress);
       }
       return t;
     }).toList();
@@ -262,7 +262,7 @@ class CollectionRepositoryImpl implements CollectionRepository {
 
     // Convert to CSV
     final rows = <List<String>>[
-      ['term', 'definition', 'phonetics', 'isMastered'],
+      ['term', 'definition', 'phonetics', 'masteryLevel'],
     ];
 
     for (final term in collection.terms) {
@@ -270,7 +270,7 @@ class CollectionRepositoryImpl implements CollectionRepository {
         term.term,
         term.definition,
         term.phonetics.join(', '),
-        term.isMastered.toString(),
+        term.masteryLevel.toString(),
       ]);
     }
 
@@ -299,5 +299,17 @@ class CollectionRepositoryImpl implements CollectionRepository {
     // Check case-insensitive
     return collection.terms
         .any((t) => t.term.toLowerCase() == term.toLowerCase());
+  }
+
+  @override
+  Future<bool> isTermInAnyCollection(String term) async {
+    final collections = await getCollections();
+    final lowerTerm = term.toLowerCase();
+    for (final collection in collections) {
+      if (collection.terms.any((t) => t.term.toLowerCase() == lowerTerm)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

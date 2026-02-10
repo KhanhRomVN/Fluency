@@ -1,7 +1,7 @@
 name: fluency
 description: "A new Flutter project."
 publish_to: "none"
-version: 1.2.18+28
+version: 1.2.23+33
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -53,12 +53,19 @@ flutter:
   generate: true
 
   assets:
+    - assets/logo.png
     - .env.dev
     - .env.prod
     - assets/themes/
     - assets/icons/
     - assets/fonts/
     - assets/images/voice_avatars/
+    - assets/courses/
+    - "assets/courses/Master Vocabulary by Topics Part 1/"
+    - "assets/courses/Master Vocabulary by Topics Part 1/audio/"
+    - "assets/courses/Master Vocabulary by Topics Part 1/image/"
+    - "assets/courses/Pronunciation Master: Speak with Confidence/"
+    - "assets/courses/Pronunciation Master: Speak with Confidence/image/"
     - lib/core/mock/
     # - lib/core/mock/Cambridge_IELTS_18/
     # - lib/core/mock/Cambridge_IELTS_18/audio/

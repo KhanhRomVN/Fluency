@@ -33,8 +33,8 @@ class Collection {
 
   // Computed properties
   int get totalTerms => terms.length;
-  int get masteredCount => terms.where((t) => t.isMastered).length;
-  int get unmasteredCount => terms.where((t) => !t.isMastered).length;
+  int get masteredCount => terms.where((t) => t.masteryLevel >= 1.0).length;
+  int get unmasteredCount => terms.where((t) => t.masteryLevel < 1.0).length;
 
   Collection copyWith({
     String? id,

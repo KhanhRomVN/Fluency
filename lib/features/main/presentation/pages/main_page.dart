@@ -42,15 +42,15 @@ class MainPage extends StatelessWidget {
             // Navigate to root route of each branch to reset navigation stack
             switch (index) {
               case 0:
-                context.go('/dashboard');
+                navigationShell.goBranch(0, initialLocation: true);
               case 1:
-                context.go('/course');
+                navigationShell.goBranch(1, initialLocation: true);
               case 2:
-                context.go('/collection');
+                navigationShell.goBranch(2, initialLocation: true);
               case 3:
-                context.go('/setting');
+                navigationShell.goBranch(3, initialLocation: true);
               default:
-                navigationShell.goBranch(index);
+                navigationShell.goBranch(index, initialLocation: true);
             }
           },
           selectedItemColor: primaryColor,

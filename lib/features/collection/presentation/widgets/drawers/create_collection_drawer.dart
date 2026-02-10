@@ -15,49 +15,85 @@ class CreateCollectionDrawer extends StatefulWidget {
 }
 
 class _CreateCollectionDrawerState extends State<CreateCollectionDrawer> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _repository = CollectionRepositoryImpl();
   bool _isCreating = false;
 
   @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_updateButtonState);
+    _descriptionController.addListener(_updateButtonState);
+  }
+
+  void _updateButtonState() {
+    setState(() {});
+  }
+
+  @override
   void dispose() {
+    _nameController.removeListener(_updateButtonState);
+    _descriptionController.removeListener(_updateButtonState);
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
-  Future<void> _createCollection() async {
+  bool get _isValid {
     final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a collection name')),
-      );
-      return;
-    }
+    final desc = _descriptionController.text.trim();
+    return name.length >= 10 &&
+        name.length <= 30 &&
+        desc.length >= 25 &&
+        desc.length <= 100;
+  }
+
+  Future<void> _createCollection() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim();
 
     setState(() => _isCreating = true);
 
     try {
       await _repository.createCollection(
         name,
-        _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
+        description,
       );
 
       if (mounted) {
         Navigator.pop(context);
         widget.onCreated();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Collection "$name" created!')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Collection "$name" created!')),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isCreating = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
     }
@@ -72,115 +108,260 @@ class _CreateCollectionDrawerState extends State<CreateCollectionDrawer> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
+        height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
-          color: appColors.cardBackground,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: appColors.drawerBackground,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 40,
+              offset: const Offset(0, -10),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Create Collection',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textPrimary,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nameController,
-              style: TextStyle(color: appColors.textPrimary),
-              decoration: InputDecoration(
-                labelText: 'Collection Name *',
-                labelStyle: TextStyle(color: appColors.textSecondary),
-                hintText: 'e.g., IELTS Vocabulary',
-                hintStyle: TextStyle(color: appColors.textSecondary),
-                filled: true,
-                fillColor: appColors.inputBackground,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: appColors.primary, width: 2),
-                ),
+            // Drag Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: appColors.textSecondary.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
               ),
-              enabled: !_isCreating,
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descriptionController,
-              style: TextStyle(color: appColors.textPrimary),
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Description (Optional)',
-                labelStyle: TextStyle(color: appColors.textSecondary),
-                hintText: 'Add a description for this collection',
-                hintStyle: TextStyle(color: appColors.textSecondary),
-                filled: true,
-                fillColor: appColors.inputBackground,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: appColors.primary, width: 2),
-                ),
-              ),
-              enabled: !_isCreating,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isCreating ? null : _createCollection,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Create Collection',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
                   ),
-                ),
-                child: _isCreating
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Create',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            // Form Content
+            Expanded(
+              child: Form(
+                key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ListenableBuilder(
+                        listenable: _nameController,
+                        builder: (context, _) => _buildFieldLabel(
+                          appColors,
+                          'Name',
+                          isRequired: true,
+                          currentLength: _nameController.text.length,
+                          maxLength: 30,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _nameController,
+                        style: TextStyle(color: appColors.textPrimary),
+                        maxLength: 30,
+                        decoration: _buildInputDecoration(
+                          appColors,
+                          hintText: 'e.g., IELTS Vocabulary 2024',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a name';
+                          }
+                          if (value.trim().length < 10) {
+                            return 'Name must be at least 10 characters';
+                          }
+                          return null;
+                        },
+                        enabled: !_isCreating,
+                      ),
+                      const SizedBox(height: 16),
+                      ListenableBuilder(
+                        listenable: _descriptionController,
+                        builder: (context, _) => _buildFieldLabel(
+                          appColors,
+                          'Description',
+                          isRequired: true,
+                          currentLength: _descriptionController.text.length,
+                          maxLength: 100,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _descriptionController,
+                        style: TextStyle(color: appColors.textPrimary),
+                        minLines: 3,
+                        maxLines: 5,
+                        maxLength: 100,
+                        decoration: _buildInputDecoration(
+                          appColors,
+                          hintText:
+                              'Describe the purpose of this collection...',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a description';
+                          }
+                          if (value.trim().length < 25) {
+                            return 'Description must be at least 25 characters';
+                          }
+                          return null;
+                        },
+                        enabled: !_isCreating,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            // Action Button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed:
+                      (_isCreating || !_isValid) ? null : _createCollection,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: appColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        appColors.primary.withValues(alpha: 0.3),
+                    disabledForegroundColor:
+                        Colors.white.withValues(alpha: 0.5),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isCreating
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Create New Collection',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFieldLabel(
+    AppColorsExtension appColors,
+    String label, {
+    bool isRequired = false,
+    int? currentLength,
+    int? maxLength,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: appColors.textPrimary.withValues(alpha: 0.8),
+              ),
+            ),
+            if (isRequired)
+              Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade400,
+                ),
+              ),
+          ],
+        ),
+        if (currentLength != null && maxLength != null)
+          Text(
+            '$currentLength/$maxLength',
+            style: TextStyle(
+              fontSize: 11,
+              color: appColors.textSecondary.withValues(alpha: 0.6),
+            ),
+          ),
+      ],
+    );
+  }
+
+  InputDecoration _buildInputDecoration(
+    AppColorsExtension appColors, {
+    required String hintText,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(
+        color: appColors.textSecondary.withValues(alpha: 0.5),
+        fontSize: 14,
+      ),
+      filled: true,
+      fillColor: appColors.inputBackground,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      counterText: '',
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+            color: appColors.border.withValues(alpha: 0.3), width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: appColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade400, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+      ),
+      errorStyle: TextStyle(color: Colors.red.shade400, fontSize: 12),
     );
   }
 }

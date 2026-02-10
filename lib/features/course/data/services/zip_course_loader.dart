@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 
 class ZipCourseLoader {
-  static const String _coursesAssetPath = 'lib/features/course/assets/courses';
+  static const String _coursesAssetPath = 'assets/courses';
 
   // Cache extracted courses to avoid re-extracting
   final Map<String, Directory> _extractedCourses = {};

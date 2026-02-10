@@ -43,7 +43,7 @@ class QuizResumeDrawer extends StatelessWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.65,
       decoration: BoxDecoration(
-        color: appColors.background,
+        color: appColors.cardBackground,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(

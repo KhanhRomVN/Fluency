@@ -184,32 +184,19 @@ class CourseCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 12),
-                      // Time & Completed Lessons
+                      // Lessons & Score
                       Row(
                         children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: Theme.of(context)
-                                    .extension<AppColorsExtension>()
-                                    ?.textSecondary ??
-                                Colors.grey[500],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '12h 30m',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Theme.of(context)
-                                          .extension<AppColorsExtension>()
-                                          ?.textSecondary,
-                                    ),
-                          ),
-                          const SizedBox(width: 16),
                           _buildInfoRow(
                             context,
                             'assets/icons/lesson.svg',
-                            '${course.completedLessons}/${course.lessons.length} lessons',
+                            '${course.lessons.length} lessons',
+                          ),
+                          const SizedBox(width: 16),
+                          _buildInfoMetric(
+                            context,
+                            Icons.emoji_events_outlined,
+                            '${_calculateTotalScore(context)} pts',
                           ),
                         ],
                       ),
@@ -218,20 +205,6 @@ class CourseCard extends StatelessWidget {
                       _buildProgressBar(context),
                     ],
                   ),
-                ),
-                // Menu Icon
-                IconButton(
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    color: Theme.of(context)
-                        .extension<AppColorsExtension>()
-                        ?.textSecondary,
-                    size: 20,
-                  ),
-                  onPressed: () => _showActionDrawer(context),
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(),
-                  splashRadius: 20,
                 ),
               ],
             ),
@@ -247,44 +220,54 @@ class CourseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressBar(BuildContext context) {
-    final primaryColor =
-        Theme.of(context).extension<AppColorsExtension>()?.primary ??
-            Theme.of(context).primaryColor;
+  int _calculateTotalScore(BuildContext context) {
+    final quizStateProvider = context.watch<QuizStateProvider>();
+    int totalScore = 0;
+    for (final lesson in course.lessons) {
+      final lessonProgress = quizStateProvider.getLessonProgress(lesson.id);
+      if (lessonProgress != null) {
+        for (final progress in lessonProgress.values) {
+          totalScore += progress.correctItems;
+        }
+      }
+    }
+    return totalScore;
+  }
 
+  Widget _buildProgressBar(BuildContext context) {
     // Calculate real progress from all lessons
     final quizStateProvider = context.watch<QuizStateProvider>();
-    double totalProgress = 0.0;
-    int lessonCount = 0;
+    int totalCompleted = 0;
+    int totalCorrect = 0;
+    int totalQuizzes = 0;
 
     for (final lesson in course.lessons) {
-      final lessonProgress = quizStateProvider.getLessonProgressPercentage(
-        lesson.id,
-        lesson.quizzes.length,
-      );
-      totalProgress += lessonProgress;
-      lessonCount++;
+      final lessonProgress = quizStateProvider.getLessonProgress(lesson.id);
+      if (lessonProgress != null) {
+        for (final progress in lessonProgress.values) {
+          totalCompleted += progress.completedItems;
+          totalCorrect += progress.correctItems;
+        }
+      }
+      totalQuizzes += lesson.quizzes.length;
     }
 
-    final averageProgress = lessonCount > 0 ? totalProgress / lessonCount : 0.0;
-    final progress = averageProgress / 100;
+    final int wrong = totalCompleted - totalCorrect;
+    final int averageProgress =
+        totalQuizzes > 0 ? (totalCompleted / totalQuizzes * 100).round() : 0;
 
     return Row(
       children: [
         Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              backgroundColor: primaryColor.withOpacity(0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
-            ),
+          child: _SegmentedProgressBar(
+            correct: totalCorrect,
+            wrong: wrong > 0 ? wrong : 0,
+            total: totalQuizzes > 0 ? totalQuizzes : 1,
           ),
         ),
         const SizedBox(width: 8),
         Text(
-          '${averageProgress.round()}%',
+          '$averageProgress%',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context)
                     .extension<AppColorsExtension>()
@@ -324,6 +307,86 @@ class CourseCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInfoMetric(BuildContext context, IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: Theme.of(context)
+                  .extension<AppColorsExtension>()
+                  ?.textSecondary ??
+              Colors.grey[500],
+        ),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context)
+                      .extension<AppColorsExtension>()
+                      ?.textSecondary,
+                ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SegmentedProgressBar extends StatelessWidget {
+  final int correct;
+  final int wrong;
+  final int total;
+
+  const _SegmentedProgressBar({
+    required this.correct,
+    required this.wrong,
+    required this.total,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final int remaining = total - correct - wrong;
+    final int safeRemaining = remaining > 0 ? remaining : 0;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox(
+        height: 6,
+        width: double.infinity,
+        child: Row(
+          children: [
+            if (correct > 0)
+              Expanded(
+                flex: correct,
+                child: Container(
+                  color: const Color(0xFF2E7D32), // Darker Green
+                ),
+              ),
+            if (wrong > 0)
+              Expanded(
+                flex: wrong,
+                child: Container(
+                  color: const Color(0xFFC62828), // Darker Red
+                ),
+              ),
+            if (safeRemaining > 0)
+              Expanded(
+                flex: safeRemaining,
+                child: Container(
+                  color: Colors.blue[400]!.withOpacity(0.1),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

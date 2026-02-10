@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 
 class ThemeProvider extends ChangeNotifier {
   ThemeData? _currentTheme;
+  String? _currentThemeAssetName;
   final Logger _logger = Logger('ThemeProvider');
 
   ThemeData? get currentTheme => _currentTheme;
@@ -21,6 +22,7 @@ class ThemeProvider extends ChangeNotifier {
       final themeModel = ThemeModel.fromJson(jsonMap);
 
       _currentTheme = AppTheme.fromModel(themeModel);
+      _currentThemeAssetName = assetPath;
       notifyListeners();
     } catch (e, stack) {
       _logger.severe('Failed to load theme from $assetPath', e, stack);
@@ -50,6 +52,14 @@ class ThemeProvider extends ChangeNotifier {
   // Preload default theme
   Future<void> init() async {
     await loadAvailableThemes();
-    await loadTheme('assets/themes/SoftTeal.json');
+    await loadTheme('assets/themes/DefaultDark.json');
+  }
+
+  void toggleTheme() {
+    if (_currentThemeAssetName == 'assets/themes/DefaultDark.json') {
+      loadTheme('assets/themes/DefaultLight.json');
+    } else {
+      loadTheme('assets/themes/DefaultDark.json');
+    }
   }
 }
