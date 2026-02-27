@@ -168,7 +168,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
           }
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Stack(
               children: [
                 // The Card
@@ -176,7 +176,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                   width: double.infinity,
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: appColors.cardBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: CustomPaint(
@@ -215,19 +215,28 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                             ),
                           ),
                         ),
+                        if (isSubmitted ||
+                            (_selectedOptions[question.id]?.isNotEmpty ??
+                                false)) ...[
+                          const Divider(height: 1),
+                          // Card Footer
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _buildActionButtons(
+                                  context,
+                                  question,
+                                  appColors,
+                                  isSubmitted,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                  ),
-                ),
-                // Floating Action Buttons
-                Positioned(
-                  bottom: 10,
-                  right: 10,
-                  child: _buildActionButtons(
-                    context,
-                    question,
-                    appColors,
-                    isSubmitted,
                   ),
                 ),
               ],
@@ -262,7 +271,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+              color: appColors.textSecondary,
             ),
           ),
 
@@ -310,7 +319,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                         }),
                         primaryColor: appColors.primary,
                         errorColor: Colors.red,
-                        emptyColor: Colors.grey[300]!,
+                        emptyColor: appColors.border,
                       ),
                     ),
                     Text(
@@ -318,7 +327,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[600],
+                        color: appColors.textSecondary,
                       ),
                     ),
                   ],
@@ -404,11 +413,26 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     AppColorsExtension appColors,
     bool isSubmitted,
   ) {
+    if (isSubmitted) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        onPressed: widget.onNext,
+        child:
+            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+      );
+    }
+
     final hasSelection = _selectedOptions[question.id]?.isNotEmpty ?? false;
 
     // Submit Button
-    if (!isSubmitted && hasSelection) {
-      return ElevatedButton.icon(
+    if (hasSelection) {
+      return ElevatedButton(
         onPressed: () => _submitAnswer(question),
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
@@ -417,8 +441,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        icon: const Icon(Icons.check, size: 16),
-        label:
+        child:
             const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
       );
     }

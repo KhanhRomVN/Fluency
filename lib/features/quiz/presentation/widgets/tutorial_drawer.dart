@@ -7,12 +7,48 @@ class TutorialDrawer extends StatelessWidget {
     required this.isOpen,
     required this.onClose,
     required this.content,
+    required this.quizType,
     super.key,
   });
 
   final bool isOpen;
   final VoidCallback onClose;
   final String content;
+  final String quizType;
+
+  // Map quiz types to general instructions
+  static const Map<String, String> _quizTypeInstructions = {
+    'multiple-choice':
+        'Chọn đáp án đúng nhất từ các lựa chọn được cung cấp. Nhấn Submit để kiểm tra câu trả lời của bạn.',
+    'gap-fill-typing':
+        'Điền từ thích hợp vào chỗ trống. Gõ câu trả lời và nhấn Submit khi hoàn thành.',
+    'gap-fill-dropdown':
+        'Chọn từ phù hợp từ menu dropdown để điền vào chỗ trống. Nhấn Submit để kiểm tra.',
+    'listening-choice':
+        'Nghe audio và chọn đáp án đúng. Bạn có thể nghe lại nhiều lần bằng cách nhấn nút play.',
+    'matching-dropdown':
+        'Ghép các cặp từ/cụm từ phù hợp với nhau bằng cách chọn từ dropdown.',
+    'sentence-transformation':
+        'Chuyển đổi câu theo yêu cầu. Nhập câu trả lời và nhấn Submit.',
+    'builder': 'Sắp xếp các từ theo đúng thứ tự để tạo thành câu hoàn chỉnh.',
+    'error-correction':
+        'Tìm và sửa lỗi trong câu. Nhấp vào từ sai và chọn từ đúng.',
+    'pronunciation-drill':
+        'Luyện phát âm bằng cách đọc theo văn bản. Nhấn nút mic để ghi âm và kiểm tra.',
+    'dictation-audio':
+        'Nghe audio và viết lại những gì bạn nghe được. Nhấn Submit khi hoàn thành.',
+    'speaking-essay':
+        'Trả lời câu hỏi bằng giọng nói. Nhấn mic để bắt đầu ghi âm câu trả lời.',
+    'writing-essay':
+        'Viết bài luận ngắn theo chủ đề. Nhập câu trả lời và nhấn Submit.',
+    'flashcard':
+        'Xem từ vựng và nghĩa. Vuốt sang trái/phải để chuyển card. Nhấn vào card để lật.',
+    'free-chat': 'Trò chuyện tự do với AI. Nói hoặc gõ câu trả lời của bạn.',
+    'scripted-chat':
+        'Thực hành hội thoại theo kịch bản. Đọc và trả lời theo vai trò được chỉ định.',
+    'speech-builder':
+        'Xây dựng câu bằng giọng nói. Nói từng phần và hệ thống sẽ ghép lại.',
+  };
 
   // Parse HTML-like content to TextSpans for inline rendering
   List<TextSpan> _parseContentToTextSpans(
@@ -191,21 +227,43 @@ class TutorialDrawer extends StatelessWidget {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: RichText(
-                          text: TextSpan(
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: appColors.textPrimary,
-                                  height: 1.6,
-                                ),
-                            children:
-                                _parseContentToTextSpans(context, content),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Section 1: Question Instruction
+                          if (content.isNotEmpty) ...[
+                            _buildSectionLabel(
+                              context,
+                              appColors,
+                              'Question Instruction',
+                              Colors.green,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildInstructionCard(
+                              context,
+                              appColors,
+                              content,
+                              sectionColor: Colors.green,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+
+                          // Section 2: Quiz Type Guide
+                          _buildSectionLabel(
+                            context,
+                            appColors,
+                            'How to Complete This Quiz',
+                            Colors.orange,
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          _buildInstructionCard(
+                            context,
+                            appColors,
+                            _quizTypeInstructions[quizType] ??
+                                'Làm theo hướng dẫn và nhấn Submit khi hoàn thành.',
+                            sectionColor: Colors.orange,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -215,6 +273,62 @@ class TutorialDrawer extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSectionLabel(
+    BuildContext context,
+    AppColorsExtension appColors,
+    String label,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: appColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInstructionCard(
+    BuildContext context,
+    AppColorsExtension appColors,
+    String text, {
+    required Color sectionColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: sectionColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: sectionColor.withValues(alpha: 0.3),
+        ),
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: appColors.textPrimary,
+                height: 1.6,
+              ),
+          children: _parseContentToTextSpans(context, text),
+        ),
+      ),
     );
   }
 }

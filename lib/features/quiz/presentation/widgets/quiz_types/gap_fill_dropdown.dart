@@ -191,7 +191,7 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
                         width: double.infinity,
                         height: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: appColors.cardBackground,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: CustomPaint(
@@ -220,7 +220,6 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
                                     builder: _buildContent,
                                   ),
                                 ),
-                                const SizedBox(height: 80),
                               ],
                             ),
                           ),
@@ -231,22 +230,42 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
                 ),
               ),
             ),
+            if (_isChecked || _areAllGapsFilled) ...[
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildActionButtons(appColors),
+                  ],
+                ),
+              ),
+            ],
           ],
-        ),
-
-        // Action Buttons
-        Positioned(
-          bottom: 28,
-          right: 36,
-          child: _buildActionButtons(appColors),
         ),
       ],
     );
   }
 
   Widget _buildActionButtons(AppColorsExtension appColors) {
+    if (_isChecked) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        onPressed: widget.onNext,
+        child:
+            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+      );
+    }
+
     if (_areAllGapsFilled && !_isChecked) {
-      return ElevatedButton.icon(
+      return ElevatedButton(
         onPressed: () {
           setState(() {
             _isChecked = true;
@@ -261,15 +280,12 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        icon: const Icon(Icons.check, size: 16),
-        label: const Text(
+        child: const Text(
           'Check answers',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       );
     }
-
-    return const SizedBox.shrink();
 
     return const SizedBox.shrink();
   }

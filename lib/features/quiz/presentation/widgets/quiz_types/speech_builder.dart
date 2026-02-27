@@ -262,13 +262,22 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
                             // Score / Feedback
                             if (state.attempts > 0 && !state.passed)
                               _buildFeedback(state, appColors),
-
-                            const SizedBox(height: 32),
-
-                            // Controls
-                            _buildControls(item, state, appColors),
                           ],
                         ),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _buildFooterActions(
+                            item,
+                            state,
+                            appColors,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -465,30 +474,77 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
     return Colors.red;
   }
 
-  Widget _buildControls(
+  Widget _buildFooterActions(
     SpeechBuilderItem item,
     _SpeechBuilderItemState state,
     AppColorsExtension appColors,
   ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildMicButton(item, state, appColors),
+        if (state.passed) ...[
+          const SizedBox(width: 16),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            onPressed: widget.onNext,
+            child: const Text('Next',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMicButton(
+    SpeechBuilderItem item,
+    _SpeechBuilderItemState state,
+    AppColorsExtension appColors,
+  ) {
+    /*
     if (state.passed) {
-      return Container(
-        width: 64,
-        height: 64,
-        decoration: const BoxDecoration(
-          color: Colors.green,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.check, color: Colors.white, size: 32),
-      );
+       // If passed, maybe we don't show the mic button anymore?
+       // Or we show it to allow re-recording?
+       // The original code returned a Check icon if passed.
+       // But in footer, we want the "Next" button to be the primary action.
+       // Let's keep the mic button active for re-recording, 
+       // or if passed, show the check icon but maybe smaller?
+       // Actually, in PronunciationDrill, we kept the mic button.
+       // Here, original code returned Container(Check Icon).
+       // Let's return SizedBox.shrink() if passed, because "Next" button appears.
+       // Or allow re-recording?
+       // Users might want to try again to get better score.
+       // But if passed, `onNext` is available.
     }
+    */
+
+    // If passed, we can hide the mic button OR allow retry.
+    // Original code:
+    /*
+    if (state.passed) {
+      return Container(..., child: Icon(Icons.check...));
+    }
+    */
+    // If I show "Next" button, the check icon next to it is redundant/confusing?
+    // In PronunciationDrill, `_buildControls` was just the Mic.
+    // Here, let's keep it simple: If passed, hide Mic (or show Refresh?), show Next.
+    // But `pronunciation_drill` allows re-recording even if passed?
+    // Let's allow re-recording.
 
     return InkWell(
       onTap: () => _isRecording ? _stopRecording(item) : _startRecording(item),
-      borderRadius: BorderRadius.circular(32),
+      borderRadius: BorderRadius.circular(50),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        width: 64,
-        height: 64,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: _isRecording ? Colors.red : appColors.primary,
           shape: BoxShape.circle,
@@ -508,12 +564,17 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
           ],
         ),
         child: Icon(
-          _isRecording ? Icons.mic_off : Icons.mic,
+          _isRecording ? Icons.mic_off : isRecordingOrPassedIcon(state),
           color: Colors.white,
-          size: 28,
+          size: 24,
         ),
       ),
     );
+  }
+
+  IconData isRecordingOrPassedIcon(_SpeechBuilderItemState state) {
+    if (state.passed) return Icons.refresh;
+    return Icons.mic;
   }
 }
 

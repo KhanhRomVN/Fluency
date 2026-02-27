@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:fluency/core/utils/file_system_helper.dart';
 
 import 'package:fluency/core/services/tts/piper_tts_service.dart';
@@ -16,7 +18,7 @@ class TtsProvider extends ChangeNotifier {
 
   final SharedPreferences _prefs;
   TtsService? _activeTtsService;
-  String _activeEngine = 'System'; // 'System' or 'Piper'
+  String _activeEngine = 'Piper'; // Default to Piper
   String? _selectedPiperModel;
   String? _defaultMaleVoice;
   String? _defaultFemaleVoice;
@@ -35,7 +37,7 @@ class TtsProvider extends ChangeNotifier {
   bool get isInitialized => _isInitialized;
 
   Future<void> _loadSettings() async {
-    _activeEngine = _prefs.getString(_engineKey) ?? 'System';
+    _activeEngine = _prefs.getString(_engineKey) ?? 'Piper'; // Default to Piper
     _selectedPiperModel = _prefs.getString(_selectedModelKey);
     _defaultMaleVoice =
         _prefs.getString(_defaultMaleVoiceKey) ?? 'en_US-hfc_male-medium';
@@ -50,8 +52,43 @@ class TtsProvider extends ChangeNotifier {
       await _prefs.setString(_defaultFemaleVoiceKey, _defaultFemaleVoice!);
     }
 
+    // Try to copy default voices from assets
+    await _ensureDefaultVoicesExist();
+
     // Removed _initService() to prevent auto-loading
     // await _initService();
+  }
+
+  Future<void> _ensureDefaultVoicesExist() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final voices = ['en_US-hfc_male-medium', 'en_US-hfc_female-medium'];
+
+    for (final voice in voices) {
+      final extractedFolder = 'vits-piper-$voice';
+      final dir =
+          Directory(path.join(appDir.path, 'piper_models', extractedFolder));
+      final onnxPath = path.join(dir.path, '$voice.onnx');
+      final jsonPath = path.join(dir.path, '$voice.onnx.json');
+
+      if (!File(onnxPath).existsSync()) {
+        try {
+          // Check if assets exist by trying to load them
+          // Note: we can't easily check existence without loading in Flutter
+          final onnxData = await rootBundle.load('assets/voices/$voice.onnx');
+          final jsonData =
+              await rootBundle.load('assets/voices/$voice.onnx.json');
+
+          if (!dir.existsSync()) await dir.create(recursive: true);
+
+          await File(onnxPath).writeAsBytes(onnxData.buffer.asUint8List());
+          await File(jsonPath).writeAsBytes(jsonData.buffer.asUint8List());
+          debugPrint('Copied default voice $voice from assets.');
+        } catch (e) {
+          debugPrint(
+              'Default voice $voice not found in assets or copy failed: $e');
+        }
+      }
+    }
   }
 
   Future<void> initService() => _initService();

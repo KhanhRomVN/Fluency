@@ -173,12 +173,12 @@ class _QuizBuilderState extends State<QuizBuilder> {
           final selected = _selectedIndices[item.id] ?? [];
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Stack(
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: appColors.cardBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: CustomPaint(
@@ -427,20 +427,27 @@ class _QuizBuilderState extends State<QuizBuilder> {
                                   ),
                                 ),
                                 // Spacing at bottom for scrolling past floating button
-                                const SizedBox(height: 80),
+                                const SizedBox(height: 24),
                               ],
                             ),
                           ),
                         ),
+                        // Footer
+                        if (isChecked || selected.isNotEmpty) ...[
+                          const Divider(height: 1),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _buildFooterActions(appColors, item),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                ),
-                // Floating Action Buttons
-                Positioned(
-                  bottom: 12,
-                  right: 20,
-                  child: _buildActionButtons(appColors, item),
                 ),
               ],
             ),
@@ -512,19 +519,13 @@ class _QuizBuilderState extends State<QuizBuilder> {
     );
   }
 
-  Widget _buildActionButtons(AppColorsExtension appColors, QuizQuestion item) {
+  Widget _buildFooterActions(AppColorsExtension appColors, QuizQuestion item) {
     final isChecked = _isCheckedMap[item.id] ?? false;
     final isCorrect = _correctness[item.id];
     final selected = _selectedIndices[item.id] ?? [];
 
-    if (!isChecked && selected.length == item.options.length) {
-      return ElevatedButton.icon(
-        onPressed: _checkAnswer,
-        icon: const Icon(Icons.check, size: 20),
-        label: const Text(
-          'Check',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+    if (isChecked) {
+      return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary,
           foregroundColor: Colors.white,
@@ -532,23 +533,48 @@ class _QuizBuilderState extends State<QuizBuilder> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
+        onPressed: () {
+          if (_currentIndex < widget.quiz.questions.length - 1) {
+            _animateToNextQuestion();
+          } else {
+            widget.onNext?.call();
+          }
+        },
+        child:
+            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+      );
+    }
+
+    if (!isChecked && selected.length == item.options.length) {
+      return ElevatedButton(
+        onPressed: _checkAnswer,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        child: const Text(
+          'Check',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
     if (!isChecked && isCorrect != true && selected.isNotEmpty) {
-      return ElevatedButton.icon(
+      return ElevatedButton(
         onPressed: () => _resetItem(item.id),
-        icon: const Icon(Icons.refresh, size: 16),
-        label: const Text(
-          'Reset',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
         style: ElevatedButton.styleFrom(
           foregroundColor: appColors.textSecondary,
           backgroundColor: appColors.cardBackground,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
+        ),
+        child: const Text(
+          'Reset',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       );
     }

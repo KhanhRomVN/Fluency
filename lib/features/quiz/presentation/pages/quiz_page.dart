@@ -47,7 +47,8 @@ class QuizPage extends StatefulWidget {
   State<QuizPage> createState() => _QuizPageState();
 }
 
-class _QuizPageState extends State<QuizPage> {
+class _QuizPageState extends State<QuizPage>
+    with SingleTickerProviderStateMixin {
   int _activeQuizIndex = 0;
   bool _isQuizChecked = false;
   bool _showPassageDrawer = false;
@@ -59,6 +60,8 @@ class _QuizPageState extends State<QuizPage> {
   String _currentExplanation = '';
   late AudioPlayer _audioPlayer;
   late PageController _pageController;
+  late AnimationController _tutorialPulseController;
+  late Animation<double> _tutorialPulseAnimation;
 
   double? _currentSegmentStart; // Question-level (for looping)
   double? _currentSegmentEnd; // Question-level (for looping)
@@ -74,6 +77,21 @@ class _QuizPageState extends State<QuizPage> {
     // because we don't have reference to them. The stop() in dispose() should handle it.
     _audioPlayer = AudioPlayer();
     _pageController = PageController(initialPage: _activeQuizIndex);
+
+    // Initialize tutorial pulse animation
+    _tutorialPulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _tutorialPulseAnimation = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _tutorialPulseController,
+      curve: Curves.easeInOut,
+    ));
+
     _initAudio();
   }
 
@@ -86,6 +104,7 @@ class _QuizPageState extends State<QuizPage> {
     _audioPlayer.stop(); // Stop playback before disposing
     _audioPlayer.dispose();
     _pageController.dispose();
+    _tutorialPulseController.dispose();
     super.dispose();
   }
 
@@ -302,25 +321,49 @@ class _QuizPageState extends State<QuizPage> {
                           // Tutorial/Instruction icon (if available)
                           if (activeQuiz?.instruction != null &&
                               activeQuiz!.instruction.isNotEmpty)
-                            InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _showTutorialDrawer = true;
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(8),
-                              child: Padding(
-                                padding: const EdgeInsets.all(6),
-                                child: SvgPicture.string(
-                                  '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>''',
-                                  width: 18,
-                                  height: 18,
-                                  colorFilter: ColorFilter.mode(
-                                    appColors.textPrimary,
-                                    BlendMode.srcIn,
+                            AnimatedBuilder(
+                              animation: _tutorialPulseAnimation,
+                              builder: (context, child) {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.orange.withValues(
+                                          alpha: _tutorialPulseAnimation.value *
+                                              0.6,
+                                        ),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ),
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _showTutorialDrawer = true;
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(6),
+                                      child: SvgPicture.string(
+                                        '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>''',
+                                        width: 18,
+                                        height: 18,
+                                        colorFilter: ColorFilter.mode(
+                                          Colors.orange.withValues(
+                                            alpha: 0.7 +
+                                                (_tutorialPulseAnimation.value *
+                                                    0.3),
+                                          ),
+                                          BlendMode.srcIn,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
 
                           // Transcript icon (shown after checking)
@@ -418,6 +461,7 @@ class _QuizPageState extends State<QuizPage> {
               });
             },
             content: activeQuiz?.instruction ?? '',
+            quizType: activeQuiz?.type ?? 'gap-fill',
           ),
         // Explain Drawer
         if (_showExplainDrawer)

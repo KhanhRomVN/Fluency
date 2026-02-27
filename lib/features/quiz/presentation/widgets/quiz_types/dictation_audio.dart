@@ -378,7 +378,7 @@ class _DictationAudioState extends State<DictationAudio> {
                         width: double.infinity,
                         height: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: appColors.cardBackground,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: CustomPaint(
@@ -513,6 +513,61 @@ class _DictationAudioState extends State<DictationAudio> {
                                               }),
                                             ),
 
+                                            // Play Button in body
+                                            if (!state.passed && !allFilled)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    top: 32),
+                                                child: GestureDetector(
+                                                  onTap: () => _playAudio(item),
+                                                  child: AnimatedContainer(
+                                                    duration: const Duration(
+                                                        milliseconds: 300),
+                                                    width: 56,
+                                                    height: 56,
+                                                    decoration: BoxDecoration(
+                                                      color: _playingId ==
+                                                              item.id
+                                                          ? Colors.white
+                                                          : appColors.primary,
+                                                      shape: BoxShape.circle,
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: (_playingId ==
+                                                                      item.id
+                                                                  ? Colors.red
+                                                                  : appColors
+                                                                      .primary)
+                                                              .withValues(
+                                                                  alpha: 0.3),
+                                                          blurRadius: 10,
+                                                          offset: const Offset(
+                                                              0, 4),
+                                                        ),
+                                                      ],
+                                                      border: _playingId ==
+                                                              item.id
+                                                          ? Border.all(
+                                                              color: Colors.red
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.3),
+                                                              width: 3,
+                                                            )
+                                                          : null,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.graphic_eq,
+                                                      color:
+                                                          _playingId == item.id
+                                                              ? Colors.red
+                                                              : Colors.white,
+                                                      size: 24,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+
                                             // IPA and Translation (shown when passed)
                                             if (state.passed) ...[
                                               const SizedBox(height: 32),
@@ -558,125 +613,25 @@ class _DictationAudioState extends State<DictationAudio> {
                           ),
                         ),
                       ),
-
-                      // PLAY BUTTON (Centered at Bottom)
-                      if (!state.passed && !allFilled)
-                        Positioned(
-                          bottom: 24,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () => _playAudio(item),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: _playingId == item.id
-                                      ? Colors.white
-                                      : appColors.primary,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: (_playingId == item.id
-                                              ? Colors.red
-                                              : appColors.primary)
-                                          .withValues(alpha: 0.3),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                  border: _playingId == item.id
-                                      ? Border.all(
-                                          color:
-                                              Colors.red.withValues(alpha: 0.3),
-                                          width: 3,
-                                        )
-                                      : null,
-                                ),
-                                child: Icon(
-                                  Icons.graphic_eq,
-                                  color: _playingId == item.id
-                                      ? Colors.red
-                                      : Colors.white,
-                                  size: 24,
-                                ),
+                      // Footer
+                      if (state.passed ||
+                          (allFilled && state.attempts < 3)) ...[
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              _buildFooterActions(
+                                item,
+                                state,
+                                appColors,
+                                allFilled,
                               ),
-                            ),
+                            ],
                           ),
                         ),
-
-                      // ACTION BUTTONS (Bottom Right)
-                      Positioned(
-                        bottom: 24,
-                        right: 24,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!state.passed &&
-                                allFilled &&
-                                state.attempts < 3)
-                              ElevatedButton.icon(
-                                onPressed: () => _checkAnswer(item),
-                                icon: const Icon(Icons.check, size: 16),
-                                label: Text(
-                                  state.attempts == 0
-                                      ? 'Check Answer'
-                                      : 'Retry',
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: appColors.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12.5,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            if (state.passed)
-                              Row(
-                                children: [
-                                  if (!state.passed)
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _itemStates[item.id] =
-                                              _DictationItemState();
-                                          _saveProgress();
-                                        });
-                                      },
-                                      child: Container(
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          color: appColors.buttonSecondBg,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black
-                                                  .withValues(alpha: 0.1),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Icon(
-                                          Icons.refresh,
-                                          color: appColors.textSecondary,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(width: 16),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 );
@@ -686,6 +641,58 @@ class _DictationAudioState extends State<DictationAudio> {
         ),
       ],
     );
+  }
+
+  Widget _buildFooterActions(
+    DictationItem item,
+    _DictationItemState state,
+    AppColorsExtension appColors,
+    bool allFilled,
+  ) {
+    if (state.passed) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            onPressed: widget.onNext,
+            child: const Text('Next',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      );
+    }
+
+    if (!state.passed && allFilled && state.attempts < 3) {
+      return ElevatedButton(
+        onPressed: () => _checkAnswer(item),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 10,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          state.attempts == 0 ? 'Check Answer' : 'Retry',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   // Header Builder Logic extracted from multiple_choice.dart

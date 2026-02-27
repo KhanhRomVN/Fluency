@@ -118,64 +118,6 @@ class VoiceDownloadService {
           'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_US-ryan-medium.tar.bz2',
       size: '77 MB',
     ),
-
-    // GB English Models
-    VoiceModel(
-      name: 'Alan (Male, British)',
-      code: 'en_GB-alan-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alan-medium.tar.bz2',
-      size: '65 MB',
-    ),
-    VoiceModel(
-      name: 'Alba (Female, British)',
-      code: 'en_GB-alba-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-alba-medium.tar.bz2',
-      size: '65 MB',
-    ),
-    VoiceModel(
-      name: 'Aru (Female, British)',
-      code: 'en_GB-aru-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-aru-medium.tar.bz2',
-      size: '65 MB',
-    ),
-    VoiceModel(
-      name: 'Cori (Female, British)',
-      code: 'en_GB-cori-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-cori-medium.tar.bz2',
-      size: '65 MB',
-    ),
-    VoiceModel(
-      name: 'Jenny Dioco (Female, British)',
-      code: 'en_GB-jenny_dioco-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-jenny_dioco-medium.tar.bz2',
-      size: '65 MB',
-    ),
-    VoiceModel(
-      name: 'Northern Male (British)',
-      code: 'en_GB-northern_english_male-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-northern_english_male-medium.tar.bz2',
-      size: '65 MB',
-    ),
-    VoiceModel(
-      name: 'Southern Female (British)',
-      code: 'en_GB-southern_english_female-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-southern_english_female-medium.tar.bz2',
-      size: '77 MB',
-    ),
-    VoiceModel(
-      name: 'Southern Male (British)',
-      code: 'en_GB-southern_english_male-medium',
-      url:
-          'https://huggingface.co/khanhromvn/piper-voice/resolve/main/vits-piper-en_GB-southern_english_male-medium.tar.bz2',
-      size: '77 MB',
-    ),
   ];
 
   List<VoiceModel> get models => _models;

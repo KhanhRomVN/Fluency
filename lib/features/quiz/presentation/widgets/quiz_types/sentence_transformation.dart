@@ -276,7 +276,7 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                   width: double.infinity,
                   height: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: appColors.cardBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: CustomPaint(
@@ -353,44 +353,29 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                               ],
 
                               // Spacing for floating buttons
-                              const SizedBox(height: 80),
+                              const SizedBox(height: 24),
                             ],
                           ),
                         ),
+                        if (state.isChecked || _isInputComplete(item)) ...[
+                          const Divider(height: 1),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _buildFooterActions(
+                                  context,
+                                  item,
+                                  state,
+                                  appColors,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                  ),
-                ),
-                // Floating Action Buttons
-                Positioned(
-                  bottom: 20,
-                  right: 20,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (!state.isChecked && _isInputComplete(item))
-                        ElevatedButton.icon(
-                          onPressed: _checkAnswer,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: appColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 4,
-                          ),
-                          icon: const Icon(Icons.check, size: 16),
-                          label: const Text(
-                            'Check',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                    ],
                   ),
                 ),
               ],
@@ -607,6 +592,52 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
         ],
       ],
     );
+  }
+
+  Widget _buildFooterActions(
+    BuildContext context,
+    SentenceTransformationItem item,
+    _CardState state,
+    AppColorsExtension appColors,
+  ) {
+    if (state.isChecked) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        onPressed: _goToNext,
+        child:
+            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+      );
+    }
+
+    if (!state.isChecked && _isInputComplete(item)) {
+      return ElevatedButton(
+        onPressed: _checkAnswer,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 10,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 0,
+        ),
+        child: const Text(
+          'Check',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildCardHeader(

@@ -325,7 +325,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                 // Scrollable Content
                 Positioned.fill(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -350,7 +350,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: appColors.cardBackground,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: appColors.border),
                               boxShadow: [
@@ -504,7 +504,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                           ),
                           child: Icon(
                             _isRecording ? Icons.mic_off : Icons.mic,
-                            color: Colors.white,
+                            color: appColors.cardBackground,
                             size: 24,
                           ),
                         ),

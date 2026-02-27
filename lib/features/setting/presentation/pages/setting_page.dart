@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:fluency/features/setting/presentation/pages/privacy_policy_page.dart';
 import 'package:fluency/features/setting/presentation/pages/open_source_lib_page.dart';
+import 'package:fluency/features/setting/presentation/pages/tts_settings_page.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
@@ -344,6 +345,20 @@ class SettingPage extends StatelessWidget {
                   title: 'Import Course',
                   subtitle: 'Import course from .zip file or Link',
                   onTap: () => _showImportChoice(context),
+                ),
+                SettingTile(
+                  icon: Icons.record_voice_over,
+                  iconColor: primaryColor,
+                  title: 'TTS Settings',
+                  subtitle: 'Configure text-to-speech voices',
+                  onTap: () {
+                    Navigator.push<void>(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => const TtsSettingsPage(),
+                      ),
+                    );
+                  },
                 ),
 
                 // Support Section

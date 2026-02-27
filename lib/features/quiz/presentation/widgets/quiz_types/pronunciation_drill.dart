@@ -2,15 +2,12 @@ import 'dart:math' as math;
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
-import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 
 class PronunciationDrill extends StatefulWidget {
   const PronunciationDrill({
@@ -321,7 +318,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                       child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: appColors.cardBackground,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: CustomPaint(
@@ -498,21 +495,25 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                                         ),
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                              Divider(
+                                height: 1,
+                                color: appColors.border.withValues(alpha: 0.5),
+                              ),
 
-                                    // Controls Area (Pushed to bottom of Flex)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 24,
-                                        left: 24,
-                                        right: 24,
-                                        top: 12,
-                                      ),
-                                      child: _buildControls(
-                                        state,
-                                        item,
-                                        appColors,
-                                        drills,
-                                      ),
+                              // Footer Actions
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    _buildFooterActions(
+                                      state,
+                                      item,
+                                      appColors,
+                                      drills,
                                     ),
                                   ],
                                 ),
@@ -627,11 +628,43 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     );
   }
 
-  Widget _buildControls(
+  Widget _buildFooterActions(
     _PronunciationDrillItemState state,
     PronunciationItem item,
     AppColorsExtension appColors,
     List<PronunciationItem> drills,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Mic Button
+        _buildMicButton(state, item, appColors),
+
+        // Next Button (if passed)
+        if (state.passed && widget.onNext != null) ...[
+          const SizedBox(width: 16),
+          ElevatedButton(
+            onPressed: widget.onNext,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+            ),
+            child: const Text('Next',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMicButton(
+    _PronunciationDrillItemState state,
+    PronunciationItem item,
+    AppColorsExtension appColors,
   ) {
     return InkWell(
       onTap: _isRecording
@@ -640,8 +673,8 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
       borderRadius: BorderRadius.circular(50),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: _isRecording ? Colors.red : appColors.primary,
           shape: BoxShape.circle,
@@ -655,10 +688,10 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
             ),
           ],
         ),
-        child: const Icon(
+        child: Icon(
           Icons.mic,
-          color: Colors.white,
-          size: 28,
+          color: appColors.buttonText,
+          size: 24,
         ),
       ),
     );

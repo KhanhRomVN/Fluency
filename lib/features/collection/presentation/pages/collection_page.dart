@@ -305,11 +305,14 @@ class _CollectionPageState extends State<CollectionPage> {
       itemCount: _collections.length,
       itemBuilder: (context, index) {
         final collection = _collections[index];
-        return CollectionCard(
-          collection: collection,
-          onTap: () => _navigateToDetail(collection.id),
-          onDeleted: _loadCollections,
-          onUpdated: _loadCollections,
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: CollectionCard(
+            collection: collection,
+            onTap: () => _navigateToDetail(collection.id),
+            onDeleted: _loadCollections,
+            onUpdated: _loadCollections,
+          ),
         );
       },
     );

@@ -316,7 +316,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
             child: PageView.builder(
               controller: _pageController,
               itemCount: questions.length,
@@ -341,7 +341,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: appColors.cardBackground,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -365,57 +365,58 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                                     context, appColors, questions, index),
                                 const Divider(height: 1),
 
-                                // Body
+                                // Content
                                 Expanded(
                                   child: SingleChildScrollView(
-                                    padding: const EdgeInsets.all(16),
+                                    padding: const EdgeInsets.all(24),
                                     child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         // Images
                                         _buildImages(question),
-                                        const SizedBox(height: 20),
+                                        if ((question.images?.isNotEmpty ??
+                                                false) ||
+                                            question.image != null)
+                                          const SizedBox(height: 16),
+
+                                        // Question Text
+                                        if (question.question.isNotEmpty) ...[
+                                          Text(
+                                            question.question,
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                              color: appColors.textPrimary,
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 24),
+                                        ],
 
                                         // Options
                                         _buildOptions(context, question,
                                             appColors, isSubmitted),
-
-                                        // Explain Button
-                                        if (isSubmitted &&
-                                            question.explain.isNotEmpty)
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 16),
-                                            child: InkWell(
-                                              onTap: () => widget.onShowExplain
-                                                  ?.call(question.explain),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.start,
-                                                children: [
-                                                  Icon(Icons.info_outline,
-                                                      size: 20,
-                                                      color: appColors.primary),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    'Explain',
-                                                    style: TextStyle(
-                                                      color: appColors.primary,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      decoration: TextDecoration
-                                                          .underline,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-
-                                        const SizedBox(height: 60),
                                       ],
                                     ),
                                   ),
                                 ),
+                                // Footer
+                                if (_submittedQuestions.contains(question.id) ||
+                                    _selectedAnswers
+                                        .containsKey(question.id)) ...[
+                                  const Divider(height: 1),
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        _buildActionButtons(appColors,
+                                            questions[_currentQuestionIndex]),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -426,14 +427,6 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                 );
               },
             ),
-          ),
-
-          // Floating Action Buttons
-          Positioned(
-            bottom: 32,
-            right: 32,
-            child: _buildActionButtons(
-                appColors, questions[_currentQuestionIndex]),
           ),
         ],
       ),
@@ -504,7 +497,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
         }),
         primaryColor: appColors.primary,
         errorColor: Colors.red,
-        emptyColor: Colors.grey[300]!,
+        emptyColor: appColors.border,
       ),
     );
   }
@@ -562,8 +555,8 @@ class _ListeningChoiceState extends State<ListeningChoice> {
         final isCorrect = question.answer == optionValue ||
             question.validAnswers.contains(optionValue);
 
-        var borderColor = Colors.grey[200]!;
-        var bgColor = Colors.white;
+        var borderColor = appColors.border.withValues(alpha: 0.3);
+        var bgColor = appColors.cardBackground;
         var textColor = appColors.textPrimary;
         Widget? icon;
 
@@ -579,7 +572,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
             textColor = Colors.red;
             icon = const Icon(Icons.close, size: 16, color: Colors.white);
           } else {
-            bgColor = Colors.white;
+            bgColor = appColors.cardBackground;
             textColor = appColors.textSecondary.withValues(alpha: 0.5);
           }
         } else if (isSelected) {
@@ -611,13 +604,15 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                       shape: BoxShape.circle,
                       color: (isSubmitted && (icon != null))
                           ? (isCorrect ? appColors.primary : Colors.red)
-                          : (isSelected ? appColors.primary : Colors.white),
+                          : (isSelected
+                              ? appColors.primary
+                              : appColors.cardBackground),
                       border: Border.all(
                           color: (isSubmitted && (icon != null))
                               ? (isCorrect ? appColors.primary : Colors.red)
                               : (isSelected
                                   ? appColors.primary
-                                  : Colors.grey[300]!),
+                                  : appColors.border),
                           width: 2),
                     ),
                     child: Center(
@@ -656,7 +651,22 @@ class _ListeningChoiceState extends State<ListeningChoice> {
       AppColorsExtension appColors, QuizQuestion currentQuestion) {
     final isSubmitted = _submittedQuestions.contains(currentQuestion.id);
 
-    if (!isSubmitted && _selectedAnswers.containsKey(currentQuestion.id)) {
+    if (isSubmitted) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        onPressed: widget.onNext,
+        child:
+            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+      );
+    }
+
+    if (_selectedAnswers.containsKey(currentQuestion.id)) {
       return ElevatedButton(
         onPressed: _handleConfirm,
         style: ElevatedButton.styleFrom(

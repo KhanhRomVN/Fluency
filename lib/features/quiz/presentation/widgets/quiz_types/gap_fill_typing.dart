@@ -169,7 +169,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
                           horizontal: 16, vertical: 16),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: appColors.cardBackground,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: CustomPaint(
@@ -194,12 +194,8 @@ class _GapFillTypingState extends State<GapFillTyping> {
                                                   ?.copyWith(fontSize: 16),
                                             ),
                                   ),
-                                  child: Builder(
-                                    builder: _buildContent,
-                                  ),
+                                  child: _buildContent(context),
                                 ),
-                                // Spacing at bottom for scrolling past floating button
-                                const SizedBox(height: 80),
                               ],
                             ),
                           ),
@@ -210,23 +206,43 @@ class _GapFillTypingState extends State<GapFillTyping> {
                 ),
               ),
             ),
+            if (_isChecked || _areAllGapsFilled) ...[
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildActionButtons(appColors),
+                  ],
+                ),
+              ),
+            ],
           ],
-        ),
-
-        // Floating Action Buttons
-        Positioned(
-          bottom: 28, // 20 + 8px padding của card
-          right: 36, // 20 + 16px padding của card
-          child: _buildActionButtons(appColors),
         ),
       ],
     );
   }
 
   Widget _buildActionButtons(AppColorsExtension appColors) {
+    if (_isChecked) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        onPressed: widget.onNext,
+        child:
+            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+      );
+    }
+
     // Check Button: Show when all gaps filled AND not checked yet
     if (_areAllGapsFilled && !_isChecked) {
-      return ElevatedButton.icon(
+      return ElevatedButton(
         onPressed: () async {
           setState(() {
             _isChecked = true;
@@ -241,15 +257,12 @@ class _GapFillTypingState extends State<GapFillTyping> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 4, // Shadow for floating effect
         ),
-        icon: const Icon(Icons.check, size: 18),
-        label: const Text(
+        child: const Text(
           'Check answers',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       );
     }
-
-    return const SizedBox.shrink();
 
     return const SizedBox.shrink();
   }

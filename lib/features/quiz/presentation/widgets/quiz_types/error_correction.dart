@@ -349,18 +349,6 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     );
   }
 
-  void _retryCurrent() {
-    final item = widget.quiz.errorCorrections![_currentIndex];
-    setState(() {
-      _itemStates[item.id] = _ErrorCorrectionItemState();
-      _selectedTokenIndex = null;
-      _selectedError = null;
-      _inputValue = '';
-      _inputController.clear();
-      _saveProgress();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -408,7 +396,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                         width: double.infinity,
                         height: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: appColors.cardBackground,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: CustomPaint(
@@ -493,18 +481,26 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                                   ),
                                 ),
                               ),
+                              if (state.passed ||
+                                  _selectedTokenIndex != null) ...[
+                                Divider(height: 1, color: appColors.border),
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      _buildActionButtons(
+                                        appColors,
+                                        state,
+                                        item,
+                                        items,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 28,
-                        right: 36,
-                        child: _buildActionButtons(
-                          appColors,
-                          state,
-                          item,
-                          items,
                         ),
                       ),
                       if (item.explain != null)
@@ -844,34 +840,26 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
   Widget _buildActionButtons(
     AppColorsExtension appColors,
     _ErrorCorrectionItemState state,
-    ErrorCorrectionItem currentItem,
+    ErrorCorrectionItem item,
     List<ErrorCorrectionItem> items,
   ) {
     if (state.passed) {
       return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(
-            onTap: _retryCurrent,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: appColors.buttonSecondBg,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child:
-                  Icon(Icons.refresh, color: appColors.textSecondary, size: 24),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
             ),
+            onPressed: widget.onNext,
+            child: const Text('Next',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
-          const SizedBox(width: 16),
         ],
       );
     }
@@ -879,10 +867,8 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     if (_selectedTokenIndex != null) {
       return Align(
         alignment: Alignment.centerRight,
-        child: ElevatedButton.icon(
+        child: ElevatedButton(
           onPressed: _checkAnswer,
-          icon: const Icon(Icons.check, size: 20),
-          label: const Text('Check Answer'),
           style: ElevatedButton.styleFrom(
             backgroundColor: appColors.primary,
             foregroundColor: Colors.white,
@@ -891,6 +877,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 4,
           ),
+          child: const Text('Check Answer'),
         ),
       );
     }

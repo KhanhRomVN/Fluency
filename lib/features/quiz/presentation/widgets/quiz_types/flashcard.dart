@@ -513,6 +513,16 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _buildFooterActions(appColors),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -520,6 +530,32 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
           );
         },
       ),
+    );
+  }
+
+  void _goToNext() {
+    final cards = widget.quiz.flashcards ?? [];
+    if (_currentIndex < cards.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      widget.onNext?.call();
+    }
+  }
+
+  Widget _buildFooterActions(AppColorsExtension appColors) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: appColors.primary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
+      onPressed: _goToNext,
+      child: const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 

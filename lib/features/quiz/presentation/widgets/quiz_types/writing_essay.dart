@@ -186,7 +186,7 @@ class _WritingEssayState extends State<WritingEssay> {
                 // Main Content
                 Positioned.fill(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -211,7 +211,7 @@ class _WritingEssayState extends State<WritingEssay> {
                           child: Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: appColors.cardBackground,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: appColors.border),
                               boxShadow: [

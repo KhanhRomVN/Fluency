@@ -46,53 +46,48 @@ class CollectionCard extends StatelessWidget {
     Icons.science_rounded,
   ];
 
-  static const List<Color> _colors = [
-    Colors.blue,
-    Colors.purple,
-    Colors.orange,
-    Colors.pink,
-    Colors.teal,
-    Colors.indigo,
-    Colors.deepOrange,
-    Colors.cyan,
-    Colors.amber,
-    Colors.deepPurple,
-    Colors.lightBlue,
-    Colors.red,
-  ];
-
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final index = collection.id.hashCode.abs();
     final randomIcon = _icons[index % _icons.length];
-    final randomColor = _colors[index % _colors.length];
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: appColors.border, width: 1),
-        ),
+    // Generate a theme-aware color based on ID
+    final hue = (index % 12) * 30.0;
+    final badgeColor = HSLColor.fromAHSL(
+      1.0,
+      hue,
+      0.65,
+      Theme.of(context).brightness == Brightness.dark ? 0.6 : 0.5,
+    ).toColor();
+
+    return Card(
+      elevation: 0,
+      color: appColors.cardBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: appColors.border.withValues(alpha: 0.5)),
       ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Random Icon Badge
+              // Dynamic Icon Badge
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: randomColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+                  color: badgeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   randomIcon,
-                  color: randomColor,
-                  size: 24,
+                  color: badgeColor,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 16),
@@ -103,12 +98,13 @@ class CollectionCard extends StatelessWidget {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             collection.name,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: appColors.textPrimary,
                             ),
@@ -117,8 +113,8 @@ class CollectionCard extends StatelessWidget {
                           ),
                         ),
                         SizedBox(
-                          width: 32,
-                          height: 32,
+                          width: 24,
+                          height: 24,
                           child: IconButton(
                             onPressed: () => _showMenu(context),
                             icon: const Icon(Icons.more_vert, size: 20),
@@ -135,7 +131,7 @@ class CollectionCard extends StatelessWidget {
                       Text(
                         collection.description!,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           color: appColors.textSecondary.withValues(alpha: 0.7),
                         ),
                         maxLines: 2,
