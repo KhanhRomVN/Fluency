@@ -55,17 +55,37 @@ class _AddTermDrawerState extends State<AddTermDrawer> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
+      height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
         color: appColors.drawerBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+            blurRadius: 32,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Column(
         children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appColors.textSecondary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           _buildHeader(appColors),
           _buildSearchBar(appColors),
+          const SizedBox(height: 8),
+          const Divider(height: 1, indent: 24, endIndent: 24),
           Expanded(child: _buildSuggestionsList(appColors)),
         ],
       ),
@@ -74,21 +94,43 @@ class _AddTermDrawerState extends State<AddTermDrawer> {
 
   Widget _buildHeader(AppColorsExtension appColors) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(28, 12, 16, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Add New Term',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: appColors.textPrimary,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add New Word',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: appColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              Text(
+                'Search from Cambridge Dictionary',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: appColors.textSecondary.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.close, color: appColors.textPrimary),
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: appColors.textSecondary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.close_rounded,
+                  color: appColors.textPrimary, size: 18),
+            ),
           ),
         ],
       ),
@@ -98,45 +140,81 @@ class _AddTermDrawerState extends State<AddTermDrawer> {
   Widget _buildSearchBar(AppColorsExtension appColors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           color: appColors.inputBackground,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: appColors.border.withValues(alpha: 0.5),
+            color: _searchController.text.isNotEmpty
+                ? appColors.primary.withValues(alpha: 0.5)
+                : appColors.border.withValues(alpha: 0.2),
+            width: 1.5,
           ),
+          boxShadow: [
+            if (_searchController.text.isNotEmpty)
+              BoxShadow(
+                color: appColors.primary.withValues(alpha: 0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
         child: TextField(
           controller: _searchController,
-          onChanged: _onSearchChanged,
+          onChanged: (val) {
+            _onSearchChanged(val);
+            setState(() {});
+          },
           autofocus: true,
-          style: TextStyle(color: appColors.textPrimary),
+          style: TextStyle(
+            color: appColors.textPrimary,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
           decoration: InputDecoration(
-            hintText: 'Search in Cambridge Dictionary...',
+            hintText: 'Type a word to search...',
             hintStyle: TextStyle(
-              color: appColors.textSecondary.withValues(alpha: 0.6),
-              fontSize: 14,
+              color: appColors.textSecondary.withValues(alpha: 0.4),
+              fontSize: 15,
             ),
             prefixIcon: Icon(
               Icons.search_rounded,
-              color: appColors.textSecondary,
-              size: 20,
+              color: _searchController.text.isNotEmpty
+                  ? appColors.primary
+                  : appColors.textSecondary,
+              size: 22,
             ),
             suffixIcon: _isLoading
-                ? Container(
+                ? Padding(
                     padding: const EdgeInsets.all(12),
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: appColors.primary,
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(appColors.primary),
+                      ),
                     ),
                   )
-                : null,
+                : _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.cancel_rounded,
+                            size: 18,
+                            color:
+                                appColors.textSecondary.withValues(alpha: 0.5)),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 12,
+              vertical: 14,
             ),
           ),
         ),
@@ -149,40 +227,104 @@ class _AddTermDrawerState extends State<AddTermDrawer> {
         !_isLoading &&
         _searchController.text.isNotEmpty) {
       return Center(
-        child: Text(
-          'No suggestions found',
-          style: TextStyle(color: appColors.textSecondary),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 48,
+                color: appColors.textSecondary.withValues(alpha: 0.2)),
+            const SizedBox(height: 12),
+            Text(
+              'No matching words found',
+              style: TextStyle(
+                color: appColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+    if (_suggestions.isEmpty && !_isLoading && _searchController.text.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.auto_stories_rounded,
+                size: 48,
+                color: appColors.textSecondary.withValues(alpha: 0.2)),
+            const SizedBox(height: 12),
+            Text(
+              'Start typing to see suggestions',
+              style: TextStyle(
+                color: appColors.textSecondary.withValues(alpha: 0.5),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: _suggestions.length,
-      separatorBuilder: (context, index) => Divider(
-        color: appColors.border.withValues(alpha: 0.3),
-        height: 1,
-      ),
       itemBuilder: (context, index) {
         final suggestion = _suggestions[index];
-        return ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-            suggestion,
-            style: TextStyle(
-              color: appColors.textPrimary,
-              fontSize: 16,
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                widget.onWordSelected(suggestion);
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: appColors.cardBackground.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: appColors.border.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: appColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.text_fields_rounded,
+                          color: appColors.primary, size: 18),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        suggestion,
+                        style: TextStyle(
+                          color: appColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: appColors.textSecondary.withValues(alpha: 0.3),
+                      size: 14,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          trailing: Icon(
-            Icons.chevron_right_rounded,
-            color: appColors.textSecondary,
-            size: 20,
-          ),
-          onTap: () {
-            Navigator.pop(context);
-            widget.onWordSelected(suggestion);
-          },
         );
       },
     );

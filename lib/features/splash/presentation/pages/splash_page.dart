@@ -26,8 +26,7 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColorsExtension>();
-    final primaryColor = colors?.primary ?? Theme.of(context).primaryColor;
+    const Color primaryColor = Color(0xFF52AAA5);
 
     return Scaffold(
       backgroundColor: primaryColor,
@@ -57,16 +56,14 @@ class _SplashPageState extends State<SplashPage> {
                 ),
               ),
             ),
-            Transform.translate(
-              offset: const Offset(0, -50),
-              child: Text(
-                'FLUENCY',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-              ),
+            const SizedBox(height: 20),
+            Text(
+              'FLUENCY',
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
             ),
           ],
         ),

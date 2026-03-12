@@ -17,122 +17,165 @@ class LibraryDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
-    return SizedBox(
-      height: MediaQuery.of(context).size.height * 0.5,
-      child: Container(
-        decoration: BoxDecoration(
-          color: appColors.cardBackground,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: appColors.textSecondary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+    return Container(
+      padding: const EdgeInsets.only(bottom: 28),
+      decoration: BoxDecoration(
+        color: appColors.cardBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 40,
+            offset: const Offset(0, -10),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          const SizedBox(height: 12),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appColors.textSecondary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(99),
             ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Library',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
+          ),
+          const SizedBox(height: 8),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add Collection',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: appColors.textPrimary,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    Text(
+                      'Choose how to create your dictionary',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: appColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: appColors.inputBackground.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: appColors.textSecondary.withValues(alpha: 0.5),
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                _buildOption(
+                  context,
+                  icon: Icons.add_rounded,
+                  title: 'Create Collection',
+                  subtitle: 'Start a new vocabulary dictionary from scratch',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildOption(
-              context,
-              icon: Icons.add_circle_outline,
-              title: 'Create Collection',
-              subtitle: 'Start a new collection from scratch',
-              color: appColors.primary,
-              onTap: () {
-                Navigator.pop(context);
-                showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  useRootNavigator: true,
-                  builder: (context) => CreateCollectionDrawer(
-                    onCreated: onCollectionCreated,
+                  onTap: () {
+                    Navigator.pop(context);
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      useRootNavigator: true,
+                      builder: (context) => CreateCollectionDrawer(
+                        onCreated: onCollectionCreated,
+                      ),
+                    );
+                  },
+                  appColors: appColors,
+                ),
+                const SizedBox(height: 8),
+                _buildOption(
+                  context,
+                  icon: Icons.upload_file_rounded,
+                  title: 'Import from CSV',
+                  subtitle: 'Upload a spreadsheet with word & definition',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0EA5E9), Color(0xFF6366F1)],
                   ),
-                );
-              },
-              appColors: appColors,
-            ),
-            Divider(
-              height: 1,
-              indent: 24,
-              endIndent: 24,
-              color: appColors.textSecondary.withValues(alpha: 0.1),
-            ),
-            _buildOption(
-              context,
-              icon: Icons.file_upload_outlined,
-              title: 'Import Collection',
-              subtitle: 'Import from CSV, Excel, or Sheets',
-              color: Colors.orange,
-              onTap: () {
-                Navigator.pop(context);
-                showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  useRootNavigator: true,
-                  builder: (context) => ImportCollectionDrawer(
-                    onImported: onCollectionImported,
+                  onTap: () {
+                    Navigator.pop(context);
+                    showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      useRootNavigator: true,
+                      builder: (context) => ImportCollectionDrawer(
+                        onImported: onCollectionImported,
+                      ),
+                    );
+                  },
+                  appColors: appColors,
+                ),
+                const SizedBox(height: 8),
+                _buildOption(
+                  context,
+                  icon: Icons.auto_awesome_rounded,
+                  title: 'Generate with AI',
+                  subtitle: 'Describe a topic and let AI build the list',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
                   ),
-                );
-              },
-              appColors: appColors,
-            ),
-            Divider(
-              height: 1,
-              indent: 24,
-              endIndent: 24,
-              color: appColors.textSecondary.withValues(alpha: 0.1),
-            ),
-            _buildOption(
-              context,
-              icon: Icons.folder_special_outlined,
-              title: 'Fluency Files',
-              subtitle: 'Pre-made collections by Fluency',
-              color: Colors.indigo,
-              onTap: () {
-                // TODO(collection): Implement Fluency Files
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Fluency Files coming soon!'),
+                  onTap: () {
+                    // TODO: Implement AI Generation
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('AI Generation coming soon!')),
+                    );
+                  },
+                  appColors: appColors,
+                ),
+                const SizedBox(height: 8),
+                _buildOption(
+                  context,
+                  icon: Icons.share_rounded,
+                  title: 'Import via Share Code',
+                  subtitle: 'Enter a code to clone someone\'s collection',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF0EA5E9)],
                   ),
-                );
-              },
-              appColors: appColors,
+                  onTap: () {
+                    // TODO: Implement Share Code Import
+                    Navigator.pop(context);
+                  },
+                  appColors: appColors,
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -142,26 +185,41 @@ class LibraryDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
-    required Color color,
+    required Gradient gradient,
     required VoidCallback onTap,
     required AppColorsExtension appColors,
   }) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: appColors.inputBackground.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: appColors.border.withValues(alpha: 0.1),
+          ),
+        ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(13),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: Colors.white, size: 20),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,26 +227,28 @@ class LibraryDrawer extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                       color: appColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 1),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       color: appColors.textSecondary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: appColors.textSecondary,
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: appColors.textSecondary.withValues(alpha: 0.3),
             ),
           ],
         ),

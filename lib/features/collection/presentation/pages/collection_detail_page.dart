@@ -15,6 +15,7 @@ import 'package:fluency/features/collection/presentation/widgets/drawers/edit_co
 import 'package:fluency/features/collection/presentation/widgets/term_card.dart';
 import 'package:fluency/features/quiz/presentation/widgets/directory_drawer.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class CollectionDetailPage extends StatefulWidget {
@@ -39,6 +40,15 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   String? _selectedWord;
   bool _isSelectionMode = false;
   final Set<String> _selectedTermIds = {};
+  String _activeTab = 'All';
+  static const List<String> _tabs = [
+    'All',
+    'New',
+    'Learning',
+    'Familiar',
+    'Proficient',
+    'Mastered'
+  ];
 
   @override
   void initState() {
@@ -186,13 +196,31 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         Scaffold(
           backgroundColor: appColors.background,
           body: SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(appColors),
-                // _buildQuizBox(appColors), // Removed as per request
-                _buildRegexSearchBar(appColors),
-                Expanded(
-                  child: _buildBody(appColors),
+            bottom: false,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _buildHeader(appColors)),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverAppBarDelegate(
+                    child: Container(
+                      color: appColors.background,
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildRegexSearchBar(appColors),
+                          _buildTabs(appColors),
+                        ],
+                      ),
+                    ),
+                    minHeight: 118,
+                    maxHeight: 118,
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  sliver: _buildSliverBody(appColors),
                 ),
               ],
             ),
@@ -209,6 +237,84 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           onTermAdded: _loadCollection,
         ),
       ],
+    );
+  }
+
+  int _getTabCount(String tab) {
+    if (_collection == null) return 0;
+    if (tab == 'All') return _collection!.terms.length;
+    return _collection!.terms.where((term) {
+      if (tab == 'New') return term.masteryLevel == 0;
+      if (tab == 'Learning')
+        return term.masteryLevel > 0 && term.masteryLevel <= 0.25;
+      if (tab == 'Familiar')
+        return term.masteryLevel > 0.25 && term.masteryLevel <= 0.5;
+      if (tab == 'Proficient')
+        return term.masteryLevel > 0.5 && term.masteryLevel <= 0.75;
+      if (tab == 'Mastered') return term.masteryLevel > 0.75;
+      return false;
+    }).length;
+  }
+
+  Color _getTabColor(String tab, AppColorsExtension appColors) {
+    switch (tab) {
+      case 'New':
+        return appColors.textSecondary.withValues(alpha: 0.5);
+      case 'Learning':
+        return const Color(0xFF94A3B8);
+      case 'Familiar':
+        return const Color(0xFF60A5FA);
+      case 'Proficient':
+        return const Color(0xFFF59E0B);
+      case 'Mastered':
+        return appColors.primary;
+      default:
+        return appColors.primary;
+    }
+  }
+
+  Widget _buildTabs(AppColorsExtension appColors) {
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.only(top: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _tabs.length,
+        itemBuilder: (context, index) {
+          final tab = _tabs[index];
+          final isActive = _activeTab == tab;
+          final count = _getTabCount(tab);
+          final tabColor = _getTabColor(tab, appColors);
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text('$tab ($count)'),
+              selected: isActive,
+              onSelected: (selected) {
+                if (selected) setState(() => _activeTab = tab);
+              },
+              selectedColor: tabColor,
+              backgroundColor: tabColor.withValues(alpha: 0.05),
+              labelStyle: TextStyle(
+                color: isActive ? Colors.white : tabColor,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                fontSize: 12,
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              side: BorderSide(
+                color: isActive
+                    ? Colors.transparent
+                    : tabColor.withValues(alpha: 0.2),
+              ),
+              showCheckmark: false,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -248,22 +354,32 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Stack(
         alignment: Alignment.center,
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: SvgPicture.string(
-                '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left-icon lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>''',
-                colorFilter: ColorFilter.mode(
-                  appColors.textPrimary,
-                  BlendMode.srcIn,
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: appColors.cardBackground,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: appColors.border,
                 ),
-                width: 24,
-                height: 24,
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: SvgPicture.string(
+                  '''<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left-icon lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>''',
+                  colorFilter: ColorFilter.mode(
+                    appColors.textPrimary,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                padding: EdgeInsets.zero,
               ),
             ),
           ),
@@ -274,85 +390,35 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               fontWeight: FontWeight.bold,
               color: appColors.textPrimary,
             ),
-            textAlign: TextAlign.center,
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: IconButton(
-              onPressed: () => _showCollectionActions(appColors),
-              icon: SvgPicture.string(
-                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-end-vertical-icon lucide-align-end-vertical"><rect width="16" height="6" x="2" y="4" rx="2"/><rect width="9" height="6" x="9" y="14" rx="2"/><path d="M22 22V2"/></svg>',
-                width: 20,
-                height: 20,
-                colorFilter: ColorFilter.mode(
-                  appColors.textPrimary,
-                  BlendMode.srcIn,
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: appColors.cardBackground,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: appColors.border,
                 ),
               ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+              child: IconButton(
+                onPressed: () => _showCollectionActions(appColors),
+                icon: SvgPicture.string(
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-end-vertical-icon lucide-align-end-vertical"><rect width="16" height="6" x="2" y="4" rx="2"/><rect width="9" height="6" x="9" y="14" rx="2"/><path d="M22 22V2"/></svg>',
+                  width: 18,
+                  height: 18,
+                  colorFilter: ColorFilter.mode(
+                    appColors.textPrimary,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                padding: EdgeInsets.zero,
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuizBox(AppColorsExtension appColors) {
-    if (_collection == null || _collection!.terms.isEmpty || _isSelectionMode)
-      return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Material(
-        color: appColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: _showQuizTypeDrawer,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: appColors.primary.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.psychology_rounded,
-                      color: appColors.primary, size: 28),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Start Learning',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Practice with ${_collection!.terms.length} terms using different quiz types',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: appColors.textSecondary.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded,
-                    color: appColors.textSecondary),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -570,9 +636,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               height: 42,
               decoration: BoxDecoration(
                 color: appColors.inputBackground,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: appColors.border.withValues(alpha: 0.3),
+                  color: appColors.border,
                 ),
               ),
               child: TextField(
@@ -583,21 +649,70 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                   hintText: 'Search with regex...',
                   hintStyle: TextStyle(
                     color: appColors.textSecondary.withValues(alpha: 0.5),
-                    fontSize: 14, // Matches input text size
+                    fontSize: 14,
                   ),
                   prefixIcon: Icon(
                     Icons.search_rounded,
                     color: appColors.textSecondary,
                     size: 18,
                   ),
-                  isDense: true, // Key for better alignment
+                  isDense: true,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 11, // Precise alignment
+                    vertical: 11,
                   ),
                 ),
               ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            height: 42,
+            width: 42,
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.orange.withValues(alpha: 0.4),
+              ),
+            ),
+            child: IconButton(
+              onPressed: _showQuizTypeDrawer,
+              icon: const Icon(Icons.psychology_rounded,
+                  color: Colors.orange, size: 22),
+              padding: EdgeInsets.zero,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            height: 42,
+            width: 42,
+            decoration: BoxDecoration(
+              color: appColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: appColors.primary.withValues(alpha: 0.4),
+              ),
+            ),
+            child: IconButton(
+              onPressed: () {
+                showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => AddTermDrawer(
+                    onWordSelected: (word) {
+                      setState(() {
+                        _selectedWord = word;
+                        _showDirectoryDrawer = true;
+                      });
+                    },
+                  ),
+                );
+              },
+              icon: Icon(Icons.add_rounded, color: appColors.primary, size: 22),
+              padding: EdgeInsets.zero,
             ),
           ),
         ],
@@ -605,165 +720,140 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     );
   }
 
-  Widget _buildBody(AppColorsExtension appColors) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Text(
-          'Error: $_error',
-          style: TextStyle(color: appColors.textSecondary),
-        ),
-      );
-    }
-
+  List<Term> _getFilteredTerms() {
+    if (_collection == null) return [];
     final query = _searchController.text.trim();
-    final terms = _collection!.terms.where((term) {
+    return _collection!.terms.where((term) {
+      // Tab filter
+      bool tabMatches = true;
+      if (_activeTab != 'All') {
+        if (_activeTab == 'New') {
+          tabMatches = term.masteryLevel == 0;
+        } else if (_activeTab == 'Learning') {
+          tabMatches = term.masteryLevel > 0 && term.masteryLevel <= 0.25;
+        } else if (_activeTab == 'Familiar') {
+          tabMatches = term.masteryLevel > 0.25 && term.masteryLevel <= 0.5;
+        } else if (_activeTab == 'Proficient') {
+          tabMatches = term.masteryLevel > 0.5 && term.masteryLevel <= 0.75;
+        } else if (_activeTab == 'Mastered') {
+          tabMatches = term.masteryLevel > 0.75;
+        }
+      }
+
+      if (!tabMatches) return false;
+
+      // Search filter
       if (query.isEmpty) return true;
       try {
         final regex = RegExp(query, caseSensitive: false);
         return regex.hasMatch(term.term);
       } catch (e) {
-        // Fallback to simple contains if regex is invalid
         return term.term.toLowerCase().contains(query.toLowerCase());
       }
     }).toList();
+  }
 
-    if (terms.isEmpty) {
-      return Center(
-        child: Text(
-          query.isEmpty ? 'No terms yet' : 'No matches found',
-          style: TextStyle(color: appColors.textSecondary),
+  Widget _buildSliverBody(AppColorsExtension appColors) {
+    if (_isLoading) {
+      return const SliverToBoxAdapter(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 80),
+            child: Column(
+              children: [
+                Icon(Icons.error_outline,
+                    size: 64,
+                    color: appColors.textSecondary.withValues(alpha: 0.2)),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading collection: $_error',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: terms.length,
-      itemBuilder: (context, index) {
-        final term = terms[index];
-        final isSelected = _selectedTermIds.contains(term.id);
+    if (_collection == null) {
+      return const SliverToBoxAdapter(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
-        Widget card = TermCard(
-          term: term,
-          index: index + 1,
-          isSelectionMode: _isSelectionMode,
-          isSelected: isSelected,
-          onSelectedChanged: (bool? val) {
-            setState(() {
-              if (val == true) {
-                _selectedTermIds.add(term.id);
-              } else {
-                _selectedTermIds.remove(term.id);
-              }
-            });
-          },
-          onTap: () {
-            setState(() {
-              _selectedWord = term.term;
-              _showDirectoryDrawer = true;
-            });
-          },
-          onDelete: () {}, // Handled by Dismissible
-        );
+    final terms = _getFilteredTerms();
 
-        if (_isSelectionMode) return card;
-
-        return Dismissible(
-          key: ValueKey(term.id),
-          direction: DismissDirection.horizontal,
-          confirmDismiss: (_) async {
-            return await showModalBottomSheet<bool>(
-              context: context,
-              backgroundColor: Colors.transparent,
-              builder: (context) => Container(
-                decoration: BoxDecoration(
-                  color: appColors.drawerBackground,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(32)),
-                ),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Handle
-                      Container(
-                        margin: const EdgeInsets.only(top: 12, bottom: 8),
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: appColors.textSecondary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      // Header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Term Actions',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: appColors.textPrimary,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              icon: const Icon(Icons.close),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Divider(height: 1),
-                      _buildActionTile(
-                        appColors: appColors,
-                        icon: Icons.psychology_rounded,
-                        iconColor: Colors.orange,
-                        title: 'Practice Term',
-                        description:
-                            'Start a quick flashcard session for this term',
-                        onTap: () {
-                          Navigator.pop(context, false); // Don't delete
-                          _navigateToQuiz('flashcard', index);
-                        },
-                      ),
-                      _buildActionTile(
-                        appColors: appColors,
-                        icon: Icons.delete_outline_rounded,
-                        iconColor: Colors.red,
-                        title: 'Delete term',
-                        description:
-                            'Remove "${term.term}" from this collection',
-                        isDangerous: true,
-                        onTap: () => Navigator.pop(context, true),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+    if (terms.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 80),
+            child: Column(
+              children: [
+                Icon(Icons.search_off_rounded,
+                    size: 64,
+                    color: appColors.textSecondary.withValues(alpha: 0.2)),
+                const SizedBox(height: 16),
+                Text(
+                  'No words found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textSecondary,
                   ),
                 ),
-              ),
-            );
-          },
-          onDismissed: (_) async {
-            await _repository.removeTermFromCollection(
-              widget.collectionId,
-              term.id,
-            );
-            await _loadCollection();
-          },
-          child: card,
-        );
-      },
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final term = terms[index];
+          return TermCard(
+            term: term,
+            index: index + 1,
+            isSelectionMode: _isSelectionMode,
+            isSelected: _selectedTermIds.contains(term.id),
+            onSelectedChanged: (selected) {
+              setState(() {
+                if (selected == true) {
+                  _selectedTermIds.add(term.id);
+                } else {
+                  _selectedTermIds.remove(term.id);
+                }
+              });
+            },
+            onDelete: () async {
+              await _repository.removeTermFromCollection(
+                  widget.collectionId, term.id);
+              _loadCollection();
+            },
+            onTap: () {
+              setState(() {
+                _selectedWord = term.term;
+                _showDirectoryDrawer = true;
+              });
+            },
+          );
+        },
+        childCount: terms.length,
+      ),
     );
   }
 
@@ -1134,5 +1224,34 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       _isSelectionMode = false;
     });
     _loadCollection();
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.child,
+  });
+  final double minHeight;
+  final double maxHeight;
+  final Widget child;
+
+  @override
+  double get minExtent => minHeight;
+  @override
+  double get maxExtent => math.max(maxHeight, minHeight);
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight ||
+        minHeight != oldDelegate.minHeight ||
+        child != oldDelegate.child;
   }
 }

@@ -1,5 +1,4 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
-import 'package:fluency/core/services/tts/voice_download_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -14,146 +13,119 @@ class MainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor =
-        Theme.of(context).extension<AppColorsExtension>()?.primary ??
-            Theme.of(context).primaryColor;
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+    final primaryColor = colors.primary;
+    final unselectedColor = const Color(0xFF444444);
+
     return Scaffold(
+      backgroundColor: colors.background,
       body: navigationShell,
       bottomNavigationBar: Container(
+        height: 70,
         decoration: BoxDecoration(
+          color: colors.background,
           border: Border(
             top: BorderSide(
-              color: Theme.of(context).dividerColor.withOpacity(0.05),
+              color: colors.divider,
               width: 1,
             ),
           ),
         ),
-        child: BottomNavigationBar(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-          type: BottomNavigationBarType.fixed,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          iconSize: 22,
-          currentIndex: navigationShell.currentIndex,
-          onTap: (index) {
-            // Navigate to root route of each branch to reset navigation stack
-            switch (index) {
-              case 0:
-                navigationShell.goBranch(0, initialLocation: true);
-              case 1:
-                navigationShell.goBranch(1, initialLocation: true);
-              case 2:
-                navigationShell.goBranch(2, initialLocation: true);
-              case 3:
-                navigationShell.goBranch(3, initialLocation: true);
-              default:
-                navigationShell.goBranch(index, initialLocation: true);
-            }
-          },
-          selectedItemColor: primaryColor,
-          unselectedItemColor: Theme.of(context).unselectedWidgetColor,
-          items: [
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: SvgPicture.string(
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
-                  width: 22,
-                  height: 22,
-                  colorFilter: ColorFilter.mode(
-                    navigationShell.currentIndex == 0
-                        ? primaryColor
-                        : Theme.of(context).unselectedWidgetColor,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: SvgPicture.string(
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-book-open-icon lucide-book-open"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>',
-                  width: 22,
-                  height: 22,
-                  colorFilter: ColorFilter.mode(
-                    navigationShell.currentIndex == 1
-                        ? primaryColor
-                        : Theme.of(context).unselectedWidgetColor,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-              label: 'Course',
-            ),
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: SvgPicture.string(
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-library-icon lucide-library"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>',
-                  width: 22,
-                  height: 22,
-                  colorFilter: ColorFilter.mode(
-                    navigationShell.currentIndex == 2
-                        ? primaryColor
-                        : Theme.of(context).unselectedWidgetColor,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-              label: 'Collection',
-            ),
-            BottomNavigationBarItem(
-              icon: StreamBuilder<DownloadState>(
-                stream: VoiceDownloadService().downloadStateStream,
-                builder: (context, snapshot) {
-                  final state = snapshot.data;
-                  final showBadge = state != null && state.isDownloading;
-
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: SvgPicture.string(
-                          '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings-icon lucide-settings"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>',
-                          width: 22,
-                          height: 22,
-                          colorFilter: ColorFilter.mode(
-                            navigationShell.currentIndex == 3
-                                ? primaryColor
-                                : Theme.of(context).unselectedWidgetColor,
-                            BlendMode.srcIn,
-                          ),
+        child: Column(
+          children: [
+            Expanded(
+              child: BottomNavigationBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                type: BottomNavigationBarType.fixed,
+                showSelectedLabels: true,
+                showUnselectedLabels: true,
+                selectedFontSize: 10,
+                unselectedFontSize: 10,
+                iconSize: 20,
+                currentIndex: navigationShell.currentIndex,
+                onTap: (index) {
+                  navigationShell.goBranch(index, initialLocation: true);
+                },
+                selectedItemColor: primaryColor,
+                unselectedItemColor: unselectedColor,
+                selectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w700, letterSpacing: 0.03),
+                unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500, letterSpacing: 0.03),
+                items: [
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: SvgPicture.string(
+                        '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9L10 3L17 9V17H13V13H7V17H3V9Z"/></svg>',
+                        colorFilter: ColorFilter.mode(
+                          navigationShell.currentIndex == 0
+                              ? primaryColor
+                              : unselectedColor,
+                          BlendMode.srcIn,
                         ),
                       ),
-                      if (showBadge)
-                        Positioned(
-                          right: 0,
-                          bottom: 2,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: primaryColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color:
-                                    Theme.of(context).scaffoldBackgroundColor,
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
+                    ),
+                    label: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: SvgPicture.string(
+                        '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="14" height="14" rx="3"/><line x1="7" y1="8" x2="13" y2="8" stroke-width="1.5" stroke-linecap="round"/><line x1="7" y1="12" x2="11" y2="12" stroke-width="1.5" stroke-linecap="round"/></svg>',
+                        colorFilter: ColorFilter.mode(
+                          navigationShell.currentIndex == 1
+                              ? primaryColor
+                              : unselectedColor,
+                          BlendMode.srcIn,
                         ),
-                    ],
-                  );
-                },
+                      ),
+                    ),
+                    label: 'Course',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: SvgPicture.string(
+                        '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h5v12H4zM11 4h5v12h-5z"/></svg>',
+                        colorFilter: ColorFilter.mode(
+                          navigationShell.currentIndex == 2
+                              ? primaryColor
+                              : unselectedColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                    label: 'Collection',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: SvgPicture.string(
+                        '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="10" r="2.5"/><path d="M10 3v1.5M10 15.5V17M3 10h1.5M15.5 10H17M5.05 5.05l1.06 1.06M13.89 13.89l1.06 1.06M5.05 14.95l1.06-1.06M13.89 6.11l1.06-1.06"/></svg>',
+                        colorFilter: ColorFilter.mode(
+                          navigationShell.currentIndex == 3
+                              ? primaryColor
+                              : unselectedColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                    label: 'Setting',
+                  ),
+                ],
               ),
-              label: 'Setting',
+            ),
+            // Home indicator simulation
+            Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              width: 100,
+              height: 3,
+              decoration: BoxDecoration(
+                color: const Color(0xFF333333),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ],
         ),

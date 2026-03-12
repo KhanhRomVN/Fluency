@@ -4,6 +4,7 @@ import 'package:fluency/features/collection/domain/entities/collection.dart';
 import 'package:fluency/features/collection/domain/repositories/collection_repository.dart';
 import 'package:fluency/features/collection/presentation/pages/collection_detail_page.dart';
 import 'package:fluency/features/collection/presentation/widgets/collection_card.dart';
+import 'package:fluency/features/collection/presentation/widgets/drawers/collection_menu_drawer.dart';
 import 'package:fluency/features/collection/presentation/widgets/drawers/library_drawer.dart';
 import 'package:fluency/features/quiz/data/services/directory_storage.dart';
 import 'package:fluency/features/quiz/presentation/widgets/directory_drawer.dart';
@@ -26,6 +27,15 @@ class _CollectionPageState extends State<CollectionPage> {
   bool _isDirectoryDrawerOpen = false;
   String? _searchWord;
   bool _isSearching = false;
+  String _activeTab = 'All';
+  static const List<String> _tabs = [
+    "All",
+    "Academic",
+    "Business",
+    "Idioms",
+    "Grammar",
+    "Phonics"
+  ];
 
   @override
   void initState() {
@@ -77,6 +87,21 @@ class _CollectionPageState extends State<CollectionPage> {
           ),
         )
         .then((_) => _loadCollections());
+  }
+
+  void _showCollectionMenu(Collection collection) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CollectionMenuDrawer(
+        collection: collection,
+        onDeleted: _loadCollections,
+        onUpdated: _loadCollections,
+        onStudy: () => _navigateToDetail(collection.id),
+      ),
+    );
   }
 
   Future<void> _performSearch() async {
@@ -148,97 +173,166 @@ class _CollectionPageState extends State<CollectionPage> {
   }
 
   Widget _buildHeader(AppColorsExtension appColors) {
+    final totalWords = _collections.fold<int>(0, (s, c) => s + c.totalTerms);
+    final totalMastered =
+        _collections.fold<int>(0, (s, c) => s + c.masteredCount);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title row
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Left spacer với icon trong suốt
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: SvgPicture.string(
-                  '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>''',
-                  colorFilter: ColorFilter.mode(
-                    Colors.transparent,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ),
-              const Spacer(),
               Text(
                 'Collection',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
-                    ),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: appColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
               ),
-              const Spacer(),
               GestureDetector(
                 onTap: _showLibraryDrawer,
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: SvgPicture.string(
-                    '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>''',
-                    colorFilter: ColorFilter.mode(
-                      appColors.textSecondary,
-                      BlendMode.srcIn,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: appColors.inputBackground,
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                      color: appColors.border.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 20,
+                      color: appColors.textSecondary,
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          // Stats row
+          Row(
+            children: [
+              _buildStatBox('📚', _collections.length, 'Collections',
+                  const Color(0xFF6366F1), appColors),
+              const SizedBox(width: 8),
+              _buildStatBox('✍️', totalWords, 'Total Words',
+                  const Color(0xFF0EA5E9), appColors),
+              const SizedBox(width: 8),
+              _buildStatBox('✅', totalMastered, 'Mastered',
+                  const Color(0xFF10B981), appColors),
+            ],
+          ),
+          const SizedBox(height: 14),
           // Search bar
-          Container(
-            decoration: BoxDecoration(
-              color: appColors.inputBackground,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: appColors.border.withValues(alpha: 0.5),
+          SizedBox(
+            height: 42,
+            child: Container(
+              decoration: BoxDecoration(
+                color: appColors.inputBackground,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: appColors.border.withValues(alpha: 0.4),
+                ),
               ),
-            ),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(color: appColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Search dictionary...',
-                hintStyle: TextStyle(
-                  color: appColors.textSecondary,
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(
+                  color: appColors.textPrimary,
                   fontSize: 14,
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: appColors.textSecondary,
-                  size: 20,
-                ),
-                suffixIcon: _isSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                decoration: InputDecoration(
+                  hintText: 'Search dictionary...',
+                  hintStyle: TextStyle(
+                    color: appColors.textSecondary.withValues(alpha: 0.5),
+                    fontSize: 14,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: appColors.textSecondary.withValues(alpha: 0.4),
+                    size: 18,
+                  ),
+                  suffixIcon: _isSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
-                        ),
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                        )
+                      : _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {});
+                              },
+                              color: appColors.textSecondary
+                                  .withValues(alpha: 0.4),
+                            )
+                          : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
                 ),
+                onSubmitted: (_) => _performSearch(),
+                textInputAction: TextInputAction.search,
               ),
-              onSubmitted: (_) => _performSearch(),
-              textInputAction: TextInputAction.search,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String icon, int val, String label, Color color,
+      AppColorsExtension appColors) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: appColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: appColors.border.withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 17)),
+            const SizedBox(height: 2),
+            Text(
+              val.toString(),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: -0.5,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: appColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -248,73 +342,65 @@ class _CollectionPageState extends State<CollectionPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              'Error: $_error',
-              style: TextStyle(color: appColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadCollections,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
+    final filtered = _collections.where((c) {
+      final matchTab = _activeTab == "All"; // Placeholder logic for now
+      final matchSearch = _searchController.text.isEmpty ||
+          c.name.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          (c.description != null &&
+              c.description!
+                  .toLowerCase()
+                  .contains(_searchController.text.toLowerCase()));
+      return matchTab && matchSearch;
+    }).toList();
 
-    if (_collections.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.collections_bookmark_outlined,
-              size: 64,
-              color: appColors.textSecondary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No collections yet',
-              style: TextStyle(
-                color: appColors.textSecondary,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap the library icon to create one',
-              style: TextStyle(
-                color: appColors.textSecondary.withValues(alpha: 0.7),
-                fontSize: 14,
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        Expanded(
+          child: filtered.isEmpty
+              ? _buildEmptyState(appColors)
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final collection = filtered[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: CollectionCard(
+                        collection: collection,
+                        onTap: () => _showCollectionMenu(collection),
+                        onDeleted: _loadCollections,
+                        onUpdated: _loadCollections,
+                      ),
+                    );
+                  },
+                ),
         ),
-      );
-    }
+      ],
+    );
+  }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _collections.length,
-      itemBuilder: (context, index) {
-        final collection = _collections[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: CollectionCard(
-            collection: collection,
-            onTap: () => _navigateToDetail(collection.id),
-            onDeleted: _loadCollections,
-            onUpdated: _loadCollections,
+  Widget _buildEmptyState(AppColorsExtension appColors) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '📭',
+            style: TextStyle(
+              fontSize: 48,
+              color: appColors.textSecondary.withValues(alpha: 0.3),
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 12),
+          Text(
+            'No collections found',
+            style: TextStyle(
+              color: appColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

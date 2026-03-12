@@ -39,6 +39,7 @@ dependencies:
   crypto: ^3.0.7
   html: ^0.15.6
   uuid: ^4.5.1
+  smooth_gradient: ^0.1.0
 
 dev_dependencies:
   build_runner: ^2.5.4
@@ -76,59 +77,28 @@ flutter:
     - assets/voices/
 
   fonts:
-    - family: Poppins
+    - family: DM Sans
       fonts:
-        - asset: assets/fonts/poppins/Poppins-Thin.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-Thin.ttf
           weight: 100
-        - asset: assets/fonts/poppins/Poppins-ExtraLight.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-ExtraLight.ttf
           weight: 200
-        - asset: assets/fonts/poppins/Poppins-Light.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-Light.ttf
           weight: 300
-        - asset: assets/fonts/poppins/Poppins-Regular.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-Regular.ttf
           weight: 400
-        - asset: assets/fonts/poppins/Poppins-Medium.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-Medium.ttf
           weight: 500
-        - asset: assets/fonts/poppins/Poppins-SemiBold.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/poppins/Poppins-Bold.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-Bold.ttf
           weight: 700
-        - asset: assets/fonts/poppins/Poppins-ExtraBold.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-ExtraBold.ttf
           weight: 800
-        - asset: assets/fonts/poppins/Poppins-Black.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-Black.ttf
           weight: 900
-        - asset: assets/fonts/poppins/Poppins-Italic.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-Italic.ttf
           style: italic
-
-    - family: FiraCode
-      fonts:
-        - asset: assets/fonts/firacode/FiraCode-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/firacode/FiraCode-Bold.ttf
+        - asset: assets/fonts/DM_Sans/static/DMSans-BoldItalic.ttf
           weight: 700
-        - asset: assets/fonts/firacode/FiraCode-Light.ttf
-          weight: 300
-        - asset: assets/fonts/firacode/FiraCode-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/firacode/FiraCode-SemiBold.ttf
-          weight: 600
-
-    - family: Betm
-      fonts:
-        - asset: assets/fonts/betm/BetmThin.otf
-          weight: 100
-        - asset: assets/fonts/betm/BetmExtraLight.otf
-          weight: 200
-        - asset: assets/fonts/betm/BetmSemiLight.otf
-          weight: 300
-        - asset: assets/fonts/betm/BetmLight.otf
-          weight: 400
-        - asset: assets/fonts/betm/BetmMedium.otf
-          weight: 500
-        - asset: assets/fonts/betm/BetmSemiBold.otf
-          weight: 600
-        - asset: assets/fonts/betm/BetmBold.otf
-          weight: 700
-        - asset: assets/fonts/betm/BetmBlack.otf
-          weight: 800
-        - asset: assets/fonts/betm/BetmExtraBlack.otf
-          weight: 900
+          style: italic

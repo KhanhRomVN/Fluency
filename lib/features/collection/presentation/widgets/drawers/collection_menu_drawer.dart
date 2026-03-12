@@ -10,12 +10,14 @@ class CollectionMenuDrawer extends StatefulWidget {
     required this.collection,
     required this.onDeleted,
     required this.onUpdated,
+    required this.onStudy,
     super.key,
   });
 
   final Collection collection;
   final VoidCallback onDeleted;
   final VoidCallback onUpdated;
+  final VoidCallback onStudy;
 
   @override
   State<CollectionMenuDrawer> createState() => _CollectionMenuDrawerState();
@@ -23,7 +25,6 @@ class CollectionMenuDrawer extends StatefulWidget {
 
 class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
   final _repository = CollectionRepositoryImpl();
-  bool _isProcessing = false;
 
   Future<void> _shareCollection() async {
     try {
@@ -45,7 +46,7 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
   }
 
   void _editCollection() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -57,7 +58,6 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
   }
 
   Future<void> _exportCollection() async {
-    setState(() => _isProcessing = true);
     try {
       final file = await _repository.exportCollection(widget.collection.id);
       if (mounted) {
@@ -68,7 +68,6 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error exporting: $e')),
         );
@@ -123,145 +122,181 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Container(
+      padding: const EdgeInsets.only(bottom: 32),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: appColors.cardBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: appColors.drawerBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.1),
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Collection Options',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (_isProcessing)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else
-            Container(
-              decoration: BoxDecoration(
-                color: appColors.cardBackground,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildOption(
-                    icon: Icons.share_outlined,
-                    title: 'Share',
-                    subtitle: 'Share this collection with others',
-                    color: appColors.primary,
-                    onTap: _shareCollection,
-                    appColors: appColors,
-                  ),
-                  Divider(height: 1, color: appColors.border),
-                  _buildOption(
-                    icon: Icons.edit_outlined,
-                    title: 'Edit',
-                    subtitle: 'Change name or description',
-                    color: Colors.green,
-                    onTap: _editCollection,
-                    appColors: appColors,
-                  ),
-                  Divider(height: 1, color: appColors.border),
-                  _buildOption(
-                    icon: Icons.download_outlined,
-                    title: 'Export',
-                    subtitle: 'Save collection to your device',
-                    color: Colors.orange,
-                    onTap: _exportCollection,
-                    appColors: appColors,
-                  ),
-                  Divider(height: 1, color: appColors.border),
-                  _buildOption(
-                    icon: Icons.delete_outline,
-                    title: 'Delete',
-                    subtitle: 'Permanently remove this collection',
-                    color: Colors.red,
-                    onTap: _deleteCollection,
-                    appColors: appColors,
-                    isDanger: true,
-                  ),
-                ],
-              ),
+          // Drag handle
+          const SizedBox(height: 14),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appColors.textSecondary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(99),
             ),
-          const SizedBox(height: 20),
+          ),
+          const SizedBox(height: 14),
+          // Divider
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: 1,
+              color: appColors.divider.withValues(alpha: 0.1),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Actions
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                _buildPremiumOption(
+                  icon: Icons.play_arrow_rounded,
+                  label: 'Study Now',
+                  description: 'Practice your terms',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onStudy();
+                  },
+                  appColors: appColors,
+                ),
+                const SizedBox(height: 6),
+                _buildPremiumOption(
+                  icon: Icons.share_rounded,
+                  label: 'Share',
+                  description: 'Share with friends',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF0EA5E9)],
+                  ),
+                  onTap: _shareCollection,
+                  appColors: appColors,
+                ),
+                const SizedBox(height: 6),
+                _buildPremiumOption(
+                  icon: Icons.download_rounded,
+                  label: 'Export',
+                  description: 'Save as CSV or JSON',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0EA5E9), Color(0xFF06B6D4)],
+                  ),
+                  onTap: _exportCollection,
+                  appColors: appColors,
+                ),
+                const SizedBox(height: 6),
+                _buildPremiumOption(
+                  icon: Icons.edit_rounded,
+                  label: 'Edit',
+                  description: 'Rename or update',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+                  ),
+                  onTap: _editCollection,
+                  appColors: appColors,
+                ),
+                const SizedBox(height: 6),
+                _buildPremiumOption(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Delete',
+                  description: 'Remove permanently',
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEF4444), Color(0xFFF43F5E)],
+                  ),
+                  onTap: _deleteCollection,
+                  appColors: appColors,
+                  isDanger: true,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildOption({
+  Widget _buildPremiumOption({
     required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
+    required String label,
+    required String description,
+    required Gradient gradient,
     required VoidCallback onTap,
     required AppColorsExtension appColors,
     bool isDanger = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDanger
+              ? Colors.red.withValues(alpha: 0.1)
+              : appColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color:
+                isDanger ? Colors.red.withValues(alpha: 0.3) : appColors.border,
+          ),
+        ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(11),
               ),
               child: Icon(
                 icon,
-                color: color,
-                size: 24,
+                color: Colors.white,
+                size: 18,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
+            // Text
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    label,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                       color: isDanger ? Colors.red : appColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 1),
                   Text(
-                    subtitle,
+                    description,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 11,
                       color: appColors.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
+            ),
+            // Chevron
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: appColors.textSecondary.withValues(alpha: 0.3),
             ),
           ],
         ),

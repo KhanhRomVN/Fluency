@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluency/core/themes/app_colors_extension.dart';
 
 /// Custom widget for setting section headers
 class SettingSectionHeader extends StatelessWidget {
@@ -10,14 +11,16 @@ class SettingSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         title.toUpperCase(),
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-              color:
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.4,
+              color: colors?.primary.withValues(alpha: 0.8) ??
                   Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
             ),
       ),

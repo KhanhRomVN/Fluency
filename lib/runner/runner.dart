@@ -4,7 +4,6 @@ import 'package:fluency/app.dart';
 import 'package:fluency/core/config/environment_config.dart';
 import 'package:fluency/core/services/activity/activity_repository.dart';
 import 'package:fluency/core/services/usage/app_usage_service.dart';
-import 'package:fluency/core/services/tts/voice_download_service.dart';
 import 'package:fluency/di/injection_container.dart' as di;
 import 'package:fluency/di/injection_container.dart';
 import 'package:flutter/widgets.dart';
@@ -47,10 +46,6 @@ class Runner {
     final sharedPreferences = await SharedPreferences.getInstance();
 
     runApp(Application(sharedPreferences: sharedPreferences));
-
-    // Start auto-download of voice models in background (non-blocking)
-    // Use unawaited to prevent blocking app startup
-    unawaited(VoiceDownloadService().startAutoDownload());
   }
 
   static void _initLogger() {

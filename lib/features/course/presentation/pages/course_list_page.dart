@@ -383,6 +383,12 @@ class _CourseListPageState extends State<CourseListPage> {
                                       ?.inputBackground ??
                                   Colors.grey[200],
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Theme.of(context)
+                                        .extension<AppColorsExtension>()
+                                        ?.border ??
+                                    Colors.transparent,
+                              ),
                             ),
                             child: TextField(
                               onChanged: (value) {
@@ -406,7 +412,7 @@ class _CourseListPageState extends State<CourseListPage> {
                                 ),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 12,
+                                  vertical: 8,
                                 ),
                                 isCollapsed: false,
                               ),

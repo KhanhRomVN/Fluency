@@ -9,10 +9,8 @@ class AppTheme {
 
   static ThemeData fromModel(ThemeModel model) {
     final isDark = model.colors.background.computeLuminance() < 0.5;
-    // final brightness = isDark ? Brightness.dark : Brightness.light;
 
-    final base = isDark ? ThemeData.dark() : ThemeData.light();
-
+    final base = isDark ? darkTheme : lightTheme;
     return base.copyWith(
       scaffoldBackgroundColor: model.colors.background,
       colorScheme: base.colorScheme.copyWith(

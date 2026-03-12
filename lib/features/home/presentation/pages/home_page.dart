@@ -1,54 +1,114 @@
+import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/core/themes/theme_provider.dart';
+import 'package:fluency/features/home/presentation/providers/stats_provider.dart';
+import 'package:fluency/features/achievement/presentation/providers/achievement_provider.dart';
+import 'package:fluency/features/course/presentation/providers/course_provider.dart';
+import 'package:fluency/features/course/presentation/widgets/course_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smooth_gradient/smooth_gradient.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final achievementProvider = context.read<AchievementProvider>();
+        context.read<StatsProvider>().loadStats(achievementProvider);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _HomeHeader(),
-              const SizedBox(height: 16),
-              const _DailyGoalBox(),
-              const SizedBox(height: 12),
-              const _StatsRow(),
-              const SizedBox(height: 16),
-              Text(
-                'Continue Learning',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+      backgroundColor: colors.background,
+      body: Stack(
+        children: [
+          // Single Uniform Top Shadow Layer
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.25,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    colors.primary.withOpacity(0.15),
+                    colors.primary.withOpacity(0.0),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              const _ContinueLearningCard(),
-              const SizedBox(height: 16),
-              Text(
-                'Today\'s Tasks',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              const _DailyGoalsList(),
-              const SizedBox(height: 16),
-              Text(
-                'Achievements',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              const _AchievementsList(),
-            ],
+            ),
           ),
-        ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _HomeHeader(),
+                  const SizedBox(height: 18),
+                  const _DailyGoalBox(),
+                  const SizedBox(height: 14),
+                  const _StatsRow(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Continue Learning',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: colors.textPrimary.withOpacity(0.8),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const _ContinueLearningCard(),
+                  const SizedBox(height: 12),
+                  const _GradientPromotionCard(),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Today's Tasks",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: colors.textPrimary.withOpacity(0.8),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const _DailyGoalsList(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Achievements',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: colors.textPrimary.withOpacity(0.8),
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const _AchievementsList(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -59,30 +119,52 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Welcome back, Khanh!',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+            RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: colors.textPrimary,
+                  letterSpacing: -0.5,
+                  fontFamily: 'DM Sans',
+                ),
+                children: const [
+                  TextSpan(text: 'Welcome back!'),
+                ],
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               'Ready to learn something new?',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.textSecondary,
+              ),
             ),
           ],
         ),
-        IconButton(
-          onPressed: () {
-            context.read<ThemeProvider>().toggleTheme();
-          },
-          icon: const Icon(Icons.brightness_6_outlined),
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: colors.cardBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colors.border),
+          ),
+          child: InkWell(
+            onTap: () => context.read<ThemeProvider>().toggleTheme(),
+            child: Icon(Icons.palette_rounded,
+                color: colors.textSecondary, size: 18),
+          ),
         ),
       ],
     );
@@ -94,19 +176,30 @@ class _DailyGoalBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final now = DateTime.now().toLocal();
+    final todayIndex = now.weekday - 1; // 0 for Mon, 6 for Sun
+
+    // Mock progress data for the week (0.0 to 1.0)
+    // 0.0 means no activity (Red in past), >0 and <1 means partial (Yellow)
+    final weeklyProgress = [
+      0.0, // Mon: Missed
+      0.0, // Tue: Missed
+      0.0, // Wed: Missed
+      0.3, // Thu: Today (example progress)
+      0.0, // Fri: Future
+      0.0, // Sat: Future
+      0.0, // Sun: Future
+    ];
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(19),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: colors.cardBackground,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -115,63 +208,49 @@ class _DailyGoalBox extends StatelessWidget {
             children: [
               Text(
                 'Daily goal',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: colors.textPrimary,
+                ),
               ),
               Row(
                 children: [
-                  _buildStatItem(context, Icons.menu_book_rounded, '1/2',
-                      Colors.blue[400]!),
-                  const SizedBox(width: 12),
-                  _buildStatItem(
-                      context,
-                      Icons.style,
-                      '2/3',
-                      Theme.of(context).textTheme.bodyLarge?.color ??
-                          Colors.grey),
+                  _miniStat('📖', '1/2', colors.primary),
+                  const SizedBox(width: 10),
+                  _miniStat('🃏', '2/3', const Color(0xFFa78bfa)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          const Row(
+          const SizedBox(height: 12),
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _DayCard(day: 'Sat', status: _DayStatus.completed),
-              _DayCard(day: 'Sun', status: _DayStatus.completed),
-              _DayCard(day: 'Mon', status: _DayStatus.missed),
-              _DayCard(day: 'Tue', status: _DayStatus.current),
-              _DayCard(day: 'Wed', status: _DayStatus.future),
-              _DayCard(day: 'Thu', status: _DayStatus.future),
-              _DayCard(day: 'Fri', status: _DayStatus.sleeping),
-            ],
+            children: List.generate(7, (index) {
+              return _StatusIcon(
+                label: days[index],
+                progress: index <= todayIndex ? weeklyProgress[index] : 0.0,
+                isToday: index == todayIndex,
+                isFuture: index > todayIndex,
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(
-      BuildContext context, IconData icon, String text, Color color) {
+  Widget _miniStat(String emoji, String value, Color color) {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 16, color: color), // Increased from 14
-        ),
-        const SizedBox(width: 8),
+        Text(emoji, style: const TextStyle(fontSize: 13)),
+        const SizedBox(width: 4),
         Text(
-          text,
+          value,
           style: TextStyle(
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: color,
           ),
         ),
       ],
@@ -179,99 +258,92 @@ class _DailyGoalBox extends StatelessWidget {
   }
 }
 
-enum _DayStatus { completed, missed, current, future, sleeping }
+class _StatusIcon extends StatelessWidget {
+  final String label;
+  final double progress; // 0.0 to 1.0
+  final bool isToday;
+  final bool isFuture;
 
-class _DayCard extends StatelessWidget {
-  final String day;
-  final _DayStatus status;
-
-  const _DayCard({required this.day, required this.status});
+  const _StatusIcon({
+    required this.label,
+    this.progress = 0.0,
+    this.isToday = false,
+    this.isFuture = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final bool isCurrent = status == _DayStatus.current;
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+    Color bgColor;
+    Color borderColor;
+    Widget? icon;
+    Color? labelColor;
+    FontWeight labelWeight = isToday ? FontWeight.w700 : FontWeight.w500;
 
-    return Container(
-      width: 42, // Slightly increased width
-      height: 68, // Slightly increased height
-      decoration: BoxDecoration(
-        color: isCurrent
-            ? const Color(0xFF1E3A5F) // Dark blueish bg for current
-            : const Color(0xFF2C2C2C), // Dark grey for others
-        borderRadius: BorderRadius.circular(8), // 8px radius
-        border:
-            isCurrent ? Border.all(color: Colors.blue[400]!, width: 1.5) : null,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildIcon(),
-          const SizedBox(height: 4),
-          Text(
-            day,
-            style: TextStyle(
-              color: isCurrent ? Colors.blue[400] : Colors.grey[400],
-              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-              fontSize: 10,
-            ),
-          ),
-          if (isCurrent)
-            Container(
-              margin: const EdgeInsets.only(top: 2),
-              width: 12,
-              height: 2,
-              color: Colors.blue[400],
-            )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIcon() {
-    switch (status) {
-      case _DayStatus.completed:
-        return _buildBadgeIcon(Icons.check, const Color(0xFF00C853));
-      case _DayStatus.missed:
-        return _buildBadgeIcon(Icons.close, Colors.deepOrange);
-      case _DayStatus.current:
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 22, // Increased from 18
-              height: 22,
-              child: CircularProgressIndicator(
-                value: 0.7, // partial progress
-                strokeWidth: 2.5, // Increased from 2.0
-                backgroundColor: Colors.grey[700],
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
-          ],
-        );
-      case _DayStatus.sleeping:
-        return _buildBadgeIcon(Icons.bedtime, Colors.grey);
-      case _DayStatus.future:
-        return Container(
-          width: 18, // Increased from 16
-          height: 18,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey[600]!, width: 2),
-          ),
-        );
+    if (isFuture) {
+      bgColor = colors.textPrimary.withOpacity(0.03);
+      borderColor = colors.textPrimary.withOpacity(0.1);
+      labelColor = colors.textSecondary.withOpacity(0.4);
+    } else if (isToday) {
+      bgColor = colors.primary.withOpacity(0.12);
+      borderColor = colors.primary.withOpacity(0.5);
+      labelColor = colors.primary;
+    } else if (progress >= 1.0) {
+      bgColor = const Color(0xFF22C55E).withOpacity(0.08);
+      borderColor = const Color(0xFF22C55E).withOpacity(0.2);
+      icon =
+          const Icon(Icons.check_rounded, color: Color(0xFF22C55E), size: 14);
+    } else if (progress > 0) {
+      bgColor = const Color(0xFFF59E0B).withOpacity(0.08);
+      borderColor = const Color(0xFFF59E0B).withOpacity(0.2);
+      icon =
+          const Icon(Icons.check_rounded, color: Color(0xFFF59E0B), size: 14);
+    } else {
+      bgColor = const Color(0xFFEF4444).withOpacity(0.06);
+      borderColor = const Color(0xFFEF4444).withOpacity(0.15);
+      icon =
+          const Icon(Icons.close_rounded, color: Color(0xFFEF4444), size: 12);
     }
-  }
 
-  Widget _buildBadgeIcon(IconData icon, Color color) {
-    return Container(
-      width: 22, // Increased from 18
-      height: 22,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: color, size: 14), // Increased from 10
+    return Column(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: bgColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: borderColor, width: 1.0),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (isToday)
+                SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 2.5,
+                    backgroundColor: colors.textPrimary.withOpacity(0.05),
+                    valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+                  ),
+                ),
+              if (icon != null) icon,
+            ],
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            color: labelColor ?? colors.textSecondary.withOpacity(0.7),
+            fontWeight: labelWeight,
+            letterSpacing: 0.05,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -281,111 +353,93 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatBox(
-            title: 'Streak',
-            value: '12',
-            icon: Icons.local_fire_department,
-            color: Colors.orange,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _StatBox(
-            title: 'Score',
-            value: '2450',
-            icon: Icons.emoji_events,
-            color: Colors.amber,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _StatBox(
-            title: 'Cards',
-            value: '85',
-            icon: Icons.style,
-            color: Colors.blue,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _StatBox(
-            title: 'Badges',
-            value: '6',
-            icon: Icons.military_tech,
-            color: Colors.purple[300]!,
-          ),
-        ),
-      ],
+    return Consumer<StatsProvider>(
+      builder: (context, stats, child) {
+        return Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: '🔥',
+                value: stats.streak.toString(),
+                label: 'Streak',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _StatCard(
+                icon: '🏆',
+                value: stats.score.toString(),
+                label: 'Score',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _StatCard(
+                icon: '🃏',
+                value: stats.cardsCount.toString(),
+                label: 'Cards',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _StatCard(
+                icon: '🏅',
+                value: stats.badgesCount.toString(),
+                label: 'Badges',
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _StatBox extends StatelessWidget {
-  final String title;
+class _StatCard extends StatelessWidget {
+  final String icon;
   final String value;
-  final IconData icon;
-  final Color color;
+  final String label;
 
-  const _StatBox({
-    required this.title,
-    required this.value,
+  const _StatCard({
     required this.icon,
-    required this.color,
+    required this.value,
+    required this.label,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: colors.border),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 8),
+          Text(icon, style: const TextStyle(fontSize: 20)),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: colors.textPrimary,
+              fontFamily: 'DM Sans',
+              height: 1,
+            ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 6),
           Text(
-            title.toUpperCase(),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.color
-                      ?.withOpacity(0.7),
-                  letterSpacing: 1.0,
-                ),
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 9,
+              color: colors.textSecondary,
+              letterSpacing: 0.12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -398,33 +452,42 @@ class _ContinueLearningCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+    final courseProvider = context.watch<CourseProvider>();
+
+    // Get the first course if available, otherwise fallback to placeholder
+    if (courseProvider.courses.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final course = courseProvider.courses.first;
+    final progress = course.lessons.isEmpty
+        ? 0.0
+        : course.completedLessons / course.lessons.length;
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
-              image: const DecorationImage(
-                image: NetworkImage('https://placeholder.com/150'),
-                fit: BoxFit.cover,
-              ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: course.imageUrl.isNotEmpty
+                  ? CourseImage(
+                      imageUrl: course.imageUrl,
+                      width: 44,
+                      height: 44,
+                    )
+                  : const Center(
+                      child: Text('📚', style: TextStyle(fontSize: 20))),
             ),
-            child: const Icon(Icons.image, color: Colors.grey, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -432,21 +495,31 @@ class _ContinueLearningCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'English for Beginners',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  course.title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Next: Lesson 5 - Greetings',
-                  style: Theme.of(context).textTheme.labelSmall,
+                  'Next: Lesson ${course.completedLessons + 1}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                _SegmentedProgressBar(
-                  correct: 12,
-                  wrong: 3,
-                  total: 20,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 5,
+                    backgroundColor: colors.textPrimary.withOpacity(0.12),
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)),
+                  ),
                 ),
               ],
             ),
@@ -457,146 +530,29 @@ class _ContinueLearningCard extends StatelessWidget {
   }
 }
 
-class _SegmentedProgressBar extends StatelessWidget {
-  final int correct;
-  final int wrong;
-  final int total;
-
-  const _SegmentedProgressBar({
-    required this.correct,
-    required this.wrong,
-    required this.total,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final int remaining = total - correct - wrong;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: SizedBox(
-        height: 6,
-        width: double.infinity,
-        child: Row(
-          children: [
-            if (correct > 0)
-              Expanded(
-                flex: correct,
-                child: Container(
-                  color: const Color(0xFF2E7D32), // Darker Green
-                ),
-              ),
-            if (wrong > 0)
-              Expanded(
-                flex: wrong,
-                child: Container(
-                  color: const Color(0xFFC62828), // Darker Red
-                ),
-              ),
-            if (remaining > 0)
-              Expanded(
-                flex: remaining,
-                child: Container(
-                  color:
-                      Colors.blue[400]!.withOpacity(0.1), // Match badgeBG style
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _DailyGoalsList extends StatelessWidget {
   const _DailyGoalsList();
 
   @override
   Widget build(BuildContext context) {
-    final tasks = [
-      {
-        'title': 'Complete 2 Lessons',
-        'desc': 'Vocabulary & Grammar',
-        'icon': Icons.book,
-        'progress': 0.5,
-        'color': Colors.blue[400]!,
-      },
-      {
-        'title': 'Review 20 Flashcards',
-        'desc': 'Spaced Repetition',
-        'icon': Icons.style,
-        'progress': 0.8,
-        'color': Colors.green[400]!,
-      },
-    ];
-
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: tasks.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final task = tasks[index];
-        final Color taskColor = task['color'] as Color;
-
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: taskColor.withOpacity(0.05),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: taskColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  task['icon'] as IconData,
-                  color: taskColor,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task['title'] as String,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      task['desc'] as String,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  value: task['progress'] as double,
-                  strokeWidth: 2,
-                  backgroundColor:
-                      Theme.of(context).disabledColor.withOpacity(0.2),
-                  valueColor: AlwaysStoppedAnimation<Color>(taskColor),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    return Column(
+      children: [
+        _TaskItem(
+          icon: '📘',
+          title: 'Complete 2 Lessons',
+          subtitle: 'Vocabulary & Grammar',
+          progress: 0.45,
+          color: const Color(0xFF3B82F6),
+        ),
+        const SizedBox(height: 8),
+        _TaskItem(
+          icon: '🃏',
+          title: 'Review 20 Flashcards',
+          subtitle: 'Spaced Repetition',
+          progress: 0.70,
+          color: const Color(0xFF22C55E),
+        ),
+      ],
     );
   }
 }
@@ -606,87 +562,145 @@ class _AchievementsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final achievements = [
-      {
-        'title': 'First Steps',
-        'desc': 'Complete your first lesson',
-        'icon': Icons.flag,
-        'color': Colors.blue[400]!,
-      },
-      {
-        'title': '7 Day Streak',
-        'desc': 'Learn for 7 days in a row',
-        'icon': Icons.local_fire_department,
-        'color': Colors.orange[400]!,
-      },
-      {
-        'title': 'Vocab Master',
-        'desc': 'Learn 100 new words',
-        'icon': Icons.school,
-        'color': Colors.amber[400]!,
-      },
-    ];
+    final achievementProvider = context.watch<AchievementProvider>();
+    // Filter out completed achievements (progress >= 1.0)
+    final achievements = achievementProvider.achievements
+        .where((a) => a.progress < 1.0)
+        .take(3)
+        .toList();
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: achievements.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = achievements[index];
-        final Color itemColor = item['color'] as Color;
-
-        return Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: itemColor.withOpacity(0.05),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: itemColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  item['icon'] as IconData,
-                  color: itemColor,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['title'] as String,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    Text(
-                      item['desc'] as String,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-                size: 16,
-              ),
-            ],
+    return Column(
+      children: achievements.map((a) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _TaskItem(
+            icon: _getEmojiForIcon(a.icon),
+            title: a.title,
+            subtitle: a.desc,
+            progress: a.progress,
+            color: a.color,
           ),
         );
-      },
+      }).toList(),
+    );
+  }
+
+  String _getEmojiForIcon(IconData icon) {
+    if (icon == Icons.local_fire_department) return '🔥';
+    if (icon == Icons.emoji_events) return '🏆';
+    if (icon == Icons.star) return '⭐';
+    if (icon == Icons.flag) return '🚩';
+    return '🏅';
+  }
+}
+
+class _TaskItem extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String subtitle;
+  final double progress;
+  final Color color;
+
+  const _TaskItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: colors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 38,
+            height: 38,
+            child:
+                Center(child: Text(icon, style: const TextStyle(fontSize: 18))),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 30,
+            height: 30,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: 1,
+                  strokeWidth: 3,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.divider),
+                ),
+                CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 3,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  strokeCap: StrokeCap.round,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GradientPromotionCard extends StatelessWidget {
+  const _GradientPromotionCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+
+    return Container(
+      width: double.infinity,
+      height: 60,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: SmoothGradient(
+          from: const Color(0xFF1565C0), // Xanh biển đậm
+          to: Colors.transparent,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          curve: Curves.easeInOut,
+        ),
+      ),
     );
   }
 }

@@ -4,6 +4,8 @@ import 'package:fluency/features/course/presentation/providers/course_provider.d
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
+import 'package:fluency/features/achievement/presentation/providers/achievement_provider.dart';
+import 'package:fluency/features/home/presentation/providers/stats_provider.dart';
 import 'package:fluency/routes/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -25,6 +27,8 @@ class Application extends StatelessWidget {
         ChangeNotifierProvider(
             create: (_) => SttSettingProvider(sharedPreferences)),
         ChangeNotifierProvider(create: (_) => TtsProvider(sharedPreferences)),
+        ChangeNotifierProvider(create: (_) => AchievementProvider()),
+        ChangeNotifierProvider(create: (_) => StatsProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

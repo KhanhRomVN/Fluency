@@ -129,95 +129,129 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Course Image (Square Ratio)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: AspectRatio(
-                      aspectRatio: 1.0,
-                      child: CourseImage(
-                        imageUrl: course.imageUrl,
-                        width: 100,
-                      ),
-                    ),
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: colors.cardBackground,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: colors.border),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Course Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  height: 90,
+                  child: CourseImage(
+                    imageUrl: course.imageUrl,
+                    height: 90,
+                    fit: BoxFit.fitHeight,
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Course Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        course.title,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Theme.of(context)
-                                      .extension<AppColorsExtension>()
-                                      ?.textPrimary,
-                                ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        course.shortDescription,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .extension<AppColorsExtension>()
-                                  ?.textSecondary,
-                            ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      // Lessons & Score
-                      Row(
-                        children: [
-                          _buildInfoRow(
-                            context,
-                            'assets/icons/lesson.svg',
-                            '${course.lessons.length} lessons',
-                          ),
-                          const SizedBox(width: 16),
-                          _buildInfoMetric(
-                            context,
-                            Icons.emoji_events_outlined,
-                            '${_calculateTotalScore(context)} pts',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Progress Bar (Fake Data)
-                      _buildProgressBar(context),
+              ),
+              const SizedBox(width: 14),
+              // Course Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (course.skill.isNotEmpty) ...[
+                      _buildSkillBadges(context),
+                      const SizedBox(height: 8),
                     ],
-                  ),
+                    Text(
+                      course.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: colors.textPrimary,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      course.shortDescription,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colors.textSecondary,
+                            fontSize: 12,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    // Progress Bar
+                    _buildProgressBar(context),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Divider(
-            height: 1,
-            indent: 16,
-            endIndent: 16,
-            color: Theme.of(context).dividerColor.withOpacity(0.1),
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  Widget _buildSkillBadges(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: course.skill.map((skill) {
+          final color = _getSkillColor(skill);
+          return Container(
+            margin: const EdgeInsets.only(right: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: color.withOpacity(0.4), width: 1.2),
+            ),
+            child: Text(
+              skill,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Color _getSkillColor(String skill) {
+    final badgeColors = [
+      const Color(0xFF3B82F6), // Blue
+      const Color(0xFF10B981), // Emerald
+      const Color(0xFFF59E0B), // Amber
+      const Color(0xFFEF4444), // Red
+      const Color(0xFF8B5CF6), // Violet
+      const Color(0xFFEC4899), // Pink
+      const Color(0xFF06B6D4), // Cyan
+      const Color(0xFF6366F1), // Indigo
+      const Color(0xFFF97316), // Orange
+      const Color(0xFF059669), // Dark Emerald
+      const Color(0xFF2563EB), // Dark Blue
+      const Color(0xFFD97706), // Dark Amber
+    ];
+
+    int hash = 0;
+    for (int i = 0; i < skill.length; i++) {
+      hash = skill.codeUnitAt(i) + ((hash << 5) - hash);
+    }
+
+    return badgeColors[hash.abs() % badgeColors.length];
   }
 
   int _calculateTotalScore(BuildContext context) {
@@ -235,6 +269,7 @@ class CourseCard extends StatelessWidget {
   }
 
   Widget _buildProgressBar(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
     // Calculate real progress from all lessons
     final quizStateProvider = context.watch<QuizStateProvider>();
     int totalCompleted = 0;
@@ -256,24 +291,41 @@ class CourseCard extends StatelessWidget {
     final int averageProgress =
         totalQuizzes > 0 ? (totalCompleted / totalQuizzes * 100).round() : 0;
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _SegmentedProgressBar(
-            correct: totalCorrect,
-            wrong: wrong > 0 ? wrong : 0,
-            total: totalQuizzes > 0 ? totalQuizzes : 1,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                _buildInfoRow(
+                  context,
+                  'assets/icons/lesson.svg',
+                  '${course.lessons.length} lessons',
+                ),
+                const SizedBox(width: 8),
+                _buildInfoMetric(
+                  context,
+                  Icons.emoji_events_outlined,
+                  '${_calculateTotalScore(context)}pts',
+                ),
+              ],
+            ),
+            Text(
+              '$averageProgress%',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 11,
+                  ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Text(
-          '$averageProgress%',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context)
-                    .extension<AppColorsExtension>()
-                    ?.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+        const SizedBox(height: 6),
+        _SegmentedProgressBar(
+          correct: totalCorrect,
+          wrong: wrong > 0 ? wrong : 0,
+          total: totalQuizzes > 0 ? totalQuizzes : 1,
         ),
       ],
     );
@@ -367,14 +419,14 @@ class _SegmentedProgressBar extends StatelessWidget {
               Expanded(
                 flex: correct,
                 child: Container(
-                  color: const Color(0xFF2E7D32), // Darker Green
+                  color: const Color(0xFF22C55E), // Match Home Page Green
                 ),
               ),
             if (wrong > 0)
               Expanded(
                 flex: wrong,
                 child: Container(
-                  color: const Color(0xFFC62828), // Darker Red
+                  color: const Color(0xFFEF4444), // Match Home Page Red style
                 ),
               ),
             if (safeRemaining > 0)
