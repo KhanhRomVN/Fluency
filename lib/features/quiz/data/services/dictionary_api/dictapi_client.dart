@@ -7,15 +7,22 @@ import 'package:http/http.dart' as http;
 class DictApiClient {
   Future<DirectoryEntry?> fetch(String word) async {
     try {
+      final cleanedWord = _cleanWord(word);
+      final url =
+          'https://api.dictionaryapi.dev/api/v2/entries/en/${Uri.encodeComponent(cleanedWord)}';
+      debugPrint('[DictApiClient] Fetching: $url');
+
       final response = await http.get(
-        Uri.parse(
-          'https://api.dictionaryapi.dev/api/v2/entries/en/$word',
-        ),
+        Uri.parse(url),
       );
 
       if (response.statusCode == 200) {
+        debugPrint('[DictApiClient] HTTP 200 OK for $word');
         final data = jsonDecode(response.body);
         return _parseEntry(data, word);
+      } else {
+        debugPrint(
+            '[DictApiClient] HTTP Error ${response.statusCode} for $word');
       }
     } catch (e) {
       debugPrint('DictAPI failed for $word: $e');
@@ -126,5 +133,32 @@ class DictApiClient {
       debugPrint('Error parsing $word from DictAPI: $e');
       return null;
     }
+  }
+
+  String _cleanWord(String word) {
+    var cleaned = word.toLowerCase().trim();
+
+    // 1. Remove anything in parentheses (DictAPI doesn't handle optional parts well)
+    // Example: "run a check (on sb/sth)" -> "run a check"
+    cleaned = cleaned.replaceAll(RegExp(r'\(.*\)'), '').trim();
+
+    // 2. Handle specific common slash patterns
+    // Example: "a/the" -> "a"
+    cleaned = cleaned.replaceAll('a/the', 'a');
+
+    // 3. Handle remaining slashes: take the first part
+    // Example: "run a deficit/surplus" -> "run a deficit"
+    if (cleaned.contains('/')) {
+      cleaned = cleaned.split('/').first.trim();
+    }
+
+    // 4. Remove common placeholders
+    cleaned = cleaned.replaceAll(RegExp(r'\bsb\b'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'\bsth\b'), '');
+
+    // 5. Cleanup extra spaces
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    return cleaned.isEmpty ? word : cleaned;
   }
 }

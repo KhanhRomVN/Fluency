@@ -234,6 +234,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
             });
           },
           word: _selectedWord,
+          collectionId: widget.collectionId,
           onTermAdded: _loadCollection,
         ),
       ],

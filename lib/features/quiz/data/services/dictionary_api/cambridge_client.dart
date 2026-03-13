@@ -1,13 +1,38 @@
+import 'dart:async';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' as parser;
 import 'package:http/http.dart' as http;
 
 class CambridgeClient {
+  static Future<void>? _activeRequest;
+
   Future<DirectoryEntry?> fetch(String word) async {
+    // Sequential fetching to avoid Cloudflare 520 errors from burst requests
+    if (_activeRequest != null) {
+      debugPrint('[CambridgeClient] Waiting for previous request to finish...');
+      await _activeRequest!.catchError((_) {});
+    }
+
+    final completer = Completer<void>();
+    _activeRequest = completer.future;
+
     try {
+      return await _fetchInternal(word);
+    } finally {
+      completer.complete();
+    }
+  }
+
+  Future<DirectoryEntry?> _fetchInternal(String word) async {
+    try {
+      final slug = _normalizeWord(word);
+
+      final url = 'https://dictionary.cambridge.org/dictionary/english/$slug';
+      debugPrint('[CambridgeClient] Fetching: $url');
+
       final response = await http.get(
-        Uri.parse('https://dictionary.cambridge.org/dictionary/english/$word'),
+        Uri.parse(url),
         headers: {
           'authority': 'dictionary.cambridge.org',
           'accept':
@@ -15,7 +40,7 @@ class CambridgeClient {
           'accept-language': 'en-US,en;q=0.9',
           'cache-control': 'max-age=0',
           'sec-ch-ua':
-              '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+              '"Chromium";v="119", "Google Chrome";v="119", "Not_A Brand";v="99"',
           'sec-ch-ua-mobile': '?0',
           'sec-ch-ua-platform': '"Linux"',
           'sec-fetch-dest': 'document',
@@ -24,12 +49,16 @@ class CambridgeClient {
           'sec-fetch-user': '?1',
           'upgrade-insecure-requests': '1',
           'user-agent':
-              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36',
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
         },
       );
 
       if (response.statusCode == 200) {
-        return _parseHtml(response.body, word);
+        debugPrint('[CambridgeClient] HTTP 200 OK for $word');
+        return parseHtml(response.body, word);
+      } else {
+        debugPrint(
+            '[CambridgeClient] HTTP Error ${response.statusCode} for $word');
       }
     } catch (e) {
       debugPrint('Cambridge API failed for $word: $e');
@@ -37,7 +66,7 @@ class CambridgeClient {
     return null;
   }
 
-  DirectoryEntry? _parseHtml(String htmlContent, String word) {
+  DirectoryEntry? parseHtml(String htmlContent, String word) {
     try {
       final document = parser.parse(htmlContent);
       const source = 'Cambridge';
@@ -68,10 +97,8 @@ class CambridgeClient {
       final ipaElements = document.querySelectorAll('.ipa.dipa');
       for (final el in ipaElements) {
         final text = el.text.trim();
-        if (text.isNotEmpty && !phonetics.any((p) => p.text == text)) {
+        if (text.isNotEmpty) {
           // Try to determine tag (UK/US) from surrounding elements if possible
-          // Usually there is a span with class `uk` or `us` preceding it.
-          // For simplicity, we just add the text.
           String? tag;
           final parent = el.parent;
           if (parent != null) {
@@ -83,7 +110,11 @@ class CambridgeClient {
               tag = 'US';
             }
           }
-          phonetics.add(Phonetic(text: text, tag: tag));
+
+          // Deduplicate based on both text and tag
+          if (!phonetics.any((p) => p.text == text && p.tag == tag)) {
+            phonetics.add(Phonetic(text: text, tag: tag));
+          }
         }
       }
 
@@ -153,6 +184,8 @@ class CambridgeClient {
           }
 
           if (defs.isNotEmpty) {
+            debugPrint(
+                '[CambridgeClient] Found ${defs.length} definitions in entry-body__el (standard)');
             meanings.add(
               Meaning(
                 partOfSpeech: entryPos.isEmpty
@@ -166,32 +199,79 @@ class CambridgeClient {
 
         // If we found nothing via entry loop (maybe structure differs), try simple block scan
         if (meanings.isEmpty) {
-          final defBlocks = document.querySelectorAll('.def-block.ddef_block');
-          final defs = <Definition>[];
-          for (final block in defBlocks) {
-            final defEl = block.querySelector('.def.ddef_d');
-            var defText = defEl?.text.trim() ?? '';
-            if (defText.endsWith(':')) {
-              defText = defText.substring(0, defText.length - 1).trim();
-            }
-            final examples = <String>[];
-            final exampEls = block.querySelectorAll('.examp.dexamp');
-            for (final ex in exampEls) {
-              examples.add(ex.text.trim());
-            }
+          // Look for idioms/phrases which use different classes
+          final idiomBlocks =
+              document.querySelectorAll('.idiom-block, .phrase-block');
 
-            if (defText.isNotEmpty) {
-              defs.add(
-                Definition(
-                  definition: defText,
-                  example: examples.firstOrNull,
-                  translations: const [],
-                ),
-              );
+          if (idiomBlocks.isNotEmpty) {
+            for (final block in idiomBlocks) {
+              final defs = <Definition>[];
+              final defBlocks = block.querySelectorAll('.def-block.ddef_block');
+
+              for (final defBlock in defBlocks) {
+                final defEl = defBlock.querySelector('.def.ddef_d');
+                var defText = defEl?.text.trim() ?? '';
+                if (defText.endsWith(':')) {
+                  defText = defText.substring(0, defText.length - 1).trim();
+                }
+
+                final examples = <String>[];
+                final exampEls = defBlock.querySelectorAll('.examp.dexamp');
+                for (final ex in exampEls) {
+                  examples.add(ex.text.trim());
+                }
+
+                if (defText.isNotEmpty) {
+                  defs.add(Definition(
+                    definition: defText,
+                    example: examples.firstOrNull,
+                    translations: const [],
+                  ));
+                }
+              }
+
+              if (defs.isNotEmpty) {
+                debugPrint(
+                    '[CambridgeClient] Found ${defs.length} definitions in idiom/phrase block');
+                meanings.add(Meaning(
+                  partOfSpeech: 'idiom',
+                  definitions: defs,
+                ));
+              }
             }
           }
-          if (defs.isNotEmpty) {
-            meanings.add(Meaning(partOfSpeech: pos, definitions: defs));
+
+          // Fallback: search all definition blocks regardless of structure
+          if (meanings.isEmpty) {
+            debugPrint('[CambridgeClient] Using global def-block fallback');
+            final defBlocks =
+                document.querySelectorAll('.def-block.ddef_block');
+            final defs = <Definition>[];
+            for (final block in defBlocks) {
+              final defEl = block.querySelector('.def.ddef_d');
+              var defText = defEl?.text.trim() ?? '';
+              if (defText.endsWith(':')) {
+                defText = defText.substring(0, defText.length - 1).trim();
+              }
+              final examples = <String>[];
+              final exampEls = block.querySelectorAll('.examp.dexamp');
+              for (final ex in exampEls) {
+                examples.add(ex.text.trim());
+              }
+
+              if (defText.isNotEmpty) {
+                defs.add(
+                  Definition(
+                    definition: defText,
+                    example: examples.firstOrNull,
+                    translations: const [],
+                  ),
+                );
+              }
+            }
+            if (defs.isNotEmpty) {
+              meanings.add(Meaning(partOfSpeech: pos, definitions: defs));
+            }
           }
         }
       }
@@ -208,5 +288,43 @@ class CambridgeClient {
       debugPrint('Error parsing $word from Cambridge: $e');
       return null;
     }
+  }
+
+  String _normalizeWord(String word) {
+    var normalized = word.toLowerCase().trim();
+
+    // 1. Handle common placeholders used in dictionary entries
+    // Convert "sb" to "somebody", "sth" to "something"
+    normalized = normalized.replaceAll(RegExp(r'\bsb\b'), 'somebody');
+    normalized = normalized.replaceAll(RegExp(r'\bsth\b'), 'something');
+
+    // 2. Handle "a/the" patterns
+    // For Cambridge URLs, it's often a-the-risk
+    normalized = normalized.replaceAll('a/the', 'a-the');
+
+    // 3. Handle parentheses: often just replace with hyphens
+    normalized = normalized.replaceAll('(', '-').replaceAll(')', '-');
+
+    // 4. Handle slashes (not caught by a/the)
+    normalized = normalized.replaceAll('/', '-');
+
+    // 5. General cleanup: non-alphanumeric to hyphens
+    normalized = normalized.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '-');
+
+    // 6. Collapse multiple hyphens and trim
+    normalized = normalized.replaceAll(RegExp(r'-+'), '-');
+
+    if (normalized.startsWith('-')) {
+      normalized = normalized.substring(1);
+    }
+    if (normalized.endsWith('-')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    if (normalized.isEmpty) {
+      return Uri.encodeComponent(word.toLowerCase().trim());
+    }
+
+    return normalized;
   }
 }

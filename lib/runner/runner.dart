@@ -8,6 +8,7 @@ import 'package:fluency/di/injection_container.dart' as di;
 import 'package:fluency/di/injection_container.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
+import 'package:fluency/features/quiz/data/services/directory_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluency/runner/sherpa/sherpa_initializer.dart'
     if (dart.library.io) 'package:fluency/runner/sherpa/sherpa_initializer_native.dart'
@@ -38,6 +39,9 @@ class Runner {
     await di.init();
     // Initialize Sherpa Onnx
     initSherpaBindings();
+
+    // Initialize DirectoryStorage
+    await directoryStorage.init();
 
     // Start Usage Tracking
     sl<AppUsageService>().startTracking();

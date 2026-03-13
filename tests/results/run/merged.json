@@ -1,0 +1,1014 @@
+{
+  "word": "run",
+  "source": "Cambridge + Thesaurus.com + null + {url: https://en.wiktionary.org/wiki/run, license: {name: CC BY-SA 4.0, url: https://creativecommons.org/licenses/by-sa/4.0/}}",
+  "phonetics": [
+    {
+      "text": "rʌn"
+    },
+    {
+      "text": "ræn"
+    },
+    {
+      "text": "/ɹʊn/",
+      "audio": ""
+    },
+    {
+      "text": "/ɹʌn/",
+      "audio": "https://api.dictionaryapi.dev/media/pronunciations/en/run-us.mp3",
+      "sourceUrl": "https://commons.wikimedia.org/w/index.php?curid=646000",
+      "license": {
+        "name": "BY-SA 3.0",
+        "url": "https://creativecommons.org/licenses/by-sa/3.0"
+      }
+    }
+  ],
+  "forms": [],
+  "meanings": [
+    {
+      "partOfSpeech": "verb",
+      "definitions": [
+        {
+          "definition": "to operate, or make something operate",
+          "example": "Keep clear of the fans while they're running.",
+          "translations": []
+        },
+        {
+          "definition": "to be in control of or manage something",
+          "example": "He's been running his own company since he left school.",
+          "translations": []
+        },
+        {
+          "definition": "to travel or move in a particular way, or cause something to do this",
+          "example": "Trains are still running, despite the snow.",
+          "translations": []
+        },
+        {
+          "definition": "to continue or happen, or cause something to continue or happen in a particular way",
+          "example": "A magazine subscription usually runs for one year.",
+          "translations": []
+        },
+        {
+          "definition": "to take something to a person or place",
+          "example": "run sth over/out/down, etc. to sb/sth Can you run these orders over to the warehouse, please?",
+          "translations": []
+        },
+        {
+          "definition": "to be or continue at or near a particular level",
+          "example": "run at sth Inflation has been running at 2% for the past year.",
+          "translations": []
+        },
+        {
+          "definition": "to show something in a newspaper or magazine, on television, etc.",
+          "example": "run a story/article/piece",
+          "translations": []
+        },
+        {
+          "definition": "to try to be elected to government or other position in an election",
+          "example": "run for sth He ran for state Attorney General in 2010.",
+          "translations": []
+        },
+        {
+          "definition": "to look through records to find out facts about someone or something",
+          "example": "We run background checks on all prospective employees.",
+          "translations": []
+        },
+        {
+          "definition": "to perform a scientific examination to determine if something works, someone is healthy, etc.",
+          "example": "We ran performance tests on the preproduction machine, which performed well.",
+          "translations": []
+        },
+        {
+          "definition": "if a government runs a deficit or surplus, it has less or more money in its accounts than it needs",
+          "example": "The previous government was happy to run a huge deficit for years.",
+          "translations": []
+        },
+        {
+          "definition": "to be in a situation in which there is the possibility that something bad might happen",
+          "example": "A company without good customer service runs the risk of losing its customers' good will.",
+          "translations": []
+        },
+        {
+          "definition": "to control a business or other organization firmly and effectively",
+          "example": "The woman who manages the post room runs a very tight ship.",
+          "translations": []
+        },
+        {
+          "definition": "to look quickly at the whole of something",
+          "example": "Would you mind running your eye over this agreement before I sign it?",
+          "translations": []
+        },
+        {
+          "definition": "to be unable to get to a place by the agreed or expected time",
+          "translations": []
+        },
+        {
+          "definition": "to be very active without achieving any good results",
+          "example": "Peter's been running round in circles since half his department resigned.",
+          "translations": []
+        },
+        {
+          "definition": "to have no time left to finish something or get to a place",
+          "example": "We're running out of time - the report has to be ready for the meeting tonight.",
+          "translations": []
+        },
+        {
+          "definition": "to have a low supply of something",
+          "example": "Forecasting is crucial: you don't want to run short or have a warehouse of unsold product.",
+          "translations": []
+        },
+        {
+          "definition": "to do calculations in order to decide whether a particular plan is financially practical",
+          "example": "She ran the numbers and decided to re-finance her mortgage.",
+          "translations": []
+        },
+        {
+          "definition": "to examine something to see if it is good enough or right for a particular purpose",
+          "example": "A number of bidders are understood to be running the rule over the company.",
+          "translations": []
+        },
+        {
+          "definition": "to be the leader in control of a group of people doing something",
+          "example": "If you need help, ask Mark - he's running the show.",
+          "translations": []
+        },
+        {
+          "definition": "To run.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To move swiftly.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "(fluids) To flow.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "(of a vessel) To sail before the wind, in distinction from reaching or sailing close-hauled.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To control or manage, be in charge of.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "He is running the candidate's expensive campaign."
+        },
+        {
+          "definition": "To be a candidate in an election.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "I have decided to run for governor of California."
+        },
+        {
+          "definition": "To make run in a race or an election.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "He ran his best horse in the Derby."
+        },
+        {
+          "definition": "To exert continuous activity; to proceed.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "to run through life; to run in a circle"
+        },
+        {
+          "definition": "To be presented in the media.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Her picture ran on the front page of the newspaper."
+        },
+        {
+          "definition": "To print or broadcast in the media.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "run a story; run an ad"
+        },
+        {
+          "definition": "To smuggle (illegal goods).",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "to run guns; to run rum"
+        },
+        {
+          "definition": "To sort through a large volume of produce in quality control.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Looks like we're gonna have to run the tomatoes again."
+        },
+        {
+          "definition": "To extend or persist, statically or dynamically, through space or time.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To execute or carry out a plan, procedure or program.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Don't run that software unless you have permission."
+        },
+        {
+          "definition": "To pass or go quickly in thought or conversation.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "to run from one subject to another"
+        },
+        {
+          "definition": "To become different in a way mentioned (usually to become worse).",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Our supplies are running low."
+        },
+        {
+          "definition": "To cost a large amount of money.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Buying a new laptop will run you a thousand dollars."
+        },
+        {
+          "definition": "Of stitches or stitched clothing, to unravel.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "My stocking is running."
+        },
+        {
+          "definition": "To pursue in thought; to carry in contemplation.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To cause to enter; to thrust.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "to run a sword into or through the body; to run a nail into one's foot"
+        },
+        {
+          "definition": "To drive or force; to cause, or permit, to be driven.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To cause to be drawn; to mark out; to indicate; to determine.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "to run a line"
+        },
+        {
+          "definition": "To encounter or incur (a danger or risk).",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "to run the risk of losing one's life"
+        },
+        {
+          "definition": "To put at hazard; to venture; to risk.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To tease with sarcasms and ridicule.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To sew (a seam) by passing the needle through material in a continuous line, generally taking a series of stitches on the needle at the same time.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To control or have precedence in a card game.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Every three or four hands he would run the table."
+        },
+        {
+          "definition": "To be in form thus, as a combination of words.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To be popularly known; to be generally received.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To have growth or development.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Boys and girls run up rapidly."
+        },
+        {
+          "definition": "To tend, as to an effect or consequence; to incline.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To have a legal course; to be attached; to continue in force, effect, or operation; to follow; to go in company.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Certain covenants run with the land."
+        },
+        {
+          "definition": "To encounter or suffer (a particular, usually bad, fate or misfortune).",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To strike (the ball) in such a way as to cause it to run along the ground, as when approaching a hole.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "To speedrun.",
+          "synonyms": [],
+          "antonyms": []
+        }
+      ],
+      "synonyms": [],
+      "antonyms": [],
+      "relatedWords": []
+    },
+    {
+      "partOfSpeech": "noun",
+      "definitions": [
+        {
+          "definition": "all of a particular product made at one time",
+          "example": "The first run of 50,000 units sold out in a week.",
+          "translations": []
+        },
+        {
+          "definition": "a period when a series of good things or bad things happen",
+          "example": "a run of good/bad luck We've had quite a run of good luck this month.",
+          "translations": []
+        },
+        {
+          "definition": "a period when people buy more of a particular product than usual",
+          "example": "The warm weather sparked a run on air conditioners.",
+          "translations": []
+        },
+        {
+          "definition": "a period when many people suddenly sell more of a particular currency than usual",
+          "example": "a run on the dollar/pound/yen A sudden run on the dollar has lowered its value.",
+          "translations": []
+        },
+        {
+          "definition": "a period when many people take their money out of a bank because they are afraid the bank will go out of business",
+          "example": "A run on the bank by customers drained about $133 million.",
+          "translations": []
+        },
+        {
+          "definition": "Act or instance of running, of moving rapidly using the feet.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "I just got back from my morning run."
+        },
+        {
+          "definition": "Act or instance of hurrying (to or from a place) (not necessarily by foot); dash or errand, trip.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "I need to make a run to the store."
+        },
+        {
+          "definition": "A pleasure trip.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Let's go for a run in the car."
+        },
+        {
+          "definition": "Flight, instance or period of fleeing.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "Migration (of fish).",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "A group of fish that migrate, or ascend a river for the purpose of spawning.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "A path taken by literal movement or figuratively",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "An enclosure for an animal; a track or path along which something can travel.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "He set up a rabbit run."
+        },
+        {
+          "definition": "Rural landholding for farming, usually for running sheep, and operated by a runholder.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "State of being current; currency; popularity.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "Continuous or sequential",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "A flow of liquid; a leak.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "The constant run of water from the faucet annoys me."
+        },
+        {
+          "definition": "(West Virginia) A small creek or part thereof. (Compare Southern US branch and New York and New England brook.)",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "The military campaign near that creek was known as \"The battle of Bull Run\"."
+        },
+        {
+          "definition": "A quick pace, faster than a walk.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "He broke into a run."
+        },
+        {
+          "definition": "A sudden series of demands on a bank or other financial institution, especially characterised by great withdrawals.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Financial insecurity led to a run on the banks, as customers feared for the security of their savings."
+        },
+        {
+          "definition": "Any sudden large demand for something.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "There was a run on Christmas presents."
+        },
+        {
+          "definition": "Various horizontal dimensions or surfaces",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "A standard or unexceptional group or category.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "He stood out from the usual run of applicants."
+        },
+        {
+          "definition": "In sports",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "A line of knit stitches that have unravelled, particularly in a nylon stocking.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "I have a run in my stocking."
+        },
+        {
+          "definition": "The stern of the underwater body of a ship from where it begins to curve upward and inward.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "The horizontal distance to which a drift may be carried, either by licence of the proprietor of a mine or by the nature of the formation; also, the direction which a vein of ore or other substance takes.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "A pair or set of millstones.",
+          "synonyms": [],
+          "antonyms": []
+        }
+      ],
+      "synonyms": [
+        "execute",
+        "ladder",
+        "start",
+        "tread"
+      ],
+      "antonyms": [
+        "rise",
+        "riser"
+      ],
+      "relatedWords": []
+    },
+    {
+      "partOfSpeech": "thesaurus",
+      "synonyms": [
+        "abscond",
+        "act",
+        "administer",
+        "amble",
+        "barrel",
+        "be a candidate",
+        "be current",
+        "be in charge",
+        "be in driver's seat",
+        "be in saddle",
+        "bear",
+        "bearing",
+        "beat it",
+        "bleed",
+        "bolt",
+        "boss",
+        "bound",
+        "break",
+        "bustle",
+        "canter",
+        "career",
+        "carry",
+        "carry on",
+        "cascade",
+        "chain",
+        "challenge",
+        "circulate",
+        "clear out",
+        "command",
+        "compete",
+        "conduct",
+        "contend",
+        "contest",
+        "continuance",
+        "continuation",
+        "continuity",
+        "control",
+        "convey",
+        "coordinate",
+        "course",
+        "cover",
+        "current",
+        "cut and run",
+        "cycle",
+        "dart",
+        "dash",
+        "decamp",
+        "deliquesce",
+        "depart",
+        "diffuse",
+        "direct",
+        "discharge",
+        "dissolve",
+        "dog it",
+        "drift",
+        "drive",
+        "drop",
+        "duration",
+        "encompass",
+        "endurance",
+        "escape",
+        "excursion",
+        "extend",
+        "fall",
+        "field",
+        "flee",
+        "flight",
+        "flit",
+        "flow",
+        "flux",
+        "fly",
+        "fuse",
+        "gallop",
+        "glide",
+        "go",
+        "go around",
+        "go like lightning",
+        "go on",
+        "go soft",
+        "govern",
+        "gush",
+        "handle",
+        "hasten",
+        "head",
+        "head up",
+        "helm",
+        "hie",
+        "hit the campaign trail",
+        "hotfoot",
+        "hurry",
+        "hustle",
+        "issue",
+        "jaunt",
+        "jog",
+        "joy ride",
+        "keep",
+        "kiss babies",
+        "last",
+        "lead",
+        "leak",
+        "leap",
+        "leg it",
+        "lie",
+        "lift",
+        "light out",
+        "line",
+        "liquefy",
+        "look after",
+        "lope",
+        "make a break",
+        "make off",
+        "make tracks",
+        "manage",
+        "maneuver",
+        "melt",
+        "motion",
+        "move",
+        "move past",
+        "movement",
+        "operate",
+        "oppose",
+        "ordain",
+        "outing",
+        "oversee",
+        "own",
+        "pace",
+        "pass",
+        "passage",
+        "path",
+        "perform",
+        "period",
+        "persevere",
+        "persistence",
+        "ply",
+        "politick",
+        "pour",
+        "proceed",
+        "progress",
+        "prolongation",
+        "propel",
+        "pull the strings",
+        "race",
+        "reach",
+        "regulate",
+        "ride",
+        "ride herd on",
+        "ring doorbells",
+        "roll",
+        "round",
+        "route",
+        "rush",
+        "sail",
+        "scamper",
+        "scoot",
+        "scorch",
+        "scramble",
+        "scud",
+        "scurry",
+        "scuttle",
+        "season",
+        "series",
+        "shag",
+        "shake hands",
+        "shoot",
+        "skedaddle",
+        "skim",
+        "skip",
+        "skitter",
+        "slide",
+        "smoke",
+        "speed",
+        "spell",
+        "spill",
+        "spin",
+        "spout",
+        "spread",
+        "spring",
+        "sprint",
+        "spurt",
+        "stand",
+        "streak",
+        "stream",
+        "stretch",
+        "string",
+        "stump",
+        "succession",
+        "superintend",
+        "swing",
+        "take care of",
+        "take flight",
+        "take off",
+        "tear",
+        "tear out",
+        "tendency",
+        "tenor",
+        "thaw",
+        "tick",
+        "tide",
+        "tour",
+        "trail",
+        "transport",
+        "travel",
+        "trend",
+        "trip",
+        "trot",
+        "tumble",
+        "turn to liquid",
+        "use",
+        "vary",
+        "way",
+        "whirl",
+        "whisk",
+        "whistlestop",
+        "whiz",
+        "work"
+      ],
+      "antonyms": [
+        "abandon",
+        "cease",
+        "coagulate",
+        "continuity",
+        "dally",
+        "dawdle",
+        "delay",
+        "fail",
+        "follow",
+        "gather",
+        "halt",
+        "hold",
+        "idle",
+        "keep",
+        "linger",
+        "mismanage",
+        "neglect",
+        "obey",
+        "procrastinate",
+        "refrain",
+        "remain",
+        "serve",
+        "slow",
+        "stand",
+        "standing",
+        "stay",
+        "stop",
+        "trickle",
+        "wait",
+        "walk",
+        "walking"
+      ],
+      "relatedWords": [
+        "administer",
+        "administrate",
+        "behave",
+        "behaving",
+        "black market",
+        "bled",
+        "bleed",
+        "boss",
+        "bout",
+        "bouts",
+        "brook",
+        "burst",
+        "bustle",
+        "campaign",
+        "campaigns",
+        "canvass",
+        "carried on",
+        "carries on",
+        "carrying on",
+        "come",
+        "command",
+        "commands",
+        "competition",
+        "conduct",
+        "consecution",
+        "continuance",
+        "control",
+        "course",
+        "courses",
+        "creek",
+        "current",
+        "cycle",
+        "dart",
+        "darted",
+        "dash",
+        "direct",
+        "directs",
+        "dissolve",
+        "dominate",
+        "download",
+        "dress rehearsal",
+        "dribble",
+        "dribbling",
+        "drive",
+        "drives",
+        "drool",
+        "drooling",
+        "drove",
+        "droves",
+        "duration",
+        "escape",
+        "escapes",
+        "farm",
+        "ferry",
+        "festinate",
+        "flies",
+        "flit",
+        "flitted",
+        "flow",
+        "flows",
+        "flume",
+        "fly",
+        "function",
+        "functioned",
+        "functions",
+        "fuse",
+        "gait",
+        "gallop",
+        "get",
+        "glide",
+        "glissade",
+        "go",
+        "goes",
+        "got",
+        "govern",
+        "governs",
+        "gush",
+        "gushed",
+        "gushes",
+        "hasten",
+        "hastened",
+        "head",
+        "herd",
+        "hold",
+        "holds",
+        "hotfoot",
+        "hunt",
+        "hurries",
+        "hurry",
+        "jaunt",
+        "journey",
+        "journeys",
+        "keep",
+        "lam",
+        "latitude",
+        "lift",
+        "lope",
+        "loped",
+        "loping",
+        "made off",
+        "make off",
+        "manage",
+        "managed",
+        "manages",
+        "melodies",
+        "melody",
+        "melt",
+        "move",
+        "moves",
+        "number",
+        "officiate",
+        "officiated",
+        "opening",
+        "operate",
+        "operated",
+        "operates",
+        "opportunities",
+        "opportunity",
+        "organize",
+        "organizes",
+        "outpour",
+        "pass",
+        "pour",
+        "preponderate",
+        "preside",
+        "procession",
+        "purview",
+        "race",
+        "races",
+        "ram",
+        "rammed",
+        "range",
+        "ranged",
+        "ranges",
+        "refer",
+        "referred",
+        "regulate",
+        "regulates",
+        "repair",
+        "resort",
+        "resorted",
+        "resorting",
+        "retreat",
+        "retreats",
+        "ride",
+        "rive",
+        "river",
+        "rivers",
+        "roll",
+        "route",
+        "routes",
+        "rule",
+        "rush",
+        "sail",
+        "sailed",
+        "salivate",
+        "salivates",
+        "salivating",
+        "sank",
+        "scoot",
+        "scope",
+        "scopes",
+        "scramble",
+        "scrambling",
+        "scud",
+        "scudded",
+        "scudding",
+        "scurried",
+        "scurries",
+        "scurry",
+        "scuttle",
+        "scuttled",
+        "scuttling",
+        "sequence",
+        "series",
+        "shoot",
+        "skedaddle",
+        "skip",
+        "skipped",
+        "skitter",
+        "skittered",
+        "skittering",
+        "smuggle",
+        "spate",
+        "sped",
+        "speed",
+        "spill",
+        "spilt",
+        "stampede",
+        "steer",
+        "stick",
+        "stream",
+        "streams",
+        "stretch",
+        "submerse",
+        "succession",
+        "supervise",
+        "sway",
+        "tear",
+        "tears",
+        "tendencies",
+        "tendency",
+        "tenor",
+        "thaw",
+        "thrust",
+        "tide",
+        "tour",
+        "train",
+        "transport",
+        "trend",
+        "trends",
+        "trip",
+        "trot",
+        "trotted",
+        "turn",
+        "use",
+        "uses",
+        "walk",
+        "walks",
+        "wax",
+        "went",
+        "work",
+        "zip"
+      ],
+      "definitions": []
+    },
+    {
+      "partOfSpeech": "adjective",
+      "definitions": [
+        {
+          "definition": "In a liquid state; melted or molten.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "Put some run butter on the vegetables."
+        },
+        {
+          "definition": "Cast in a mould.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "Exhausted; depleted (especially with \"down\" or \"out\").",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "(of a zoology) Travelled, migrated; having made a migration or a spawning run.",
+          "synonyms": [],
+          "antonyms": []
+        },
+        {
+          "definition": "Smuggled.",
+          "synonyms": [],
+          "antonyms": [],
+          "example": "run brandy"
+        }
+      ],
+      "synonyms": [],
+      "antonyms": []
+    }
+  ]
+}

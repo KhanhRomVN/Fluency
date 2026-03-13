@@ -177,7 +177,7 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
 
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 16, 16),
+            padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
             child: Row(
               children: [
                 Expanded(
@@ -186,49 +186,28 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                       Text(
                         'Add to Collection',
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
                           color: appColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Material(
-                        color: appColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        child: InkWell(
-                          onTap: _showCreateDrawer,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add,
-                                    size: 16, color: appColors.primary),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'New',
-                                  style: TextStyle(
-                                    color: appColors.primary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  color: appColors.textPrimary,
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: appColors.textSecondary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: appColors.textSecondary.withValues(alpha: 0.7),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -269,7 +248,7 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                     : Stack(
                         children: [
                           ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                             itemCount: _collections.length,
                             itemBuilder: (context, index) {
                               final collection = _collections[index];
@@ -382,11 +361,11 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                           ),
                           if (_selectedIds.isNotEmpty)
                             Positioned(
-                              bottom: 24,
-                              left: 24,
-                              right: 24,
+                              bottom: 20,
+                              left: 20,
+                              right: 20,
                               child: SizedBox(
-                                height: 54,
+                                height: 50,
                                 width: double.infinity,
                                 child: ElevatedButton(
                                   onPressed: _isAdding ? null : _addTermsBatch,

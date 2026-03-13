@@ -8,7 +8,6 @@ import 'package:fluency/features/home/presentation/pages/home_page.dart';
 import 'package:fluency/features/main/presentation/pages/main_page.dart';
 import 'package:fluency/features/quiz/presentation/pages/quiz_page.dart';
 import 'package:fluency/features/setting/presentation/pages/setting_page.dart';
-import 'package:fluency/features/splash/presentation/pages/splash_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -25,16 +24,12 @@ final _shellNavigatorSettingKey =
 class AppRouter {
   static final GoRouter router = GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: RouteConstants.splash,
+    initialLocation: RouteConstants.dashboard,
     errorBuilder: (context, state) => const NotFoundPage(),
     routes: [
       GoRoute(
         path: RouteConstants.home,
-        redirect: (context, state) => RouteConstants.splash,
-      ),
-      GoRoute(
-        path: RouteConstants.splash,
-        builder: (context, state) => const SplashPage(),
+        redirect: (context, state) => RouteConstants.dashboard,
       ),
       GoRoute(
         path:

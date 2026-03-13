@@ -88,6 +88,7 @@ class Definition {
     this.example,
     this.synonyms = const [],
     this.antonyms = const [],
+    this.relatedWords = const [],
   });
 
   factory Definition.fromJson(Map<String, dynamic> json) {
@@ -100,6 +101,9 @@ class Definition {
           const [],
       antonyms: (json['antonyms'] as List?)?.map((a) => a as String).toList() ??
           const [],
+      relatedWords:
+          (json['relatedWords'] as List?)?.map((r) => r as String).toList() ??
+              const [],
     );
   }
   final String definition;
@@ -107,6 +111,7 @@ class Definition {
   final List<String> translations;
   final List<String> synonyms;
   final List<String> antonyms;
+  final List<String> relatedWords;
 
   Map<String, dynamic> toJson() => {
         'definition': definition,
@@ -114,6 +119,7 @@ class Definition {
         'translations': translations,
         'synonyms': synonyms,
         'antonyms': antonyms,
+        'relatedWords': relatedWords,
       };
 }
 
@@ -123,6 +129,7 @@ class Meaning {
     required this.definitions,
     this.synonyms = const [],
     this.antonyms = const [],
+    this.relatedWords = const [],
   });
 
   factory Meaning.fromJson(Map<String, dynamic> json) {
@@ -135,17 +142,22 @@ class Meaning {
           const [],
       antonyms: (json['antonyms'] as List?)?.map((a) => a as String).toList() ??
           const [],
+      relatedWords:
+          (json['relatedWords'] as List?)?.map((r) => r as String).toList() ??
+              const [],
     );
   }
   final String partOfSpeech;
   final List<Definition> definitions;
   final List<String> synonyms;
   final List<String> antonyms;
+  final List<String> relatedWords;
 
   Map<String, dynamic> toJson() => {
         'partOfSpeech': partOfSpeech,
         'definitions': definitions.map((d) => d.toJson()).toList(),
         'synonyms': synonyms,
         'antonyms': antonyms,
+        'relatedWords': relatedWords,
       };
 }
