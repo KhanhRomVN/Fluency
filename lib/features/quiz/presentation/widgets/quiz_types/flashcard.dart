@@ -14,16 +14,18 @@ class Flashcard extends StatefulWidget {
   const Flashcard({
     required this.quiz,
     required this.lessonId,
-    required this.quizId, // Removed trailing comma
+    required this.quizId,
     this.onNext,
     this.onPrev,
     this.onWordLongPress,
+    this.onCheck,
     super.key,
   });
 
   final Quiz quiz;
   final String lessonId;
   final String quizId;
+  final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
   final void Function(String word)? onWordLongPress;
@@ -44,7 +46,6 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
 
   // Page Controller
   late PageController _pageController;
-  bool _isTransitioning = false;
 
   // Audio
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -104,9 +105,13 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
         }
       });
 
-      // Sync PageView with restored index
       if (_pageController.hasClients) {
         _pageController.jumpToPage(_currentIndex);
+      }
+
+      // If quiz is completed, notify parent
+      if (progress.isCompleted) {
+        widget.onCheck?.call();
       }
     }
 
@@ -253,126 +258,183 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                 [];
 
             return Container(
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: appColors.cardBackground,
+                color: appColors.drawerBackground,
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
+                    const BorderRadius.vertical(top: Radius.circular(30)),
+                border: Border.all(
+                  color: appColors.border.withValues(alpha: 0.1),
+                ),
               ),
-              padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        card.optionsTrans != null
-                            ? 'Chọn định nghĩa đúng'
-                            : 'Select the correct definition',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.textPrimary,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+                  // Drag handle
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: appColors.textSecondary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                   ),
-                  const SizedBox(height: 20),
-                  ...options.map((option) {
-                    final isSelected = localSelectedOption == option;
-                    final isActuallyCorrect =
-                        option.trim().toLowerCase() == displayCorrectOption;
-
-                    var borderColor = appColors.border;
-                    Color? bgColor;
-                    Widget? trailingIcon;
-
-                    if (isSelected) {
-                      if (isActuallyCorrect) {
-                        borderColor = Colors.green;
-                        bgColor = Colors.green.withValues(alpha: 0.1);
-                        trailingIcon = const Icon(Icons.check,
-                            color: Colors.green, size: 20);
-                      } else {
-                        borderColor = Colors.red;
-                        bgColor = Colors.red.withValues(alpha: 0.1);
-                        trailingIcon = const Icon(Icons.close,
-                            color: Colors.red, size: 20);
-                      }
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: InkWell(
-                        onTap: isProcessing
-                            ? null
-                            : () async {
-                                setDrawerState(() {
-                                  localSelectedOption = option;
-                                  isProcessing = true;
-                                });
-
-                                final isCorrect = isActuallyCorrect;
-                                _markAsCompleted(card.id, isCorrect);
-
-                                // Delay to let user see the result
-                                await Future<void>.delayed(
-                                    const Duration(milliseconds: 1500));
-                                if (context.mounted) {
-                                  Navigator.pop(context);
-                                  _performFlip();
-                                }
-                              },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            border: Border.all(
-                                color: borderColor, width: isSelected ? 2 : 1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
+                  const SizedBox(height: 12),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: RichTextParser.buildTextSpans(
-                                      context,
-                                      option,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: isSelected
-                                            ? (isActuallyCorrect
-                                                ? Colors.green
-                                                : Colors.red)
-                                            : appColors.textPrimary,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ),
+                              Text(
+                                'Select Definition',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: appColors.textPrimary,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                              if (trailingIcon != null) ...[
-                                const SizedBox(width: 12),
-                                trailingIcon,
-                              ],
+                              Text(
+                                'Choose the correct meaning for the term',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: appColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: appColors.inputBackground,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: appColors.border.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: appColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ...options.map((option) {
+                          final isSelected = localSelectedOption == option;
+                          final isActuallyCorrect =
+                              option.trim().toLowerCase() ==
+                                  displayCorrectOption;
+
+                          var borderColor = appColors.border;
+                          Color? bgColor;
+                          Widget? trailingIcon;
+
+                          if (isSelected) {
+                            if (isActuallyCorrect) {
+                              borderColor = Colors.green;
+                              bgColor = Colors.green.withValues(alpha: 0.1);
+                              trailingIcon = const Icon(Icons.check,
+                                  color: Colors.green, size: 20);
+                            } else {
+                              borderColor = Colors.red;
+                              bgColor = Colors.red.withValues(alpha: 0.1);
+                              trailingIcon = const Icon(Icons.close,
+                                  color: Colors.red, size: 20);
+                            }
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: InkWell(
+                              onTap: isProcessing
+                                  ? null
+                                  : () async {
+                                      setDrawerState(() {
+                                        localSelectedOption = option;
+                                        isProcessing = true;
+                                      });
+
+                                      final isCorrect = isActuallyCorrect;
+                                      _markAsCompleted(card.id, isCorrect);
+
+                                      // Delay to let user see the result
+                                      await Future<void>.delayed(
+                                          const Duration(milliseconds: 1500));
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        _performFlip();
+                                      }
+                                    },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: bgColor ?? appColors.inputBackground,
+                                  border: Border.all(
+                                      color: borderColor,
+                                      width: isSelected ? 2 : 1),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text.rich(
+                                        TextSpan(
+                                          children:
+                                              RichTextParser.buildTextSpans(
+                                            context,
+                                            option.trim(),
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSelected
+                                                  ? (isActuallyCorrect
+                                                      ? Colors.green
+                                                      : Colors.red)
+                                                  : appColors.textPrimary
+                                                      .withValues(alpha: 0.9),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (trailingIcon != null) ...[
+                                      const SizedBox(width: 12),
+                                      trailingIcon,
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
@@ -442,120 +504,70 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
 
     final currentCard = cards[_currentIndex];
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is OverscrollNotification) {
-          if (notification.overscroll < 0) {
-            widget.onPrev?.call();
-          } else if (notification.overscroll > 0) {
-            widget.onNext?.call();
-          }
-        }
-        return false;
-      },
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const ClampingScrollPhysics(),
-        itemCount: cards.length,
-        itemBuilder: (context, index) {
-          final card = cards[index];
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: _onPageChanged,
+      physics: const ClampingScrollPhysics(),
+      itemCount: cards.length,
+      itemBuilder: (context, index) {
+        final card = cards[index];
 
-          return Padding(
-            padding:
-                const EdgeInsets.only(left: 16, right: 16, bottom: 24, top: 8),
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: appColors.cardBackground,
-                borderRadius: BorderRadius.circular(12),
+        return Padding(
+          padding:
+              const EdgeInsets.only(left: 16, right: 16, bottom: 24, top: 24),
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: appColors.cardBackground,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: CustomPaint(
+              painter: _DashedBorderPainter(
+                color: Colors.grey.withValues(alpha: 0.5),
+                strokeWidth: 2,
+                gap: 4,
+                borderRadius: 12,
               ),
-              child: CustomPaint(
-                painter: _DashedBorderPainter(
-                  color: appColors.primary,
-                  strokeWidth: 2,
-                  gap: 4,
-                  borderRadius: 12,
-                ),
-                child: Column(
-                  children: [
-                    _buildInternalHeader(context, appColors, cards, index),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap:
-                            index == _currentIndex ? _handleFlipRequest : null,
-                        child: AnimatedBuilder(
-                          animation: _flipAnimation,
-                          builder: (context, child) {
-                            // Only animate the active card
-                            final angle = (index == _currentIndex)
-                                ? _flipAnimation.value * math.pi
-                                : 0.0;
-                            final isBack = angle > math.pi / 2;
+              child: Column(
+                children: [
+                  _buildInternalHeader(context, appColors, cards, index),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: index == _currentIndex ? _handleFlipRequest : null,
+                      child: AnimatedBuilder(
+                        animation: _flipAnimation,
+                        builder: (context, child) {
+                          // Only animate the active card
+                          final angle = (index == _currentIndex)
+                              ? _flipAnimation.value * math.pi
+                              : 0.0;
+                          final isBack = angle > math.pi / 2;
 
-                            return Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.identity()
-                                ..setEntry(3, 2, 0.001)
-                                ..rotateY(angle),
-                              child: isBack
-                                  ? Transform(
-                                      alignment: Alignment.center,
-                                      transform: Matrix4.identity()
-                                        ..rotateY(math.pi),
-                                      child:
-                                          _buildBack(context, card, appColors),
-                                    )
-                                  : _buildFront(context, card, appColors),
-                            );
-                          },
-                        ),
+                          return Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()
+                              ..setEntry(3, 2, 0.001)
+                              ..rotateY(angle),
+                            child: isBack
+                                ? Transform(
+                                    alignment: Alignment.center,
+                                    transform: Matrix4.identity()
+                                      ..rotateY(math.pi),
+                                    child: _buildBack(context, card, appColors),
+                                  )
+                                : _buildFront(context, card, appColors),
+                          );
+                        },
                       ),
                     ),
-                    const Divider(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          _buildFooterActions(appColors),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _goToNext() {
-    final cards = widget.quiz.flashcards ?? [];
-    if (_currentIndex < cards.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      widget.onNext?.call();
-    }
-  }
-
-  Widget _buildFooterActions(AppColorsExtension appColors) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: appColors.primary,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 0,
-      ),
-      onPressed: _goToNext,
-      child: const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        );
+      },
     );
   }
 
@@ -671,6 +683,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                     style: TextStyle(
                       color: appColors.textSecondary,
                       fontSize: 18,
+                      fontFamily: 'NotoSans',
                     ),
                   ),
                 ],
@@ -890,10 +903,6 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: appColors.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -929,25 +938,34 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                 ],
               ),
             ),
-          if (wordForms != null && wordForms.isNotEmpty)
+          if (wordForms != null && wordForms.isNotEmpty) ...[
             _buildSectionHeader('Word Forms', appColors),
-          if (wordForms != null && wordForms.isNotEmpty)
             ...wordForms.map(
                 (f) => _buildFormItem(f as Map<dynamic, dynamic>, appColors)),
-          if (synonyms != null) _buildSectionHeader('Synonyms', appColors),
-          if (synonyms != null) _buildListLike(synonyms, appColors),
-          if (antonyms != null) _buildSectionHeader('Antonyms', appColors),
-          if (antonyms != null) _buildListLike(antonyms, appColors),
-          if (detailedDefinitions != null && detailedDefinitions.isNotEmpty)
+          ],
+          if (synonyms != null &&
+              ((synonyms is String && synonyms.isNotEmpty) ||
+                  (synonyms is List && synonyms.isNotEmpty))) ...[
+            _buildSectionHeader('Synonyms', appColors),
+            _buildListLike(synonyms, appColors),
+          ],
+          if (antonyms != null &&
+              ((antonyms is String && antonyms.isNotEmpty) ||
+                  (antonyms is List && antonyms.isNotEmpty))) ...[
+            _buildSectionHeader('Antonyms', appColors),
+            _buildListLike(antonyms, appColors),
+          ],
+          if (detailedDefinitions != null &&
+              detailedDefinitions.isNotEmpty) ...[
             _buildSectionHeader('Detailed Meanings', appColors),
-          if (detailedDefinitions != null && detailedDefinitions.isNotEmpty)
             ...detailedDefinitions.map(
                 (d) => _buildDetailItem(d as Map<dynamic, dynamic>, appColors)),
-          if (collocations != null && collocations.isNotEmpty)
+          ],
+          if (collocations != null && collocations.isNotEmpty) ...[
             _buildSectionHeader('Collocations', appColors),
-          if (collocations != null && collocations.isNotEmpty)
             ...collocations.map((c) =>
                 _buildCollocationItem(c as Map<dynamic, dynamic>, appColors)),
+          ],
         ],
       );
     }

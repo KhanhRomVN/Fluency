@@ -150,10 +150,38 @@ class CourseCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 child: SizedBox(
                   height: 90,
-                  child: CourseImage(
-                    imageUrl: course.imageUrl,
-                    height: 90,
-                    fit: BoxFit.fitHeight,
+                  child: Stack(
+                    children: [
+                      CourseImage(
+                        imageUrl: course.imageUrl,
+                        height: 90,
+                        fit: BoxFit.fitHeight,
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colors.primary,
+                            borderRadius: const BorderRadius.only(
+                              bottomRight: Radius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'v${course.version}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -231,27 +259,26 @@ class CourseCard extends StatelessWidget {
   }
 
   Color _getSkillColor(String skill) {
-    final badgeColors = [
-      const Color(0xFF3B82F6), // Blue
-      const Color(0xFF10B981), // Emerald
-      const Color(0xFFF59E0B), // Amber
-      const Color(0xFFEF4444), // Red
-      const Color(0xFF8B5CF6), // Violet
-      const Color(0xFFEC4899), // Pink
-      const Color(0xFF06B6D4), // Cyan
-      const Color(0xFF6366F1), // Indigo
-      const Color(0xFFF97316), // Orange
-      const Color(0xFF059669), // Dark Emerald
-      const Color(0xFF2563EB), // Dark Blue
-      const Color(0xFFD97706), // Dark Amber
-    ];
-
-    int hash = 0;
-    for (int i = 0; i < skill.length; i++) {
-      hash = skill.codeUnitAt(i) + ((hash << 5) - hash);
+    switch (skill.toLowerCase()) {
+      case 'listening':
+      case 'listen':
+        return Colors.red;
+      case 'speaking':
+      case 'speak':
+        return Colors.orange;
+      case 'reading':
+      case 'read':
+        return Colors.green;
+      case 'writing':
+      case 'write':
+        return Colors.blue;
+      case 'grammar':
+        return Colors.purple;
+      case 'vocabulary':
+        return Colors.teal;
+      default:
+        return Colors.blueGrey;
     }
-
-    return badgeColors[hash.abs() % badgeColors.length];
   }
 
   int _calculateTotalScore(BuildContext context) {
@@ -274,7 +301,7 @@ class CourseCard extends StatelessWidget {
     final quizStateProvider = context.watch<QuizStateProvider>();
     int totalCompleted = 0;
     int totalCorrect = 0;
-    int totalQuizzes = 0;
+    int totalCourseItems = 0;
 
     for (final lesson in course.lessons) {
       final lessonProgress = quizStateProvider.getLessonProgress(lesson.id);
@@ -284,12 +311,13 @@ class CourseCard extends StatelessWidget {
           totalCorrect += progress.correctItems;
         }
       }
-      totalQuizzes += lesson.quizzes.length;
+      totalCourseItems += lesson.totalItems;
     }
 
     final int wrong = totalCompleted - totalCorrect;
-    final int averageProgress =
-        totalQuizzes > 0 ? (totalCompleted / totalQuizzes * 100).round() : 0;
+    final int averageProgress = totalCourseItems > 0
+        ? (totalCompleted / totalCourseItems * 100).round().clamp(0, 100)
+        : 0;
 
     return Column(
       children: [
@@ -325,7 +353,7 @@ class CourseCard extends StatelessWidget {
         _SegmentedProgressBar(
           correct: totalCorrect,
           wrong: wrong > 0 ? wrong : 0,
-          total: totalQuizzes > 0 ? totalQuizzes : 1,
+          total: totalCourseItems > 0 ? totalCourseItems : 1,
         ),
       ],
     );

@@ -59,35 +59,84 @@ class _ImportCollectionDrawerState extends State<ImportCollectionDrawer> {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Container(
+      padding: const EdgeInsets.only(bottom: 28),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: appColors.cardBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: appColors.drawerBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.1),
+        ),
       ),
-      padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Import Collection',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
+          // Drag handle
+          const SizedBox(height: 12),
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appColors.textSecondary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(99),
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Import Collection',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: appColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      Text(
+                        'Choose an external source to import from',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: appColors.inputBackground,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: appColors.border.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: appColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           if (_isImporting)
             const Center(
               child: Padding(
@@ -95,47 +144,63 @@ class _ImportCollectionDrawerState extends State<ImportCollectionDrawer> {
                 child: CircularProgressIndicator(),
               ),
             )
-          else ...[
-            _buildOption(
-              context,
-              icon: Icons.insert_drive_file_outlined,
-              title: 'From CSV File',
-              subtitle: 'Import collection from a CSV file',
-              onTap: _importFromCSV,
-              appColors: appColors,
-            ),
-            const SizedBox(height: 12),
-            _buildOption(
-              context,
-              icon: Icons.table_chart_outlined,
-              title: 'From Excel',
-              subtitle: 'Coming soon',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Excel import coming soon!')),
-                );
-              },
-              appColors: appColors,
-              isDisabled: true,
-            ),
-            const SizedBox(height: 12),
-            _buildOption(
-              context,
-              icon: Icons.cloud_outlined,
-              title: 'From Google Sheets',
-              subtitle: 'Coming soon',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Google Sheets import coming soon!'),
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Column(
+                children: [
+                  _buildOption(
+                    context,
+                    icon: Icons.insert_drive_file_outlined,
+                    title: 'From CSV File',
+                    subtitle: 'Import collection from a CSV file',
+                    onTap: _importFromCSV,
+                    appColors: appColors,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    ),
                   ),
-                );
-              },
-              appColors: appColors,
-              isDisabled: true,
+                  const SizedBox(height: 6),
+                  _buildOption(
+                    context,
+                    icon: Icons.table_chart_outlined,
+                    title: 'From Excel',
+                    subtitle: 'Coming soon',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Excel import coming soon!')),
+                      );
+                    },
+                    appColors: appColors,
+                    isDisabled: true,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0EA5E9), Color(0xFF06B6D4)],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildOption(
+                    context,
+                    icon: Icons.cloud_outlined,
+                    title: 'From Google Sheets',
+                    subtitle: 'Coming soon',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Google Sheets import coming soon!'),
+                        ),
+                      );
+                    },
+                    appColors: appColors,
+                    isDisabled: true,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF0EA5E9)],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 4),
         ],
       ),
     );
@@ -148,31 +213,46 @@ class _ImportCollectionDrawerState extends State<ImportCollectionDrawer> {
     required String subtitle,
     required VoidCallback onTap,
     required AppColorsExtension appColors,
+    required Gradient gradient,
     bool isDisabled = false,
   }) {
     return InkWell(
       onTap: isDisabled ? null : onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
+          color: appColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isDisabled
-                ? appColors.border.withValues(alpha: 0.3)
-                : appColors.border,
+            color: appColors.border.withValues(
+              alpha: isDisabled ? 0.3 : 1.0,
+            ),
           ),
-          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: isDisabled
-                  ? appColors.textSecondary.withValues(alpha: 0.3)
-                  : appColors.primary,
-              size: 28,
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: isDisabled
+                    ? LinearGradient(
+                        colors: [
+                          Colors.grey.withValues(alpha: 0.5),
+                          Colors.grey.withValues(alpha: 0.3),
+                        ],
+                      )
+                    : gradient,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,21 +260,22 @@ class _ImportCollectionDrawerState extends State<ImportCollectionDrawer> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
                       color: isDisabled
                           ? appColors.textSecondary.withValues(alpha: 0.5)
                           : appColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 1),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 11,
                       color: appColors.textSecondary.withValues(
                         alpha: isDisabled ? 0.5 : 1.0,
                       ),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -202,7 +283,7 @@ class _ImportCollectionDrawerState extends State<ImportCollectionDrawer> {
             ),
             if (!isDisabled)
               Icon(
-                Icons.arrow_forward_ios,
+                Icons.chevron_right_rounded,
                 size: 16,
                 color: appColors.textSecondary,
               ),

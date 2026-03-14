@@ -3,7 +3,7 @@ import 'package:fluency/core/services/activity/activity.dart';
 import 'package:fluency/core/services/activity/activity_repository.dart';
 import 'package:fluency/core/services/usage/daily_usage_repository.dart';
 import 'package:fluency/di/injection_container.dart';
-import 'package:fluency/features/achievement/presentation/providers/achievement_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/achievement_provider.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 
 class StatsProvider extends ChangeNotifier {

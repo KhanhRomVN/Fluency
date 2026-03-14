@@ -50,27 +50,21 @@ class LessonCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isCompleted
                     ? primaryColor
-                    : (isLocked
-                        ? Colors.grey.withValues(alpha: 0.1)
-                        : Colors.transparent),
-                borderRadius: BorderRadius.circular(4),
+                    : appColors.textPrimary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(5),
                 border: Border.all(
-                  color: isCompleted
-                      ? primaryColor
-                      : (isLocked
-                          ? Colors.grey.withValues(alpha: 0.3)
-                          : primaryColor),
+                  color: isCompleted ? primaryColor : Colors.transparent,
                   width: 1.5,
                 ),
               ),
               child: Text(
                 '${lesson.lessonNumber}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w800,
                       fontSize: 12,
                       color: isCompleted
                           ? Colors.white
-                          : (isLocked ? Colors.grey : primaryColor),
+                          : appColors.textPrimary.withValues(alpha: 0.4),
                     ),
               ),
             ),

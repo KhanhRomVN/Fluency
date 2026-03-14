@@ -358,7 +358,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
       // Let's reduce vertical padding overall.
       padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 12),
       decoration: BoxDecoration(
-        color: appColors.background,
+        color: appColors.cardBackground,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),

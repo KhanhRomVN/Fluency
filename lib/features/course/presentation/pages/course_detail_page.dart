@@ -125,20 +125,33 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                   children: [
                     // Back Button on the far left
                     Positioned(
-                      left: 4,
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: SvgPicture.asset(
-                          'assets/icons/chevron_left.svg',
-                          width: 24,
-                          height: 24,
-                          colorFilter: ColorFilter.mode(
-                            appColors.textPrimary,
-                            BlendMode.srcIn,
+                      left: 12,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: appColors.inputBackground,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: appColors.border.withValues(alpha: 0.4),
                           ),
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        child: Center(
+                          child: IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: SvgPicture.asset(
+                              'assets/icons/chevron_left.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                appColors.textSecondary,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
                       ),
                     ),
                     // Centered Title and Badge
@@ -157,20 +170,34 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                     ),
                     // Menu Icon on the far right
                     Positioned(
-                      right: 4,
-                      child: IconButton(
-                        onPressed: () => _showActionDrawer(context, appColors),
-                        icon: SvgPicture.string(
-                          '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical-icon lucide-ellipsis-vertical"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>',
-                          width: 20,
-                          height: 20,
-                          colorFilter: ColorFilter.mode(
-                            appColors.textPrimary,
-                            BlendMode.srcIn,
+                      right: 12,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: appColors.inputBackground,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: appColors.border.withValues(alpha: 0.4),
                           ),
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                        child: Center(
+                          child: IconButton(
+                            onPressed: () =>
+                                _showActionDrawer(context, appColors),
+                            icon: SvgPicture.string(
+                              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ellipsis-vertical-icon lucide-ellipsis-vertical"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>',
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                appColors.textSecondary,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -194,8 +221,36 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                     ],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: CourseImage(
-                    imageUrl: displayCourse.imageUrl,
+                  child: Stack(
+                    children: [
+                      CourseImage(
+                        imageUrl: displayCourse.imageUrl,
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: appColors.primary,
+                            borderRadius: const BorderRadius.only(
+                              bottomRight: Radius.circular(10),
+                            ),
+                          ),
+                          child: Text(
+                            'v${displayCourse.version}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -508,77 +563,127 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
-      backgroundColor: appColors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.5,
+        return Container(
+          padding: const EdgeInsets.only(bottom: 32),
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: appColors.drawerBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            border: Border.all(
+              color: appColors.border.withValues(alpha: 0.1),
+            ),
+          ),
           child: SafeArea(
+            bottom: false,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Drag handle
                 const SizedBox(height: 12),
                 Container(
-                  width: 40,
+                  width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: appColors.textSecondary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
+                    color: appColors.textSecondary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(99),
                   ),
                 ),
                 const SizedBox(height: 12),
+                // Header with Title and Close Button
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Course Actions',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.textPrimary,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Course Management',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: appColors.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Manage lessons and course preferences',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: appColors.textSecondary,
+                                fontWeight: FontWeight.normal,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: appColors.inputBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: appColors.border.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: appColors.textSecondary,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmDelete(context, appColors);
-                  },
+                const SizedBox(height: 16),
+                // Divider
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 20),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete_outline, color: Colors.red),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Delete',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
+                    height: 1,
+                    color: appColors.divider.withValues(alpha: 0.1),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                // Actions
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Column(
+                    children: [
+                      _buildDrawerOption(
+                        context: context,
+                        icon: Icons.delete_outline_rounded,
+                        label: 'Delete Course',
+                        description: 'Remove this course from your library',
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEF4444), Color(0xFFF43F5E)],
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _confirmDelete(context, appColors);
+                        },
+                        appColors: appColors,
+                        isDanger: true,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -587,36 +692,234 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     );
   }
 
-  void _confirmDelete(BuildContext context, AppColorsExtension appColors) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: appColors.background,
-        title: Text(
-          'Confirm Delete',
-          style: TextStyle(color: appColors.textPrimary),
-        ),
-        content: Text(
-          'Are you sure you want to delete this course?',
-          style: TextStyle(color: appColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+  Widget _buildDrawerOption({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required String description,
+    required Gradient gradient,
+    required VoidCallback onTap,
+    required AppColorsExtension appColors,
+    bool isDanger = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDanger
+              ? Colors.red.withValues(alpha: 0.1)
+              : appColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color:
+                isDanger ? Colors.red.withValues(alpha: 0.3) : appColors.border,
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _deleteCourse();
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDanger ? Colors.red : appColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDanger
+                          ? Colors.red.withValues(alpha: 0.5)
+                          : appColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Chevron
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: isDanger
+                  ? Colors.red.withValues(alpha: 0.5)
+                  : appColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, AppColorsExtension appColors) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: appColors.drawerBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -1),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: true,
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle
+                const SizedBox(height: 12),
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: appColors.textSecondary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Confirm Delete',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: appColors.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Are you sure you want to delete this course?',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: appColors.textSecondary,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: appColors.inputBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: appColors.border.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: appColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Divider
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    height: 1,
+                    color: appColors.divider.withValues(alpha: 0.1),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Actions
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Column(
+                    children: [
+                      _buildDrawerOption(
+                        context: context,
+                        icon: Icons.close_rounded,
+                        label: 'Cancel',
+                        description: 'Stay here and keep the course',
+                        gradient: LinearGradient(
+                          colors: [
+                            appColors.textSecondary.withValues(alpha: 0.1),
+                            appColors.textSecondary.withValues(alpha: 0.2),
+                          ],
+                        ),
+                        onTap: () => Navigator.pop(context),
+                        appColors: appColors,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDrawerOption(
+                        context: context,
+                        icon: Icons.delete_forever_rounded,
+                        label: 'Confirm Delete',
+                        description: 'Action cannot be undone',
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEF4444), Color(0xFFB91C1C)],
+                        ),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _deleteCourse();
+                        },
+                        appColors: appColors,
+                        isDanger: true,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

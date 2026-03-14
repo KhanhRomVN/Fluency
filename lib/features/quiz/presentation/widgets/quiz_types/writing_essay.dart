@@ -61,6 +61,11 @@ class _WritingEssayState extends State<WritingEssay> {
           _controller.text = savedText;
           _updateWordCount();
         }
+
+        // If already submitted, notify parent to show transcript/etc
+        if (_submitted) {
+          widget.onCheck?.call();
+        }
       });
     }
   }
@@ -163,176 +168,161 @@ class _WritingEssayState extends State<WritingEssay> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is OverscrollNotification) {
-            if (notification.overscroll < 0) {
-              widget.onPrev?.call();
-            } else if (notification.overscroll > 0) {
-              if (_submitted) {
-                widget.onCheck?.call();
-                widget.onNext?.call();
-              }
-            }
-          }
-          return false;
-        },
-        child: PageView(
-          controller: _pageController,
-          physics: const ClampingScrollPhysics(),
-          children: [
-            Stack(
-              children: [
-                // Main Content
-                Positioned.fill(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Instruction
-                        if (widget.quiz.instruction.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: RichTextParser.buildRichText(
-                              context,
-                              widget.quiz.instruction,
+      body: Stack(
+        children: [
+          // Main Content
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Instruction
+                  if (widget.quiz.instruction.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: RichTextParser.buildRichText(
+                        context,
+                        widget.quiz.instruction,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: appColors.textPrimary,
+                          height: 1.5,
+                        ),
+                        onWordLongPress: widget.onWordLongPress,
+                      ).first,
+                    ),
+
+                  // Input Card
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: appColors.cardBackground,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: appColors.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              onChanged: (val) => _updateWordCount(),
+                              enabled: !_submitted,
+                              maxLines: null,
+                              expands: true,
+                              textAlignVertical: TextAlignVertical.top,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: appColors.textPrimary,
                                 height: 1.5,
                               ),
-                              onWordLongPress: widget.onWordLongPress,
-                            ).first,
-                          ),
-
-                        // Input Card
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: appColors.cardBackground,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: appColors.border),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
+                              decoration: InputDecoration(
+                                hintText: 'Type your essay here...',
+                                hintStyle: TextStyle(
+                                  color: appColors.textSecondary
+                                      .withValues(alpha: 0.7),
                                 ),
-                              ],
+                                border: InputBorder.none,
+                              ),
                             ),
-                            child: Column(
+                          ),
+                          const Divider(),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _controller,
-                                    onChanged: (val) => _updateWordCount(),
-                                    enabled: !_submitted,
-                                    maxLines: null,
-                                    expands: true,
-                                    textAlignVertical: TextAlignVertical.top,
+                                Text(
+                                  'Words: $_wordCount',
+                                  style: TextStyle(
+                                    color: isEnoughWords
+                                        ? Colors.green
+                                        : appColors.textSecondary,
+                                    fontWeight: isEnoughWords
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                                if (minWords > 0)
+                                  Text(
+                                    'Minimum: $minWords',
                                     style: TextStyle(
-                                      fontSize: 16,
-                                      color: appColors.textPrimary,
-                                      height: 1.5,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Type your essay here...',
-                                      hintStyle: TextStyle(
-                                        color: appColors.textSecondary
-                                            .withValues(alpha: 0.7),
-                                      ),
-                                      border: InputBorder.none,
+                                      color: appColors.textSecondary,
+                                      fontSize: 12,
                                     ),
                                   ),
-                                ),
-                                const Divider(),
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Words: $_wordCount',
-                                        style: TextStyle(
-                                          color: isEnoughWords
-                                              ? Colors.green
-                                              : appColors.textSecondary,
-                                          fontWeight: isEnoughWords
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                        ),
-                                      ),
-                                      if (minWords > 0)
-                                        Text(
-                                          'Minimum: $minWords',
-                                          style: TextStyle(
-                                            color: appColors.textSecondary,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(
-                            height: 120), // Spacer for bottom buttons
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 120), // Spacer for bottom buttons
+                ],
+              ),
+            ),
+          ),
 
-                // Bottom Controls
-                Positioned(
-                  bottom: 28,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (!_submitted && (minWords == 0 || isEnoughWords))
-                        ElevatedButton.icon(
-                          onPressed: _submit,
-                          icon: const Icon(Icons.check_circle, size: 20),
-                          label: const Text('Submit'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: appColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30)),
-                          ),
-                        ),
-                      if (_submitted)
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            widget.onCheck?.call();
-                            widget.onNext?.call();
-                          },
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Next question'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: appColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30)),
-                          ),
-                        ),
-                    ],
+          // Bottom Controls
+          Positioned(
+            bottom: 28,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!_submitted && (minWords == 0 || isEnoughWords))
+                  ElevatedButton.icon(
+                    onPressed: _submit,
+                    icon: const Icon(Icons.check_circle, size: 20),
+                    label: const Text('Submit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          appColors.primary.withValues(alpha: 0.15),
+                      foregroundColor: appColors.primary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
                   ),
-                ),
+                if (_submitted)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      widget.onCheck?.call();
+                      widget.onNext?.call();
+                    },
+                    icon: const Icon(Icons.check_circle),
+                    label: const Text('Next question'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          appColors.primary.withValues(alpha: 0.15),
+                      foregroundColor: appColors.primary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                  ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

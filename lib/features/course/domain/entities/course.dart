@@ -157,6 +157,11 @@ class Lesson {
   final String courseId;
   final String courseTitle;
 
+  int get totalItems {
+    if (quizzes.isEmpty) return 0;
+    return quizzes.fold(0, (sum, quiz) => sum + quiz.totalItems);
+  }
+
   Lesson copyWith({
     String? id,
     String? title,
@@ -404,6 +409,28 @@ class Quiz {
   final String? aiRole; // AI role name (e.g., "Alex (Friend)")
   final String? userRole; // User role name (e.g., "You")
   final int? minTurns; // Minimum number of conversation turns
+
+  int get totalItems {
+    if (type == 'gap-fill') return answers.length;
+    if (type == 'matching' || type == 'matching-dropdown') {
+      return matchings?.length ?? 0;
+    }
+    if (type == 'chatting' || type == 'ai-chat') return minTurns ?? 5;
+    if (type == 'flashcard') return flashcards?.length ?? 0;
+    if (type == 'dictation') return dictations?.length ?? 0;
+    if (type == 'pronunciation' || type == 'pronunciation-drill') {
+      return pronunciations?.length ?? 0;
+    }
+    if (type == 'speech-builder' || type == 'builder') {
+      return speechBuilders?.length ??
+          (questions.isNotEmpty ? questions.length : 0);
+    }
+    if (type == 'error-correction') return errorCorrections?.length ?? 0;
+    if (type == 'sentence-transformation') {
+      return sentenceTransformations?.length ?? 0;
+    }
+    return questions.length;
+  }
 
   Quiz copyWith({
     String? id,

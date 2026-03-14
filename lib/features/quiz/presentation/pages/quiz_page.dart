@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
@@ -25,9 +26,6 @@ import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speech_bui
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/writing_essay.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart';
-import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
-import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
-import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -76,20 +74,37 @@ class _QuizPageState extends State<QuizPage>
     // Note: On hot restart, old instances may persist. We can't stop them from here
     // because we don't have reference to them. The stop() in dispose() should handle it.
     _audioPlayer = AudioPlayer();
+
+    // Find first uncompleted quiz index
+    final lesson = widget.lesson;
+    final quizStateProvider = context.read<QuizStateProvider>();
+    int firstUncompletedIndex = 0;
+    for (int i = 0; i < lesson.quizzes.length; i++) {
+      if (!quizStateProvider.isQuizCompleted(lesson.id, lesson.quizzes[i].id)) {
+        firstUncompletedIndex = i;
+        break;
+      }
+    }
+    _activeQuizIndex = firstUncompletedIndex;
+    _isQuizChecked = quizStateProvider.isQuizCompleted(
+      lesson.id,
+      lesson.quizzes[_activeQuizIndex].id,
+    );
+
     _pageController = PageController(initialPage: _activeQuizIndex);
 
-    // Initialize tutorial pulse animation
+    // Initialize tutorial rotation animation (Sweep effect)
     _tutorialPulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
-    )..repeat(reverse: true);
+    )..repeat();
 
     _tutorialPulseAnimation = Tween<double>(
-      begin: 0.3,
-      end: 1.0,
+      begin: 0.0,
+      end: 2 * pi,
     ).animate(CurvedAnimation(
       parent: _tutorialPulseController,
-      curve: Curves.easeInOut,
+      curve: Curves.linear,
     ));
 
     _initAudio();
@@ -235,18 +250,24 @@ class _QuizPageState extends State<QuizPage>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       // Left: Back button
-                      InkWell(
-                        onTap: _showExitConfirmationDrawer,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: SvgPicture.asset(
-                            'assets/icons/chevron_left.svg',
-                            width: 20,
-                            height: 20,
-                            colorFilter: ColorFilter.mode(
-                              appColors.textPrimary,
-                              BlendMode.srcIn,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: appColors.textPrimary.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: InkWell(
+                          onTap: _showExitConfirmationDrawer,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: SvgPicture.asset(
+                              'assets/icons/chevron_left.svg',
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                appColors.textPrimary,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
@@ -297,22 +318,31 @@ class _QuizPageState extends State<QuizPage>
                         children: [
                           // Passage icon (if available)
                           if (activeQuiz?.passage != null)
-                            InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _showPassageDrawer = true;
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(8),
-                              child: Padding(
-                                padding: const EdgeInsets.all(6),
-                                child: SvgPicture.asset(
-                                  'assets/icons/pilcrow.svg',
-                                  width: 18,
-                                  height: 18,
-                                  colorFilter: ColorFilter.mode(
-                                    appColors.textPrimary,
-                                    BlendMode.srcIn,
+                            Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: appColors.textPrimary
+                                    .withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _showPassageDrawer = true;
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: SvgPicture.asset(
+                                    'assets/icons/pilcrow.svg',
+                                    width: 16,
+                                    height: 16,
+                                    colorFilter: ColorFilter.mode(
+                                      appColors.textPrimary
+                                          .withValues(alpha: 0.6),
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -324,85 +354,126 @@ class _QuizPageState extends State<QuizPage>
                             AnimatedBuilder(
                               animation: _tutorialPulseAnimation,
                               builder: (context, child) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.orange.withValues(
-                                          alpha: _tutorialPulseAnimation.value *
-                                              0.6,
-                                        ),
-                                        blurRadius: 8,
-                                        spreadRadius: 2,
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    // The Sweep Highlight
+                                    CustomPaint(
+                                      size: const Size(32, 32),
+                                      painter: _SweepPainter(
+                                        angle: _tutorialPulseAnimation.value,
+                                        color: Colors.orange,
                                       ),
-                                    ],
-                                  ),
-                                  child: InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        _showTutorialDrawer = true;
-                                      });
-                                    },
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6),
-                                      child: SvgPicture.string(
-                                        '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>''',
-                                        width: 18,
-                                        height: 18,
-                                        colorFilter: ColorFilter.mode(
-                                          Colors.orange.withValues(
-                                            alpha: 0.7 +
-                                                (_tutorialPulseAnimation.value *
-                                                    0.3),
+                                    ),
+                                    // The styled button container
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: appColors.textPrimary
+                                            .withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            _showTutorialDrawer = true;
+                                          });
+                                        },
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: SvgPicture.string(
+                                            '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>''',
+                                            width: 16,
+                                            height: 16,
+                                            colorFilter: const ColorFilter.mode(
+                                              Colors.orange,
+                                              BlendMode.srcIn,
+                                            ),
                                           ),
-                                          BlendMode.srcIn,
                                         ),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 );
                               },
                             ),
 
                           // Transcript icon (shown after checking)
-                          if (_isQuizChecked && activeQuiz?.transcript != null)
-                            InkWell(
+                          if (_isQuizChecked &&
+                              activeQuiz?.transcript != null) ...[
+                            const SizedBox(width: 8),
+                            AnimatedBuilder(
+                              animation: _tutorialPulseAnimation,
+                              builder: (context, child) {
+                                return Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    // The Sweep Highlight
+                                    CustomPaint(
+                                      size: const Size(32, 32),
+                                      painter: _SweepPainter(
+                                        angle: _tutorialPulseAnimation.value,
+                                        color: appColors.primary,
+                                      ),
+                                    ),
+                                    // The styled button container
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: appColors.textPrimary
+                                            .withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            _showTranscriptDrawer = true;
+                                          });
+                                        },
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8),
+                                          child: SvgPicture.asset(
+                                            'assets/icons/audio_lines.svg',
+                                            width: 16,
+                                            height: 16,
+                                            colorFilter: ColorFilter.mode(
+                                              appColors.textPrimary
+                                                  .withValues(alpha: 0.6),
+                                              BlendMode.srcIn,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            decoration: BoxDecoration(
+                              color:
+                                  appColors.textPrimary.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: InkWell(
                               onTap: () {
-                                setState(() {
-                                  _showTranscriptDrawer = true;
-                                });
+                                _showQuizDrawer(context);
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
-                                padding: const EdgeInsets.all(6),
+                                padding: const EdgeInsets.all(8),
                                 child: SvgPicture.asset(
-                                  'assets/icons/audio_lines.svg',
-                                  width: 18,
-                                  height: 18,
+                                  'assets/icons/align_end_vertical.svg',
+                                  width: 16,
+                                  height: 16,
                                   colorFilter: ColorFilter.mode(
-                                    appColors.textPrimary,
+                                    appColors.textPrimary
+                                        .withValues(alpha: 0.6),
                                     BlendMode.srcIn,
                                   ),
-                                ),
-                              ),
-                            ),
-
-                          InkWell(
-                            onTap: () {
-                              _showQuizDrawer(context);
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: SvgPicture.asset(
-                                'assets/icons/align_end_vertical.svg',
-                                width: 18,
-                                height: 18,
-                                colorFilter: ColorFilter.mode(
-                                  appColors.textPrimary,
-                                  BlendMode.srcIn,
                                 ),
                               ),
                             ),
@@ -578,6 +649,7 @@ class _QuizPageState extends State<QuizPage>
           lessonId: widget.lesson.id,
           quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
+          onCheck: _onQuizChecked,
         );
       case 'scripted-chat':
         return ScriptedChat(
@@ -585,6 +657,7 @@ class _QuizPageState extends State<QuizPage>
           lessonId: widget.lesson.id,
           quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
+          onCheck: _onQuizChecked,
         );
       case 'chatting-speech': // Legacy support
         return ScriptedChat(
@@ -640,6 +713,7 @@ class _QuizPageState extends State<QuizPage>
           quizId: quiz.id,
           onNext: _onNextQuiz,
           onPrev: _onPrevQuiz,
+          onCheck: _onQuizChecked,
           onShowExplain: (String explanation) {
             setState(() {
               _currentExplanation = explanation;
@@ -747,454 +821,246 @@ class _QuizPageState extends State<QuizPage>
     );
   }
 
-  void _showQuickSettingsDrawer() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-
-        return Container(
-          decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Quick Settings',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Voice Recognition Option
-              _buildQuickSettingOption(
-                icon: Icons.mic,
-                title: 'Voice Recognition',
-                subtitle: 'Speech-to-text settings',
-                onTap: () {
-                  Navigator.pop(context);
-                  _showVoiceRecognitionDrawer();
-                },
-                colors: appColors,
-              ),
-
-              const SizedBox(height: 12),
-
-              // Voice Settings Option
-              _buildQuickSettingOption(
-                icon: Icons.volume_up,
-                title: 'Voice Settings',
-                subtitle: 'Text-to-speech settings',
-                onTap: () {
-                  Navigator.pop(context);
-                  _showVoiceSettingsDrawer();
-                },
-                colors: appColors,
-              ),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showVoiceRecognitionDrawer() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-        final sttProvider = context.watch<SttSettingProvider>();
-
-        return Container(
-          decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Voice Recognition',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // System STT Option
-              _buildSTTOption(
-                title: 'System',
-                subtitle: 'Device built-in recognition',
-                isSelected:
-                    sttProvider.currentProviderType == SttProviderType.system,
-                onTap: () {
-                  sttProvider.setProviderType(SttProviderType.system);
-                },
-                colors: appColors,
-              ),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showVoiceSettingsDrawer() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-        final ttsProvider = context.watch<TtsProvider>();
-
-        return Container(
-          decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Voice Settings',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // System TTS Option
-              _buildTTSOption(
-                title: 'System',
-                subtitle: 'Device built-in voice',
-                isSelected: ttsProvider.activeEngine == 'System',
-                onTap: () {
-                  ttsProvider.setEngine('System');
-                },
-                colors: appColors,
-              ),
-
-              const SizedBox(height: 12),
-
-              // Piper TTS Option
-              _buildTTSOption(
-                title: 'Piper',
-                subtitle: 'High quality AI voices',
-                isSelected: ttsProvider.activeEngine == 'Piper',
-                onTap: () {
-                  ttsProvider.setEngine('Piper');
-                },
-                colors: appColors,
-              ),
-
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildQuickSettingOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required AppColorsExtension colors,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: colors.border.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: colors.primary, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: colors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: colors.textSecondary),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSTTOption({
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-    required AppColorsExtension colors,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? colors.primary.withValues(alpha: 0.1) : null,
-          border: Border.all(
-            color: isSelected
-                ? colors.primary
-                : colors.border.withValues(alpha: 0.5),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? colors.primary : colors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: colors.primary, size: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTTSOption({
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-    required AppColorsExtension colors,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? colors.primary.withValues(alpha: 0.1) : null,
-          border: Border.all(
-            color: isSelected
-                ? colors.primary
-                : colors.border.withValues(alpha: 0.5),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? colors.primary : colors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              Icon(Icons.check_circle, color: colors.primary, size: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showExitConfirmationDrawer() {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
         return Container(
+          width: double.infinity,
           decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            color: appColors.drawerBackground,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
           ),
-          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons
-                    .exit_to_app_rounded, // Use rounded icon if available for softer look
-                size: 40,
-                color: appColors.textSecondary,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Exit Quiz?',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
+              // Handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 48,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Your progress will be saved',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: appColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: appColors.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+
+              // Header
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Exit Quiz?',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: appColors.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          Text(
+                            'Your progress will be saved',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: appColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.textPrimary,
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: appColors.inputBackground,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: appColors.border.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: appColors.textSecondary,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
+                  ],
+                ),
+              ),
+
+              Divider(
+                color: appColors.border.withValues(alpha: 0.5),
+                height: 1,
+              ),
+
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  children: [
+                    _buildExitOption(
+                      title: 'Stay & Continue',
+                      subtitle: 'Keep practicing and improve your skills',
+                      icon: Icons.play_arrow_rounded,
+                      iconColor: Colors.blue,
+                      onTap: () => Navigator.pop(context),
+                      appColors: appColors,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildExitOption(
+                      title: 'Exit & Save Progress',
+                      subtitle: 'Finish later, your data is safe',
+                      icon: Icons.logout_rounded,
+                      iconColor: Colors.orange,
+                      onTap: () {
                         Navigator.pop(context); // Close drawer
                         Navigator.of(context).pop(); // Exit quiz page
                       },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: appColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        'Exit',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      appColors: appColors,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
             ],
           ),
         );
       },
     );
   }
+
+  Widget _buildExitOption({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required VoidCallback onTap,
+    required AppColorsExtension appColors,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: appColors.inputBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: appColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: appColors.textSecondary.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SweepPainter extends CustomPainter {
+  _SweepPainter({required this.angle, required this.color});
+  final double angle;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final paint = Paint()
+      ..shader = SweepGradient(
+        colors: [
+          color.withValues(alpha: 0.0),
+          color.withValues(alpha: 0.8),
+          color.withValues(alpha: 0.0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+        transform: GradientRotation(angle),
+      ).createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(10)),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SweepPainter oldDelegate) =>
+      oldDelegate.angle != angle;
 }

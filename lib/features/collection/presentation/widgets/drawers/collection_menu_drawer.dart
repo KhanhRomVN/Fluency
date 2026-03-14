@@ -135,16 +135,77 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Drag handle
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Container(
-            width: 40,
+            width: 36,
             height: 4,
             decoration: BoxDecoration(
               color: appColors.textSecondary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(99),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+          // Header with Title and Close Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.collection.name,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: appColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (widget.collection.description != null &&
+                          widget.collection.description!.isNotEmpty)
+                        Text(
+                          widget.collection.description!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: appColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: appColors.inputBackground,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: appColors.border.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: appColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           // Divider
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -254,8 +315,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
         child: Row(
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 gradient: gradient,
                 borderRadius: BorderRadius.circular(11),
@@ -263,7 +324,7 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
               child: Icon(
                 icon,
                 color: Colors.white,
-                size: 18,
+                size: 16,
               ),
             ),
             const SizedBox(width: 12),
@@ -285,7 +346,9 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
                     description,
                     style: TextStyle(
                       fontSize: 11,
-                      color: appColors.textSecondary,
+                      color: isDanger
+                          ? Colors.red.withValues(alpha: 0.5)
+                          : appColors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -296,7 +359,9 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
             Icon(
               Icons.chevron_right_rounded,
               size: 16,
-              color: appColors.textSecondary.withValues(alpha: 0.3),
+              color: isDanger
+                  ? Colors.red.withValues(alpha: 0.5)
+                  : appColors.textSecondary,
             ),
           ],
         ),

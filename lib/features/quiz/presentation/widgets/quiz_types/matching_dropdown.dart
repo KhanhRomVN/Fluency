@@ -71,6 +71,11 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
         if (savedAnswers != null) {
           _selectedAnswers = Map<String, String>.from(savedAnswers);
         }
+
+        // If already checked, notify parent to show transcript/etc
+        if (_isChecked) {
+          widget.onCheck();
+        }
       });
     }
   }
@@ -136,72 +141,54 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
 
             // Dashed Border Card
             Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (notification is OverscrollNotification) {
-                    if (notification.overscroll < 0) {
-                      widget.onPrev?.call();
-                    } else if (notification.overscroll > 0) {
-                      widget.onNext?.call();
-                    }
-                  }
-                  return false;
-                },
-                child: PageView(
-                  controller: _pageController,
-                  physics: const ClampingScrollPhysics(),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                      child: Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          color: appColors.cardBackground,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: CustomPaint(
-                          painter: _DashedBorderPainter(
-                            color: borderColor,
-                            strokeWidth: 2,
-                            gap: 4,
-                            borderRadius: 12,
-                          ),
-                          child: Column(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: appColors.cardBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: CustomPaint(
+                    painter: _DashedBorderPainter(
+                      color: borderColor,
+                      strokeWidth: 2,
+                      gap: 4,
+                      borderRadius: 12,
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(24),
                             children: [
-                              Expanded(
-                                child: ListView(
-                                  padding: const EdgeInsets.all(24),
-                                  children: [
-                                    ...matchings.map((matching) {
-                                      return _buildMatchingRow(
-                                        context,
-                                        matching,
-                                        appColors,
-                                      );
-                                    }),
-                                  ],
-                                ),
-                              ),
-                              if (_isChecked || _areAllAnswered) ...[
-                                const Divider(height: 1),
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      _buildActionButtons(appColors),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                              ...matchings.map((matching) {
+                                return _buildMatchingRow(
+                                  context,
+                                  matching,
+                                  appColors,
+                                );
+                              }),
                             ],
                           ),
                         ),
-                      ),
+                        if (_isChecked || _areAllAnswered) ...[
+                          const Divider(height: 1),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _buildActionButtons(appColors),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -215,9 +202,11 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
     if (_isChecked) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -237,9 +226,11 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
           await _saveProgress();
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -355,7 +346,8 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                         ),
                       ),
                       menuStyle: MenuStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.white),
+                        backgroundColor:
+                            WidgetStateProperty.all(appColors.inputBackground),
                         elevation: WidgetStateProperty.all(0),
                         padding: WidgetStateProperty.all(EdgeInsets.zero),
                         fixedSize: WidgetStateProperty.all(
@@ -365,7 +357,8 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                           RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                             side: BorderSide(
-                              color: appColors.border.withValues(alpha: 0.5),
+                              color: appColors.border,
+                              width: 1.5,
                             ),
                           ),
                         ),
@@ -398,7 +391,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                             children: [
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
+                                  vertical: 8,
                                   horizontal: 16,
                                 ),
                                 child: Text(

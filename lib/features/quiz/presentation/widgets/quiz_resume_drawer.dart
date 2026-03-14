@@ -41,64 +41,85 @@ class QuizResumeDrawer extends StatelessWidget {
     }
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.65,
+      height: MediaQuery.of(context).size.height * 0.75,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: appColors.cardBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 40,
-            offset: const Offset(0, -10),
-          ),
-        ],
+        color: appColors.drawerBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         children: [
-          // Handle bar
+          // Drag handle
+          const SizedBox(height: 12),
           Container(
-            margin: const EdgeInsets.only(top: 8, bottom: 8),
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: appColors.border.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(2),
+              color: appColors.textSecondary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(99),
             ),
           ),
+          const SizedBox(height: 12),
 
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-            child: Column(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SvgPicture.string(
-                  '''<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>''',
-                  width: 40,
-                  height: 40,
-                  colorFilter: ColorFilter.mode(
-                    appColors.primary,
-                    BlendMode.srcIn,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Resume Quiz?',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: appColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      Text(
+                        'You left off here last time',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'Resume Quiz?',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: appColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: appColors.inputBackground,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: appColors.border.withValues(alpha: 0.4),
                       ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'You left off here last time',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
                         color: appColors.textSecondary,
                       ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 16),
 
           // Progress Info Card
           Padding(

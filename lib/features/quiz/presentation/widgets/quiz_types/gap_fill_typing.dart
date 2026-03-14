@@ -85,6 +85,11 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
         // Check if all filled based on restored data
         _checkIfAllGapsFilled();
+
+        // If already checked, notify parent to show transcript/etc
+        if (_isChecked) {
+          widget.onCheck?.call();
+        }
       });
     }
   }
@@ -149,36 +154,24 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
             // 2. Question Card (Takes remaining space)
             Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (notification is OverscrollNotification) {
-                    if (notification.overscroll < 0) {
-                      widget.onPrev?.call();
-                    } else if (notification.overscroll > 0) {
-                      widget.onNext?.call();
-                    }
-                  }
-                  return false;
-                },
-                child: PageView(
-                  controller: _pageController,
-                  physics: const ClampingScrollPhysics(),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: appColors.cardBackground,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: CustomPaint(
-                          painter: _DashedBorderPainter(
-                            color: borderColor,
-                            strokeWidth: 2,
-                            gap: 4,
-                            borderRadius: 12,
-                          ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: appColors.cardBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: CustomPaint(
+                    painter: _DashedBorderPainter(
+                      color: borderColor,
+                      strokeWidth: 2,
+                      gap: 4,
+                      borderRadius: 12,
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.all(24),
                             child: Column(
@@ -200,24 +193,22 @@ class _GapFillTypingState extends State<GapFillTyping> {
                             ),
                           ),
                         ),
-                      ),
+                        if (_isChecked || _areAllGapsFilled)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _buildActionButtons(appColors),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-            if (_isChecked || _areAllGapsFilled) ...[
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _buildActionButtons(appColors),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ],
@@ -228,9 +219,11 @@ class _GapFillTypingState extends State<GapFillTyping> {
     if (_isChecked) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -251,11 +244,13 @@ class _GapFillTypingState extends State<GapFillTyping> {
           await _saveProgress();
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12.5),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 4, // Shadow for floating effect
+          elevation: 0,
         ),
         child: const Text(
           'Check answers',

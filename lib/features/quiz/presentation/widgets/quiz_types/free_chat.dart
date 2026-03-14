@@ -17,9 +17,10 @@ class FreeChat extends StatefulWidget {
     required this.quiz,
     required this.lessonId,
     required this.quizId,
-    super.key,
     this.onWordLongPress,
     this.onQuizComplete,
+    this.onCheck,
+    super.key,
   });
 
   final Quiz quiz;
@@ -27,6 +28,7 @@ class FreeChat extends StatefulWidget {
   final String quizId;
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onQuizComplete;
+  final VoidCallback? onCheck;
 
   @override
   State<FreeChat> createState() => _FreeChatState();
@@ -87,6 +89,12 @@ class _FreeChatState extends State<FreeChat> {
               translate: map['translate'] as String?,
             );
           }));
+        }
+
+        // If quiz is completed, notify parent
+        if (_isQuizEnded) {
+          widget.onCheck?.call();
+          widget.onQuizComplete?.call();
         }
       });
 
@@ -607,12 +615,15 @@ class _FreeChatState extends State<FreeChat> {
                     Navigator.of(context).pop(); // Exit quiz
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.red.withValues(alpha: 0.15),
+                    foregroundColor: Colors.red,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                        borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
                   ),
                   child: const Text(
                     'Exit',
@@ -679,21 +690,14 @@ class _FreeChatState extends State<FreeChat> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: _isListening ? Colors.red : appColors.primary,
+                    color: _isListening
+                        ? appColors.primary.withValues(alpha: 0.15)
+                        : Colors.grey.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (_isListening ? Colors.red : appColors.primary)
-                            .withValues(alpha: 0.4),
-                        blurRadius: 14,
-                        spreadRadius: _isListening ? 4 : 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Icon(
-                    _isListening ? Icons.stop : Icons.mic,
-                    color: Colors.white,
+                    Icons.mic,
+                    color: _isListening ? appColors.primary : Colors.grey,
                     size: 36,
                   ),
                 ),

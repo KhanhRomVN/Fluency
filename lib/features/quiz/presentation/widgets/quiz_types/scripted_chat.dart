@@ -7,10 +7,8 @@ import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/core/services/tts/tts_service.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
-import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -21,14 +19,16 @@ class ScriptedChat extends StatefulWidget {
     required this.quiz,
     required this.lessonId,
     required this.quizId,
-    super.key,
     this.onWordLongPress,
+    this.onCheck,
+    super.key,
   });
 
   final Quiz quiz;
   final String lessonId;
   final String quizId;
   final void Function(String word)? onWordLongPress;
+  final VoidCallback? onCheck;
 
   @override
   State<ScriptedChat> createState() => _ScriptedChatState();
@@ -201,6 +201,16 @@ class _ScriptedChatState extends State<ScriptedChat> {
           if (shouldResume) {
             // Wait for TTS to be ready before starting sequence
             _waitForTtsAndStartSequence();
+          }
+
+          // If quiz is already completed (all chats visible and user passed last turn)
+          final chats = widget.quiz.chats ?? [];
+          if (_visibleCount >= chats.length) {
+            final lastChat = chats.last;
+            if (lastChat.role != _userRole ||
+                (_messageScores[lastChat.id]?.score ?? 0) >= 50) {
+              widget.onCheck?.call();
+            }
           }
         }
       });
@@ -830,21 +840,14 @@ class _ScriptedChatState extends State<ScriptedChat> {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: _isListening ? Colors.red : appColors.primary,
+                    color: _isListening
+                        ? appColors.primary.withValues(alpha: 0.15)
+                        : Colors.grey.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (_isListening ? Colors.red : appColors.primary)
-                            .withValues(alpha: 0.4),
-                        blurRadius: _isListening ? 12 : 10,
-                        spreadRadius: _isListening ? 2 : 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Icon(
-                    _isListening ? Icons.stop : Icons.mic,
-                    color: Colors.white,
+                    Icons.mic,
+                    color: _isListening ? appColors.primary : Colors.grey,
                     size: 32,
                   ),
                 ),
@@ -938,82 +941,98 @@ class _ScriptedChatState extends State<ScriptedChat> {
   }
 
   Widget _buildRoleSelectionDrawer(AppColorsExtension appColors) {
-    return Container(
-      color: Colors.black.withOpacity(0.4),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          width: double.infinity,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.6,
-          ),
-          decoration: BoxDecoration(
-            color: appColors.cardBackground,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+    return GestureDetector(
+      onTap: () {}, // Prevent taps from passing through
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.4),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
+            decoration: BoxDecoration(
+              color: appColors.drawerBackground,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: appColors.textSecondary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Choose Your Role',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Select the character you want to practice as',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: appColors.textSecondary,
-                      ),
-                    ),
-                  ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
                 ),
-              ),
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  itemCount: _availableRoles.length,
-                  separatorBuilder: (context, index) => Divider(
-                    color: appColors.divider.withOpacity(0.5),
-                    height: 1,
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    width: 48,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    final roleInfo = _availableRoles[index];
-                    return _buildRoleCard(roleInfo, appColors);
-                  },
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
+
+                // Header
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Choose Your Role',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: appColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      Text(
+                        'Select the character you want to practice as',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Divider(
+                  color: appColors.border.withValues(alpha: 0.5),
+                  height: 1,
+                ),
+
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    itemCount: _availableRoles.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final roleInfo = _availableRoles[index];
+                      return _buildRoleCard(roleInfo, appColors);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),
@@ -1027,63 +1046,71 @@ class _ScriptedChatState extends State<ScriptedChat> {
         ? '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars-icon lucide-mars"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>'''
         : '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-venus-icon lucide-venus"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>''';
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _onRoleSelected(roleInfo.role),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: const BoxDecoration(
-            color: Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: genderColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(10),
-                child: SvgPicture.string(
-                  genderIcon,
-                  colorFilter: ColorFilter.mode(
-                    genderColor,
-                    BlendMode.srcIn,
+    return Container(
+      decoration: BoxDecoration(
+        color: appColors.inputBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onRoleSelected(roleInfo.role),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: genderColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: SvgPicture.string(
+                    genderIcon,
+                    colorFilter: ColorFilter.mode(
+                      genderColor,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      roleInfo.name ?? roleInfo.role,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        roleInfo.name ?? roleInfo.role,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: appColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      roleInfo.role,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: appColors.textSecondary,
+                      const SizedBox(height: 1),
+                      Text(
+                        roleInfo.role,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: appColors.textSecondary.withOpacity(0.5),
-              ),
-            ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: appColors.textSecondary.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1272,6 +1299,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
                                     fontSize: 13,
                                     fontStyle: FontStyle.italic,
                                     color: appColors.textSecondary,
+                                    fontFamily: 'NotoSans',
                                   ),
                                 ),
                               ],

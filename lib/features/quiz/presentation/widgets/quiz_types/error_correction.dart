@@ -89,6 +89,11 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         if (_pageController.hasClients) {
           _pageController.jumpToPage(_currentIndex);
         }
+
+        // If quiz is completed, notify parent to show transcript/etc
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
+        }
       });
     }
   }
@@ -363,158 +368,143 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     return Column(
       children: [
         Expanded(
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is OverscrollNotification) {
-                if (notification.overscroll < 0) {
-                  widget.onPrev?.call();
-                } else if (notification.overscroll > 0) {
-                  widget.onNext?.call();
-                }
-              }
-              return false;
-            },
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              physics: const ClampingScrollPhysics(),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final state =
-                    _itemStates[item.id] ?? _ErrorCorrectionItemState();
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            physics: const ClampingScrollPhysics(),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final state = _itemStates[item.id] ?? _ErrorCorrectionItemState();
 
-                // Parse tokens specifically for this item (rebuilding cheaper than caching usually)
-                final tokens = _parseTokens(item);
+              // Parse tokens specifically for this item (rebuilding cheaper than caching usually)
+              final tokens = _parseTokens(item);
 
-                return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          color: appColors.cardBackground,
-                          borderRadius: BorderRadius.circular(16),
+              return Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Stack(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: appColors.cardBackground,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: CustomPaint(
+                        painter: _DashedBorderPainter(
+                          color: state.passed
+                              ? appColors.primary
+                              : appColors.border,
+                          strokeWidth: 2,
+                          gap: 4,
+                          borderRadius: 16,
                         ),
-                        child: CustomPaint(
-                          painter: _DashedBorderPainter(
-                            color: state.passed
-                                ? appColors.primary
-                                : appColors.border,
-                            strokeWidth: 2,
-                            gap: 4,
-                            borderRadius: 16,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${index + 1} / ${items.length}',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${index + 1} / ${items.length}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: appColors.textSecondary,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border:
+                                          Border.all(color: appColors.border),
+                                    ),
+                                    child: Text(
+                                      state.passed ? '✓' : '0',
                                       style: TextStyle(
-                                        fontSize: 16,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: appColors.textSecondary,
+                                        color: state.passed
+                                            ? Colors.green
+                                            : appColors.textSecondary,
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border:
-                                            Border.all(color: appColors.border),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Divider(height: 1, color: appColors.border),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding:
+                                    const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildTokensWidget(
+                                      item,
+                                      state,
+                                      tokens,
+                                      appColors,
+                                    ),
+                                    if (!state.passed &&
+                                        _selectedTokenIndex != null)
+                                      _buildInputArea(
+                                        appColors,
+                                        state,
+                                        item,
                                       ),
-                                      child: Text(
-                                        state.passed ? '✓' : '0',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: state.passed
-                                              ? Colors.green
-                                              : appColors.textSecondary,
-                                        ),
+                                    if (state.feedbackMessage.isNotEmpty)
+                                      _buildFeedbackMessage(
+                                        appColors,
+                                        state,
+                                        item,
                                       ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (state.passed ||
+                                _selectedTokenIndex != null) ...[
+                              Divider(height: 1, color: appColors.border),
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    _buildActionButtons(
+                                      appColors,
+                                      state,
+                                      item,
+                                      items,
                                     ),
                                   ],
                                 ),
                               ),
-                              Divider(height: 1, color: appColors.border),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.fromLTRB(
-                                      24, 24, 24, 100),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      _buildTokensWidget(
-                                        item,
-                                        state,
-                                        tokens,
-                                        appColors,
-                                      ),
-                                      if (!state.passed &&
-                                          _selectedTokenIndex != null)
-                                        _buildInputArea(
-                                          appColors,
-                                          state,
-                                          item,
-                                        ),
-                                      if (state.feedbackMessage.isNotEmpty)
-                                        _buildFeedbackMessage(
-                                          appColors,
-                                          state,
-                                          item,
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              if (state.passed ||
-                                  _selectedTokenIndex != null) ...[
-                                Divider(height: 1, color: appColors.border),
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      _buildActionButtons(
-                                        appColors,
-                                        state,
-                                        item,
-                                        items,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
                             ],
-                          ),
+                          ],
                         ),
                       ),
-                      if (item.explain != null)
-                        ExplainDrawer(
-                          isOpen: _showExplanation,
-                          onClose: () =>
-                              setState(() => _showExplanation = false),
-                          explanation: item.explain!,
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                    if (item.explain != null)
+                      ExplainDrawer(
+                        isOpen: _showExplanation,
+                        onClose: () => setState(() => _showExplanation = false),
+                        explanation: item.explain!,
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -849,9 +839,11 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         children: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: appColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              backgroundColor: appColors.primary.withValues(alpha: 0.15),
+              foregroundColor: appColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
               elevation: 0,
@@ -870,12 +862,14 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         child: ElevatedButton(
           onPressed: _checkAnswer,
           style: ElevatedButton.styleFrom(
-            backgroundColor: appColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            backgroundColor: appColors.primary.withValues(alpha: 0.15),
+            foregroundColor: appColors.primary,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 4,
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: 0,
           ),
           child: const Text('Check Answer'),
         ),

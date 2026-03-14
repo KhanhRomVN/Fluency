@@ -405,8 +405,12 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
     const volumeSvg =
         '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>''';
 
+    final title =
+        _isSearching ? 'Searching...' : (term.isNotEmpty ? term : 'Dictionary');
+    final subtitle = ipa.isNotEmpty ? ipa : 'Search full definitions and more';
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -415,60 +419,48 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
               children: [
                 if (_isFromRecommendation &&
                     (_entry != null || _history.isNotEmpty)) ...[
-                  GestureDetector(
-                    onTap: _goBack,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        color: appColors.textSecondary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: SvgPicture.string(
-                        chevronLeftSvg,
-                        width: 18,
-                        height: 18,
-                        colorFilter: ColorFilter.mode(
-                            appColors.textSecondary, BlendMode.srcIn),
-                      ),
-                    ),
+                  _buildHeaderIcon(
+                    chevronLeftSvg,
+                    appColors.textSecondary,
+                    _goBack,
+                    appColors,
                   ),
+                  const SizedBox(width: 12),
                 ],
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 1),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _isSearching
-                              ? 'Searching...'
-                              : (term.isNotEmpty ? term : 'Search'),
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: appColors.textPrimary,
-                            letterSpacing: -0.5,
-                          ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: appColors.textPrimary,
+                          letterSpacing: -0.5,
                         ),
-                        if (ipa.isNotEmpty)
-                          Text(
-                            ipa,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: appColors.textSecondary
-                                  .withValues(alpha: 0.6),
-                              fontFamily: 'NotoSans',
-                            ),
-                          ),
-                      ],
-                    ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: ipa.isNotEmpty ? 'NotoSans' : null,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -514,24 +506,30 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
     Color? activeColor,
   }) {
     final finalColor = isActive ? (activeColor ?? color) : color;
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.all(6),
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           color: isActive
               ? finalColor.withValues(alpha: 0.1)
-              : appColors.textSecondary.withValues(alpha: 0.15),
+              : appColors.inputBackground,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isActive ? finalColor : Colors.transparent,
+            color: isActive
+                ? finalColor.withValues(alpha: 0.4)
+                : appColors.border.withValues(alpha: 0.4),
           ),
         ),
-        child: SvgPicture.string(
-          svg,
-          width: 18,
-          height: 18,
-          colorFilter: ColorFilter.mode(finalColor, BlendMode.srcIn),
+        child: Center(
+          child: SvgPicture.string(
+            svg,
+            width: 18,
+            height: 18,
+            colorFilter: ColorFilter.mode(finalColor, BlendMode.srcIn),
+          ),
         ),
       ),
     );

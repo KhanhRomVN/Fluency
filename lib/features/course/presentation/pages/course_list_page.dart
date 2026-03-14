@@ -167,51 +167,200 @@ class _CourseListPageState extends State<CourseListPage> {
   }
 
   Future<void> _showImportChoice(BuildContext context) async {
-    final colors = Theme.of(context).extension<AppColorsExtension>();
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
-      backgroundColor: colors?.background,
+      backgroundColor: colors.drawerBackground,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      builder: (modalContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Text(
-              'Choose Import Method',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: colors?.textPrimary,
+      useSafeArea: true,
+      builder: (modalContext) => Container(
+        decoration: BoxDecoration(
+          color: colors.drawerBackground,
+          border: Border.all(
+            color: colors.border.withValues(alpha: 0.1),
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.textSecondary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(99),
+                ),
               ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Choose Import Method',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: colors.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          Text(
+                            'Select how you want to add content',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(modalContext),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: colors.inputBackground,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: colors.border.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildModernOption(
+                context: modalContext,
+                colors: colors,
+                icon: Icons.file_present_rounded,
+                title: 'Local File',
+                subtitle: 'Select a .zip file from your device',
+                onTap: () {
+                  Navigator.pop(modalContext);
+                  _importCourseFromFile(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              Opacity(
+                opacity: 0.5,
+                child: AbsorbPointer(
+                  child: _buildModernOption(
+                    context: modalContext,
+                    colors: colors,
+                    icon: Icons.link_rounded,
+                    title: 'URL (Disabled)',
+                    subtitle: 'Temporary unavailable',
+                    onTap: () {
+                      Navigator.pop(modalContext);
+                      _importCourseFromUrl(context);
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernOption({
+    required BuildContext context,
+    required AppColorsExtension colors,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: colors.cardBackground,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: colors.border,
             ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: Icon(Icons.file_present_rounded, color: colors?.primary),
-              title: Text('Local File',
-                  style: TextStyle(color: colors?.textPrimary)),
-              subtitle: Text('Select a .zip file from your device',
-                  style: TextStyle(color: colors?.textSecondary)),
-              onTap: () {
-                Navigator.pop(modalContext);
-                _importCourseFromFile(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.link_rounded, color: colors?.primary),
-              title: Text('URL', style: TextStyle(color: colors?.textPrimary)),
-              subtitle: Text('Download and import from a direct link',
-                  style: TextStyle(color: colors?.textSecondary)),
-              onTap: () {
-                Navigator.pop(modalContext);
-                _importCourseFromUrl(context);
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  icon,
+                  color: colors.primary,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 16,
+                color: colors.textSecondary,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -223,93 +372,160 @@ class _CourseListPageState extends State<CourseListPage> {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
-      backgroundColor: colors.background,
+      backgroundColor: colors.drawerBackground,
+      clipBehavior: Clip.antiAlias,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      builder: (topMenuContext) => SizedBox(
+      builder: (topMenuContext) => Container(
         height: MediaQuery.of(topMenuContext).size.height * 0.5,
+        decoration: BoxDecoration(
+          color: colors.drawerBackground,
+          border: Border.all(
+            color: colors.border.withValues(alpha: 0.1),
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Drag handle
               const SizedBox(height: 12),
               Container(
-                width: 40,
+                width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: colors.divider.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(2),
+                  color: colors.textSecondary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(99),
                 ),
               ),
               const SizedBox(height: 12),
+
+              // Header
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Courses',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: colors.textPrimary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Courses',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: colors.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          Text(
+                            'Manage your learning content',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(topMenuContext),
-                      icon: const Icon(Icons.close),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(topMenuContext),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: colors.inputBackground,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: colors.border.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () {
-                  Navigator.pop(topMenuContext);
-                  _showImportChoice(context);
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  child: Row(
-                    children: [
-                      Icon(Icons.file_download_outlined,
-                          color: colors.primary, size: 28),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Import Course',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: colors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Import course from local file or URL',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: colors.textSecondary,
-                              ),
-                            ),
-                          ],
+              const SizedBox(height: 16),
+              // Options
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pop(topMenuContext);
+                    _showImportChoice(context);
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: colors.cardBackground,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: colors.border,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: colors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                          child: Icon(
+                            Icons.file_download_outlined,
+                            color: colors.primary,
+                            size: 16,
+                          ),
                         ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: colors.textSecondary,
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Import Course',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                'Import course from local file or URL',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: colors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 16,
+                          color: colors.textSecondary,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -347,21 +563,40 @@ class _CourseListPageState extends State<CourseListPage> {
                                   ),
                         ),
                         Positioned(
-                          right: 8,
-                          child: IconButton(
-                            icon: SvgPicture.string(
-                              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-end-vertical-icon lucide-align-end-vertical"><rect width="16" height="6" x="2" y="4" rx="2"/><rect width="9" height="6" x="9" y="14" rx="2"/><path d="M22 22V2"/></svg>',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                Theme.of(context)
-                                        .extension<AppColorsExtension>()
-                                        ?.textPrimary ??
-                                    Colors.black,
-                                BlendMode.srcIn,
+                          right: 16,
+                          child: GestureDetector(
+                            onTap: () => _showTopMenu(context),
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .extension<AppColorsExtension>()
+                                    ?.inputBackground,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Theme.of(context)
+                                          .extension<AppColorsExtension>()
+                                          ?.border
+                                          .withValues(alpha: 0.4) ??
+                                      Colors.transparent,
+                                ),
+                              ),
+                              child: Center(
+                                child: SvgPicture.string(
+                                  '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-end-vertical-icon lucide-align-end-vertical"><rect width="16" height="6" x="2" y="4" rx="2"/><rect width="9" height="6" x="9" y="14" rx="2"/><path d="M22 22V2"/></svg>',
+                                  width: 20,
+                                  height: 20,
+                                  colorFilter: ColorFilter.mode(
+                                    Theme.of(context)
+                                            .extension<AppColorsExtension>()
+                                            ?.textSecondary ??
+                                        Colors.black,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
                               ),
                             ),
-                            onPressed: () => _showTopMenu(context),
                           ),
                         ),
                       ],

@@ -97,6 +97,11 @@ class _MultipleChoiceState extends State<MultipleChoice> {
                 (options as List<dynamic>).cast<String>().toSet();
           });
         }
+
+        // If quiz is completed, notify parent to show transcript/etc
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
+        }
       });
     }
   }
@@ -140,110 +145,98 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final questions = widget.quiz.questions;
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is OverscrollNotification) {
-          if (notification.overscroll < 0) {
-            widget.onPrev?.call();
-          } else if (notification.overscroll > 0) {
-            widget.onNext?.call();
-          }
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: _onPageChanged,
+      physics: const ClampingScrollPhysics(),
+      itemCount: questions.length,
+      itemBuilder: (context, index) {
+        final question = questions[index];
+        final isSubmitted = _submittedQuestions.contains(question.id);
+
+        // Calculate background border color for the card based on state
+        var borderColor = Colors.grey.withValues(alpha: 0.5);
+        if (isSubmitted) {
+          final isCorrect = _questionCorrectness[question.id] ?? false;
+          borderColor = isCorrect ? appColors.primary : Colors.red;
         }
-        return false;
-      },
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const ClampingScrollPhysics(),
-        itemCount: questions.length,
-        itemBuilder: (context, index) {
-          final question = questions[index];
-          final isSubmitted = _submittedQuestions.contains(question.id);
 
-          // Calculate background border color for the card based on state
-          var borderColor = Colors.grey.withValues(alpha: 0.5);
-          if (isSubmitted) {
-            final isCorrect = _questionCorrectness[question.id] ?? false;
-            borderColor = isCorrect ? appColors.primary : Colors.red;
-          }
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Stack(
-              children: [
-                // The Card
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: appColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Stack(
+            children: [
+              // The Card
+              Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: appColors.cardBackground,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: CustomPaint(
+                  painter: _DashedBorderPainter(
+                    color: borderColor,
+                    strokeWidth: 2,
+                    gap: 4,
+                    borderRadius: 12,
                   ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: Column(
-                      children: [
-                        // Card Header
-                        _buildCardHeader(
-                          context,
-                          appColors,
-                          questions,
-                          question,
-                          index,
-                        ),
-                        const Divider(height: 1),
+                  child: Column(
+                    children: [
+                      // Card Header
+                      _buildCardHeader(
+                        context,
+                        appColors,
+                        questions,
+                        question,
+                        index,
+                      ),
+                      const Divider(height: 1),
 
-                        // Card Content
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildQuestionContent(
-                                  context,
-                                  question,
-                                  appColors,
-                                  isSubmitted,
-                                ),
-                              ],
-                            ),
+                      // Card Content
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildQuestionContent(
+                                context,
+                                question,
+                                appColors,
+                                isSubmitted,
+                              ),
+                            ],
                           ),
                         ),
-                        if (isSubmitted ||
-                            (_selectedOptions[question.id]?.isNotEmpty ??
-                                false)) ...[
-                          const Divider(height: 1),
-                          // Card Footer
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                _buildActionButtons(
-                                  context,
-                                  question,
-                                  appColors,
-                                  isSubmitted,
-                                ),
-                              ],
-                            ),
+                      ),
+                      if (isSubmitted ||
+                          (_selectedOptions[question.id]?.isNotEmpty ??
+                              false)) ...[
+                        const Divider(height: 1),
+                        // Card Footer
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              _buildActionButtons(
+                                context,
+                                question,
+                                appColors,
+                                isSubmitted,
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -416,9 +409,11 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     if (isSubmitted) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -435,9 +430,11 @@ class _MultipleChoiceState extends State<MultipleChoice> {
       return ElevatedButton(
         onPressed: () => _submitAnswer(question),
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -476,13 +473,11 @@ class _MultipleChoiceState extends State<MultipleChoice> {
         borderColor = appColors.primary;
         backgroundColor = appColors.primary.withValues(alpha: 0.1);
         textColor = appColors.primary;
-        icon = const Icon(Icons.check, size: 16, color: Colors.white);
       } else if (isSelected && !isCorrectOption) {
         // Wrong selection -> Red
         borderColor = Colors.red;
         backgroundColor = Colors.red.withValues(alpha: 0.1);
         textColor = Colors.red;
-        icon = const Icon(Icons.close, size: 16, color: Colors.white);
       }
     } else {
       // Not submitted yet
@@ -490,7 +485,6 @@ class _MultipleChoiceState extends State<MultipleChoice> {
         borderColor = appColors.primary;
         backgroundColor = appColors.primary.withValues(alpha: 0.05);
         textColor = appColors.primary;
-        icon = const Icon(Icons.check, size: 16, color: Colors.white);
       }
     }
 
@@ -508,41 +502,6 @@ class _MultipleChoiceState extends State<MultipleChoice> {
           ),
           child: Row(
             children: [
-              // Radio/Checkbox Circle
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: (isSubmitted && (icon != null))
-                      ? (textColor == Colors.red
-                          ? Colors.red
-                          : appColors.primary) // Fill for status
-                      : (isSelected ? appColors.primary : Colors.transparent),
-                  border: Border.all(
-                    color: (isSubmitted && (icon != null))
-                        ? (textColor == Colors.red
-                            ? Colors.red
-                            : appColors.primary)
-                        : (isSelected
-                            ? appColors.primary
-                            : Colors.grey.withValues(alpha: 0.5)),
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: (isSubmitted && icon != null)
-                      ? icon
-                      : (isSelected
-                          ? const Icon(
-                              Icons.check,
-                              size: 14,
-                              color: Colors.white,
-                            )
-                          : null),
-                ),
-              ),
-              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   optionText,

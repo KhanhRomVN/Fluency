@@ -12,6 +12,7 @@ class SentenceTransformation extends StatefulWidget {
     required this.quizId,
     this.onNext,
     this.onPrev,
+    this.onCheck,
     this.onShowExplain,
     this.onWordLongPress,
     super.key,
@@ -22,6 +23,7 @@ class SentenceTransformation extends StatefulWidget {
   final String quizId;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
+  final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
 
@@ -74,6 +76,11 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
                   {},
             );
           });
+        }
+
+        // If quiz is completed, notify parent to show transcript/etc
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
         }
       });
     }
@@ -248,141 +255,129 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     final currentItem = _currentItem!;
     final currentState = _currentState;
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is OverscrollNotification) {
-          if (notification.overscroll < 0) {
-            widget.onPrev?.call();
-          } else if (notification.overscroll > 0) {
-            widget.onNext?.call();
-          }
-        }
-        return false;
-      },
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const ClampingScrollPhysics(),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          final state = _cardStates[item.id] ?? _CardState();
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: _onPageChanged,
+      physics: const ClampingScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final state = _cardStates[item.id] ?? _CardState();
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: appColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: appColors.cardBackground,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: CustomPaint(
+                  painter: _DashedBorderPainter(
+                    color: borderColor,
+                    strokeWidth: 2,
+                    gap: 4,
+                    borderRadius: 12,
                   ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: Column(
-                      children: [
-                        // Card Header: Counter & Progress
-                        _buildCardHeader(
-                          context,
-                          appColors,
-                          items,
-                          index,
-                        ),
-                        const Divider(height: 1),
+                  child: Column(
+                    children: [
+                      // Card Header: Counter & Progress
+                      _buildCardHeader(
+                        context,
+                        appColors,
+                        items,
+                        index,
+                      ),
+                      const Divider(height: 1),
 
-                        Expanded(
-                          child: ListView(
-                            padding: const EdgeInsets.all(24),
-                            children: [
-                              // Original Sentence (bordered container)
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.only(left: 16),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: appColors.primary,
-                                      width: 4,
-                                    ),
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            // Original Sentence (bordered container)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.only(left: 16),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  left: BorderSide(
+                                    color: appColors.primary,
+                                    width: 4,
                                   ),
                                 ),
-                                child: DefaultTextStyle(
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: appColors.textPrimary,
-                                    height: 1.5,
-                                  ),
-                                  child: Text.rich(
-                                    TextSpan(
-                                      children: RichTextParser.buildTextSpans(
-                                        context,
-                                        item.original ?? '',
-                                        onWordLongPress: widget.onWordLongPress,
-                                      ),
+                              ),
+                              child: DefaultTextStyle(
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: appColors.textPrimary,
+                                  height: 1.5,
+                                ),
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: RichTextParser.buildTextSpans(
+                                      context,
+                                      item.original ?? '',
+                                      onWordLongPress: widget.onWordLongPress,
                                     ),
                                   ),
                                 ),
                               ),
+                            ),
 
+                            const SizedBox(height: 24),
+
+                            // Gap-fill Input Area
+                            _buildGapFillArea(
+                              context,
+                              item,
+                              state,
+                              appColors,
+                            ),
+
+                            // Result Display
+                            if (state.isChecked) ...[
                               const SizedBox(height: 24),
-
-                              // Gap-fill Input Area
-                              _buildGapFillArea(
+                              _buildResultDisplay(
                                 context,
                                 item,
                                 state,
                                 appColors,
                               ),
+                            ],
 
-                              // Result Display
-                              if (state.isChecked) ...[
-                                const SizedBox(height: 24),
-                                _buildResultDisplay(
-                                  context,
-                                  item,
-                                  state,
-                                  appColors,
-                                ),
-                              ],
-
-                              // Spacing for floating buttons
-                              const SizedBox(height: 24),
+                            // Spacing for floating buttons
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+                      ),
+                      if (state.isChecked || _isInputComplete(item)) ...[
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              _buildFooterActions(
+                                context,
+                                item,
+                                state,
+                                appColors,
+                              ),
                             ],
                           ),
                         ),
-                        if (state.isChecked || _isInputComplete(item)) ...[
-                          const Divider(height: 1),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                _buildFooterActions(
-                                  context,
-                                  item,
-                                  state,
-                                  appColors,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -603,9 +598,11 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     if (state.isChecked) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -619,15 +616,12 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
       return ElevatedButton(
         onPressed: _checkAnswer,
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 10,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
         child: const Text(

@@ -154,9 +154,14 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
     final successColor = Colors.green; // Default success color
 
     return Container(
+      padding: const EdgeInsets.only(bottom: 28),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: appColors.drawerBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.1),
+        ),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.75,
@@ -164,24 +169,26 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag Handle
+          // Drag handle
+          const SizedBox(height: 12),
           Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 8),
-            width: 40,
+            width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: appColors.textSecondary.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(2),
+              color: appColors.textSecondary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(99),
             ),
           ),
-
+          const SizedBox(height: 12),
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Add to Collection',
@@ -189,30 +196,46 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: appColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      Text(
+                        'Save "${widget.entry.word}" to your dictionary',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
-                GestureDetector(
+                InkWell(
                   onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(10),
                   child: Container(
-                    padding: const EdgeInsets.all(5),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: appColors.textSecondary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                      color: appColors.inputBackground,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: appColors.border.withValues(alpha: 0.4),
+                      ),
                     ),
-                    child: Icon(
-                      Icons.close_rounded,
-                      size: 16,
-                      color: appColors.textSecondary.withValues(alpha: 0.7),
+                    child: Center(
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: appColors.textSecondary,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const SizedBox(height: 16),
 
           // List
           Expanded(
@@ -236,11 +259,19 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: appColors.primary,
                                 foregroundColor: Colors.white,
-                                textStyle: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                              icon: const Icon(Icons.add),
-                              label: const Text('Create Collection'),
+                              icon: const Icon(Icons.add_rounded),
+                              label: const Text(
+                                'Create Collection',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),
@@ -248,7 +279,7 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                     : Stack(
                         children: [
                           ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                             itemCount: _collections.length,
                             itemBuilder: (context, index) {
                               final collection = _collections[index];
@@ -268,13 +299,13 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                                   color: isSelected
                                       ? appColors.primary
                                           .withValues(alpha: 0.05)
-                                      : Colors.transparent,
+                                      : appColors.cardBackground,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: isSelected
                                         ? appColors.primary
-                                        : Colors.transparent,
-                                    width: 1.5,
+                                        : appColors.border,
+                                    width: isSelected ? 1.5 : 1,
                                   ),
                                 ),
                                 child: InkWell(
@@ -292,19 +323,20 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                                         },
                                   borderRadius: BorderRadius.circular(16),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 8),
                                     child: Row(
                                       children: [
                                         Container(
-                                          width: 48,
-                                          height: 48,
+                                          width: 32,
+                                          height: 32,
                                           decoration: BoxDecoration(
                                             color: isIncluded
                                                 ? appColors.textSecondary
                                                     .withValues(alpha: 0.1)
                                                 : color.withValues(alpha: 0.12),
                                             borderRadius:
-                                                BorderRadius.circular(14),
+                                                BorderRadius.circular(11),
                                           ),
                                           child: Icon(
                                             isIncluded
@@ -313,10 +345,10 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                                             color: isIncluded
                                                 ? appColors.textSecondary
                                                 : color,
-                                            size: 24,
+                                            size: 16,
                                           ),
                                         ),
-                                        const SizedBox(width: 16),
+                                        const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment:
@@ -325,8 +357,8 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                                               Text(
                                                 collection.name,
                                                 style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
                                                   color: isIncluded
                                                       ? appColors.textSecondary
                                                       : appColors.textPrimary,
@@ -336,22 +368,31 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                                                       : null,
                                                 ),
                                               ),
-                                              const SizedBox(height: 4),
+                                              const SizedBox(height: 1),
                                               Text(
                                                 '${collection.terms.length} terms',
                                                 style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: appColors.textSecondary
-                                                      .withValues(alpha: 0.7),
+                                                  fontSize: 11,
+                                                  color:
+                                                      appColors.textSecondary,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
                                         if (isSelected)
-                                          Icon(Icons.check_circle,
-                                              color: appColors.primary,
-                                              size: 24),
+                                          Icon(
+                                            Icons.check_circle_rounded,
+                                            color: appColors.primary,
+                                            size: 20,
+                                          )
+                                        else if (!isIncluded)
+                                          Icon(
+                                            Icons.chevron_right_rounded,
+                                            size: 16,
+                                            color: appColors.textSecondary,
+                                          ),
                                       ],
                                     ),
                                   ),
@@ -366,7 +407,6 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                               right: 20,
                               child: SizedBox(
                                 height: 50,
-                                width: double.infinity,
                                 child: ElevatedButton(
                                   onPressed: _isAdding ? null : _addTermsBatch,
                                   style: ElevatedButton.styleFrom(

@@ -34,50 +34,57 @@ class _QuizDrawerState extends State<QuizDrawer> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: appColors.cardBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 40,
-            offset: const Offset(0, -10),
-          ),
-        ],
+        color: appColors.drawerBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         children: [
-          // Handle bar
+          // Drag handle
+          const SizedBox(height: 12),
           Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 8),
-            width: 48,
-            height: 6,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
-              color: appColors.border.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(3),
+              color: appColors.textSecondary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(99),
             ),
           ),
+          const SizedBox(height: 12),
 
           // Header
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: appColors.border.withValues(alpha: 0.5),
-                  width: 0.5,
-                ),
-              ),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Question List',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Question List',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: appColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
                       ),
+                      Text(
+                        'Review your lesson progress',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Row(
                   children: [
@@ -89,31 +96,58 @@ class _QuizDrawerState extends State<QuizDrawer> {
                                   widget.lesson.quizzes.length,
                                 ) >=
                             100)
-                      InkWell(
-                        onTap: widget.onNextLesson,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: SvgPicture.string(
-                            '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#${appColors.primary.value.toRadixString(16).substring(2)}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-step-forward-icon lucide-step-forward"><path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/><path d="M3 4v16"/></svg>''',
-                            width: 24,
-                            height: 24,
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: widget.onNextLesson,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: appColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: appColors.primary.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Center(
+                              child: SvgPicture.string(
+                                '''<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#${appColors.primary.value.toRadixString(16).substring(2)}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-step-forward-icon lucide-step-forward"><path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/><path d="M3 4v16"/></svg>''',
+                                width: 18,
+                                height: 18,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: appColors.textSecondary,
+                    InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: appColors.inputBackground,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: appColors.border.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: appColors.textSecondary,
+                          ),
+                        ),
                       ),
-                      splashRadius: 24,
                     ),
                   ],
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 16),
 
           // Quiz List
           Expanded(

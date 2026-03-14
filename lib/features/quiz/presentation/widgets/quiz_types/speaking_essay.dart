@@ -1,13 +1,11 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
-import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
-import 'package:fluency/features/setting/domain/entities/stt_provider_type.dart';
 
 class SpeakingEssay extends StatefulWidget {
   const SpeakingEssay({
@@ -97,6 +95,11 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
           });
         }
         _pageController.jumpToPage(_activeIndex);
+
+        // If quiz is completed, notify parent to show transcript/etc
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
+        }
       });
     }
   }
@@ -142,7 +145,6 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
     return [widget.quiz];
   }
 
-  dynamic get _currentQuestion => _questions[_activeIndex];
   int get _totalQuestions => _questions.length;
 
   String get _currentAnswer => _answers[_activeIndex] ?? '';
@@ -288,271 +290,252 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
 
     return Scaffold(
       backgroundColor: Colors.transparent, // Parent handles background
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is OverscrollNotification) {
-            if (notification.overscroll < 0) {
-              widget.onPrev?.call();
-            } else if (notification.overscroll > 0) {
-              if (_isCurrentSubmitted && !_hasNext) {
-                widget.onCheck?.call();
-                widget.onNext?.call();
-              }
-            }
-          }
-          return false;
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: _totalQuestions,
+        onPageChanged: (index) {
+          setState(() {
+            _activeIndex = index;
+            _isRecording = false;
+            _saveProgress();
+          });
         },
-        child: PageView.builder(
-          controller: _pageController,
-          itemCount: _totalQuestions,
-          onPageChanged: (index) {
-            setState(() {
-              _activeIndex = index;
-              _isRecording = false;
-              _saveProgress();
-            });
-          },
-          physics: const ClampingScrollPhysics(),
-          itemBuilder: (context, index) {
-            final currentItem = _questions[index];
-            final questionText = _getQuestionText(currentItem);
-            final example = _getExample(currentItem);
-            final isSubmitted = _stepSubmitted[index] ?? false;
-            final currentAnswer = _answers[index] ?? '';
+        physics: const ClampingScrollPhysics(),
+        itemBuilder: (context, index) {
+          final currentItem = _questions[index];
+          final questionText = _getQuestionText(currentItem);
+          final example = _getExample(currentItem);
+          final isSubmitted = _stepSubmitted[index] ?? false;
+          final currentAnswer = _answers[index] ?? '';
 
-            return Stack(
-              children: [
-                // Scrollable Content
-                Positioned.fill(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Question Display
-                        if (questionText.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Text(
-                              '${index + 1}. $questionText',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.normal,
-                                color: appColors.textPrimary,
-                                height: 1.5,
-                              ),
+          return Stack(
+            children: [
+              // Scrollable Content
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Question Display
+                      if (questionText.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            '${index + 1}. $questionText',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.normal,
+                              color: appColors.textPrimary,
+                              height: 1.5,
                             ),
-                          ),
-
-                        // Input Area (Card)
-                        Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: appColors.cardBackground,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: appColors.border),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: isSubmitted
-                                ? SingleChildScrollView(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Text(
-                                          currentAnswer,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: appColors.textPrimary,
-                                            height: 1.5,
-                                          ),
-                                        ),
-                                        // Sample Answer (if submitted)
-                                        if (example != null &&
-                                            example.isNotEmpty) ...[
-                                          const SizedBox(height: 32),
-                                          const Divider(),
-                                          const SizedBox(height: 24),
-                                          const Row(
-                                            children: [
-                                              Icon(Icons.check_circle,
-                                                  color: Colors.green,
-                                                  size: 20),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Sample Answer',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Container(
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: appColors.primary
-                                                  .withValues(alpha: 0.1),
-                                              border: Border.all(
-                                                  color: appColors.border),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: RichTextParser.buildRichText(
-                                              context,
-                                              example,
-                                              onWordLongPress: (text) {
-                                                widget.onWordLongPress
-                                                    ?.call(text);
-                                              },
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: appColors.textPrimary,
-                                                height: 1.5,
-                                              ),
-                                            ).first,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  )
-                                : TextField(
-                                    controller: TextEditingController(
-                                      text: _isRecording &&
-                                              index == _activeIndex
-                                          ? (currentAnswer.isEmpty
-                                              ? _currentTranscript
-                                              : '$currentAnswer $_currentTranscript')
-                                          : currentAnswer,
-                                    )..selection = TextSelection.collapsed(
-                                        offset: _isRecording &&
-                                                index == _activeIndex
-                                            ? (currentAnswer.isEmpty
-                                                ? _currentTranscript.length
-                                                : '$currentAnswer $_currentTranscript'
-                                                    .length)
-                                            : currentAnswer.length,
-                                      ),
-                                    onChanged: _handleTextChange,
-                                    expands: true,
-                                    maxLines: null,
-                                    textAlignVertical: TextAlignVertical.top,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: appColors.textPrimary,
-                                      height: 1.5,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Type your answer here...',
-                                      hintStyle: TextStyle(
-                                        color: appColors.textSecondary
-                                            .withValues(alpha: 0.7),
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.transparent,
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                    ),
-                                  ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
 
-                // Bottom Controls
-                Positioned(
-                  bottom: 28,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: _toggleRecording,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: 56,
-                          height: 56,
+                      // Input Area (Card)
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color:
-                                _isRecording ? Colors.red : appColors.primary,
-                            shape: BoxShape.circle,
+                            color: appColors.cardBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: appColors.border),
                             boxShadow: [
                               BoxShadow(
-                                color: (_isRecording
-                                        ? Colors.red
-                                        : appColors.primary)
-                                    .withValues(alpha: 0.3),
-                                blurRadius: _isRecording ? 12 : 10,
-                                spreadRadius: _isRecording ? 2 : 0,
-                                offset: const Offset(0, 4),
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                          child: Icon(
-                            _isRecording ? Icons.mic_off : Icons.mic,
-                            color: appColors.cardBackground,
-                            size: 24,
-                          ),
+                          child: isSubmitted
+                              ? SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        currentAnswer,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: appColors.textPrimary,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                      // Sample Answer (if submitted)
+                                      if (example != null &&
+                                          example.isNotEmpty) ...[
+                                        const SizedBox(height: 32),
+                                        const Divider(),
+                                        const SizedBox(height: 24),
+                                        const Row(
+                                          children: [
+                                            Icon(Icons.check_circle,
+                                                color: Colors.green, size: 20),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Sample Answer',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: appColors.primary
+                                                .withValues(alpha: 0.1),
+                                            border: Border.all(
+                                                color: appColors.border),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: RichTextParser.buildRichText(
+                                            context,
+                                            example,
+                                            onWordLongPress: (text) {
+                                              widget.onWordLongPress
+                                                  ?.call(text);
+                                            },
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: appColors.textPrimary,
+                                              height: 1.5,
+                                            ),
+                                          ).first,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                )
+                              : TextField(
+                                  controller: TextEditingController(
+                                    text: _isRecording && index == _activeIndex
+                                        ? (currentAnswer.isEmpty
+                                            ? _currentTranscript
+                                            : '$currentAnswer $_currentTranscript')
+                                        : currentAnswer,
+                                  )..selection = TextSelection.collapsed(
+                                      offset: _isRecording &&
+                                              index == _activeIndex
+                                          ? (currentAnswer.isEmpty
+                                              ? _currentTranscript.length
+                                              : '$currentAnswer $_currentTranscript'
+                                                  .length)
+                                          : currentAnswer.length,
+                                    ),
+                                  onChanged: _handleTextChange,
+                                  expands: true,
+                                  maxLines: null,
+                                  textAlignVertical: TextAlignVertical.top,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: appColors.textPrimary,
+                                    height: 1.5,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Type your answer here...',
+                                    hintStyle: TextStyle(
+                                      color: appColors.textSecondary
+                                          .withValues(alpha: 0.7),
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                  ),
+                                ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      if (!_isCurrentSubmitted &&
-                          _currentAnswer.trim().isNotEmpty)
-                        ElevatedButton.icon(
-                          onPressed: _handleSubmitStep,
-                          icon: const Icon(Icons.check_circle, size: 20),
-                          label: const Text('Submit'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: appColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30)),
-                          ),
-                        ),
-                      if (_isCurrentSubmitted)
-                        ElevatedButton.icon(
-                          onPressed: _hasNext
-                              ? _handleNext
-                              : () {
-                                  widget.onCheck?.call();
-                                  widget.onNext?.call();
-                                },
-                          icon: Icon(_hasNext
-                              ? Icons.arrow_forward
-                              : Icons.check_circle),
-                          label: Text(_hasNext ? 'Next' : 'Next question'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: appColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30)),
-                          ),
-                        ),
                     ],
                   ),
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+
+              // Bottom Controls
+              Positioned(
+                bottom: 28,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _toggleRecording,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: _isRecording
+                              ? appColors.primary.withValues(alpha: 0.15)
+                              : Colors.grey.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.mic,
+                          color: _isRecording ? appColors.primary : Colors.grey,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    if (!_isCurrentSubmitted &&
+                        _currentAnswer.trim().isNotEmpty)
+                      ElevatedButton.icon(
+                        onPressed: _handleSubmitStep,
+                        icon: const Icon(Icons.check_circle, size: 20),
+                        label: const Text('Submit'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              appColors.primary.withValues(alpha: 0.15),
+                          foregroundColor: appColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                      ),
+                    if (_isCurrentSubmitted)
+                      ElevatedButton.icon(
+                        onPressed: _hasNext
+                            ? _handleNext
+                            : () {
+                                widget.onCheck?.call();
+                                widget.onNext?.call();
+                              },
+                        icon: Icon(_hasNext
+                            ? Icons.arrow_forward
+                            : Icons.check_circle),
+                        label: Text(_hasNext ? 'Next' : 'Next question'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              appColors.primary.withValues(alpha: 0.15),
+                          foregroundColor: appColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          elevation: 0,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

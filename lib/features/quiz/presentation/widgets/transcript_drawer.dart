@@ -8,6 +8,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:universal_io/io.dart';
 
 class TranscriptDrawer extends StatefulWidget {
   const TranscriptDrawer({
@@ -122,7 +123,25 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
     });
 
     try {
-      final jsonString = await rootBundle.loadString(widget.transcriptPath!);
+      String jsonString;
+      final path = widget.transcriptPath!;
+
+      // Check if it's a file path or asset path
+      final isFileSystemPath = path.startsWith('/') ||
+          path.contains('/course_cache_persistent/') ||
+          path.contains('/imported_courses/');
+
+      if (isFileSystemPath) {
+        final file = File(path);
+        if (await file.exists()) {
+          jsonString = await file.readAsString();
+        } else {
+          throw Exception('Transcript file not found at path: $path');
+        }
+      } else {
+        jsonString = await rootBundle.loadString(path);
+      }
+
       final jsonData = json.decode(jsonString) as Map<String, dynamic>;
       setState(() {
         _transcriptData = TranscriptData.fromJson(jsonData);
@@ -160,7 +179,7 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.75,
               decoration: BoxDecoration(
-                color: appColors.cardBackground,
+                color: appColors.drawerBackground,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
@@ -187,47 +206,57 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
 
                   // Header
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            SvgPicture.asset(
-                              'assets/icons/audio_lines.svg',
-                              width: 18,
-                              height: 18,
-                              colorFilter: ColorFilter.mode(
-                                appColors.primary,
-                                BlendMode.srcIn,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Transcript',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: appColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Transcript',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: appColors.textPrimary,
-                                    fontSize: 18,
-                                  ),
-                            ),
-                          ],
+                              Text(
+                                'Full text of the audio content',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: appColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         InkWell(
                           onTap: widget.onClose,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(10),
                           child: Container(
-                            padding: const EdgeInsets.all(4),
-                            child: SvgPicture.asset(
-                              'assets/icons/x.svg',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                appColors.textSecondary,
-                                BlendMode.srcIn,
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: appColors.inputBackground,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: appColors.border.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/icons/x.svg',
+                                width: 14,
+                                height: 14,
+                                colorFilter: ColorFilter.mode(
+                                  appColors.textSecondary,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                             ),
                           ),
@@ -381,69 +410,62 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
                 ],
               ),
               // Timestamp + Seek button
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? appColors.primary.withValues(alpha: 0.2)
-                          : appColors.border.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 12,
+              InkWell(
+                onTap: () {
+                  if (widget.audioPlayer != null) {
+                    widget.audioPlayer!.seek(
+                      Duration(seconds: segment.timestamps.startSeconds),
+                    );
+                    widget.audioPlayer!.resume();
+                  }
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? appColors.primary.withValues(alpha: 0.2)
+                        : appColors.border.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 12,
+                        color: isActive
+                            ? appColors.primary
+                            : appColors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        segment.timestamps.start,
+                        style: TextStyle(
                           color: isActive
                               ? appColors.primary
                               : appColors.textSecondary,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          segment.timestamps.start,
-                          style: TextStyle(
-                            color: isActive
-                                ? appColors.primary
-                                : appColors.textSecondary,
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // ScanEye seek button (only show when NOT active)
-                  if (!isActive)
-                    InkWell(
-                      onTap: () {
-                        // Phase 6 - Implement seek to timestamp
-                        if (widget.audioPlayer != null) {
-                          widget.audioPlayer!.seek(
-                            Duration(seconds: segment.timestamps.startSeconds),
-                          );
-                          widget.audioPlayer!.resume();
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(4),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: SvgPicture.asset(
+                      ),
+                      if (!isActive) ...[
+                        const SizedBox(width: 6),
+                        SvgPicture.asset(
                           'assets/icons/scan_eye.svg',
-                          width: 16,
-                          height: 16,
+                          width: 14,
+                          height: 14,
                           colorFilter: ColorFilter.mode(
                             appColors.textSecondary,
                             BlendMode.srcIn,
                           ),
                         ),
-                      ),
-                    ),
-                ],
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -514,7 +536,13 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
       );
     }
 
-    return TextSpan(children: spans);
+    return TextSpan(
+      children: spans,
+      style: TextStyle(
+        backgroundColor:
+            isActive ? appColors.primary.withValues(alpha: 0.2) : null,
+      ),
+    );
   }
 
   // Create a TextSpan for a single word with gesture recognizers
@@ -542,10 +570,6 @@ class _TranscriptDrawerState extends State<TranscriptDrawer> {
 
     return TextSpan(
       text: word,
-      style: TextStyle(
-        backgroundColor:
-            isActive ? appColors.primary.withValues(alpha: 0.2) : null,
-      ),
       recognizer: gestureRecognizer,
     );
   }

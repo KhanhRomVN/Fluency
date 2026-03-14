@@ -19,35 +19,36 @@ class TutorialDrawer extends StatelessWidget {
   // Map quiz types to general instructions
   static const Map<String, String> _quizTypeInstructions = {
     'multiple-choice':
-        'Chọn đáp án đúng nhất từ các lựa chọn được cung cấp. Nhấn Submit để kiểm tra câu trả lời của bạn.',
+        'Select the best answer from the provided options. Press Submit to check your answer.',
     'gap-fill-typing':
-        'Điền từ thích hợp vào chỗ trống. Gõ câu trả lời và nhấn Submit khi hoàn thành.',
+        'Fill in the blanks with the appropriate words. Type your answers and press Submit when finished.',
     'gap-fill-dropdown':
-        'Chọn từ phù hợp từ menu dropdown để điền vào chỗ trống. Nhấn Submit để kiểm tra.',
+        'Choose the correct word from the dropdown menu to fill in the blank. Press Submit to check.',
     'listening-choice':
-        'Nghe audio và chọn đáp án đúng. Bạn có thể nghe lại nhiều lần bằng cách nhấn nút play.',
+        'Listen to the audio and select the correct answer. You can replay the audio by pressing the play button.',
     'matching-dropdown':
-        'Ghép các cặp từ/cụm từ phù hợp với nhau bằng cách chọn từ dropdown.',
+        'Match the corresponding pairs of words or phrases by selecting from the dropdown menu.',
     'sentence-transformation':
-        'Chuyển đổi câu theo yêu cầu. Nhập câu trả lời và nhấn Submit.',
-    'builder': 'Sắp xếp các từ theo đúng thứ tự để tạo thành câu hoàn chỉnh.',
+        'Transform the sentence as required. Enter your answer and press Submit.',
+    'builder':
+        'Arrange the words in the correct order to form a complete sentence.',
     'error-correction':
-        'Tìm và sửa lỗi trong câu. Nhấp vào từ sai và chọn từ đúng.',
+        'Find and correct the error in the sentence. Click the incorrect word and choose the corrected version.',
     'pronunciation-drill':
-        'Luyện phát âm bằng cách đọc theo văn bản. Nhấn nút mic để ghi âm và kiểm tra.',
+        'Practice pronunciation by reading out loud. Press the mic button to record and check.',
     'dictation-audio':
-        'Nghe audio và viết lại những gì bạn nghe được. Nhấn Submit khi hoàn thành.',
+        'Listen to the audio and write down what you hear. Press Submit when finished.',
     'speaking-essay':
-        'Trả lời câu hỏi bằng giọng nói. Nhấn mic để bắt đầu ghi âm câu trả lời.',
+        'Answer the question using your voice. Press the mic to start recording your response.',
     'writing-essay':
-        'Viết bài luận ngắn theo chủ đề. Nhập câu trả lời và nhấn Submit.',
+        'Write a short essay based on the topic. Enter your response and press Submit.',
     'flashcard':
-        'Xem từ vựng và nghĩa. Vuốt sang trái/phải để chuyển card. Nhấn vào card để lật.',
-    'free-chat': 'Trò chuyện tự do với AI. Nói hoặc gõ câu trả lời của bạn.',
+        'Review words and their meanings. Swipe left/right to move through cards. Tap the card to flip.',
+    'free-chat': 'Chat freely with the AI. Speak or type your response.',
     'scripted-chat':
-        'Thực hành hội thoại theo kịch bản. Đọc và trả lời theo vai trò được chỉ định.',
+        'Practice conversation based on a script. Read and respond according to your assigned role.',
     'speech-builder':
-        'Xây dựng câu bằng giọng nói. Nói từng phần và hệ thống sẽ ghép lại.',
+        'Build sentences using your voice. Speak each part and the system will combine them.',
   };
 
   // Parse HTML-like content to TextSpans for inline rendering
@@ -143,7 +144,7 @@ class TutorialDrawer extends StatelessWidget {
             child: Container(
               height: MediaQuery.of(context).size.height * 0.75,
               decoration: BoxDecoration(
-                color: appColors.cardBackground,
+                color: appColors.drawerBackground,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(24),
                 ),
@@ -170,46 +171,57 @@ class TutorialDrawer extends StatelessWidget {
 
                   // Header
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            SvgPicture.asset(
-                              'assets/icons/circle_dot_dashed.svg',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                appColors.primary,
-                                BlendMode.srcIn,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tutorial',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: appColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Tutorial',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: appColors.textPrimary,
-                                  ),
-                            ),
-                          ],
+                              Text(
+                                'Learn how to complete this quiz',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: appColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         InkWell(
                           onTap: onClose,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(10),
                           child: Container(
-                            padding: const EdgeInsets.all(4),
-                            child: SvgPicture.asset(
-                              'assets/icons/x.svg',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                appColors.textSecondary,
-                                BlendMode.srcIn,
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: appColors.inputBackground,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: appColors.border.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/icons/x.svg',
+                                width: 14,
+                                height: 14,
+                                colorFilter: ColorFilter.mode(
+                                  appColors.textSecondary,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                             ),
                           ),

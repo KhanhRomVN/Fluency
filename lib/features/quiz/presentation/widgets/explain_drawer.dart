@@ -171,7 +171,7 @@ class _ExplainDrawerState extends State<ExplainDrawer>
                   child: Container(
                     height: MediaQuery.of(context).size.height * 0.70,
                     decoration: BoxDecoration(
-                      color: appColors.cardBackground,
+                      color: appColors.drawerBackground,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(24),
                       ),
@@ -198,47 +198,58 @@ class _ExplainDrawerState extends State<ExplainDrawer>
 
                         // Header
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  SvgPicture.asset(
-                                    'assets/icons/badge_info.svg',
-                                    width: 20,
-                                    height: 20,
-                                    colorFilter: ColorFilter.mode(
-                                      appColors.primary,
-                                      BlendMode.srcIn,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Explanation',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: appColors.textPrimary,
+                                        letterSpacing: -0.5,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Explanation',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: appColors.textPrimary,
-                                          fontSize: 18,
-                                        ),
-                                  ),
-                                ],
+                                    Text(
+                                      'Detailed analysis of the content',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: appColors.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               InkWell(
                                 onTap: widget.onClose,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(10),
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  child: SvgPicture.asset(
-                                    'assets/icons/x.svg',
-                                    width: 20,
-                                    height: 20,
-                                    colorFilter: ColorFilter.mode(
-                                      appColors.textSecondary,
-                                      BlendMode.srcIn,
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: appColors.inputBackground,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: appColors.border
+                                          .withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: SvgPicture.asset(
+                                      'assets/icons/x.svg',
+                                      width: 14,
+                                      height: 14,
+                                      colorFilter: ColorFilter.mode(
+                                        appColors.textSecondary,
+                                        BlendMode.srcIn,
+                                      ),
                                     ),
                                   ),
                                 ),

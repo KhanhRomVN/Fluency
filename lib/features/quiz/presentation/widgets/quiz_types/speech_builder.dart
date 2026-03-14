@@ -76,6 +76,11 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
             );
           });
         }
+
+        // If quiz is completed, notify parent to show transcript/etc
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
+        }
       });
     }
   }
@@ -181,112 +186,100 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
     final currentState =
         _itemStates[currentItem.id] ?? _SpeechBuilderItemState();
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is OverscrollNotification) {
-          if (notification.overscroll < 0) {
-            widget.onPrev?.call();
-          } else if (notification.overscroll > 0) {
-            widget.onNext?.call();
-          }
-        }
-        return false;
-      },
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const ClampingScrollPhysics(),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          final state = _itemStates[item.id] ?? _SpeechBuilderItemState();
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: _onPageChanged,
+      physics: const ClampingScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final state = _itemStates[item.id] ?? _SpeechBuilderItemState();
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: appColors.cardBackground,
-                borderRadius: BorderRadius.circular(12),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: appColors.cardBackground,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: CustomPaint(
+              painter: _DashedBorderPainter(
+                color: appColors.primary.withValues(alpha: 0.5),
+                strokeWidth: 2,
+                gap: 4,
+                borderRadius: 12,
               ),
-              child: CustomPaint(
-                painter: _DashedBorderPainter(
-                  color: appColors.primary.withValues(alpha: 0.5),
-                  strokeWidth: 2,
-                  gap: 4,
-                  borderRadius: 12,
-                ),
-                child: Column(
-                  children: [
-                    // Internal Header
-                    _buildInternalHeader(context, appColors, items, index),
+              child: Column(
+                children: [
+                  // Internal Header
+                  _buildInternalHeader(context, appColors, items, index),
 
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          children: [
-                            // Hint / Translate
-                            if (item.hint != null || item.translate != null)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 24),
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: RichTextParser.buildTextSpans(
-                                      context,
-                                      item.hint ?? item.translate ?? '',
-                                    ),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: appColors.textSecondary,
-                                    fontSize: 18,
-                                    fontStyle: FontStyle.italic,
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          // Hint / Translate
+                          if (item.hint != null || item.translate != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              child: Text.rich(
+                                TextSpan(
+                                  children: RichTextParser.buildTextSpans(
+                                    context,
+                                    item.hint ?? item.translate ?? '',
                                   ),
                                 ),
-                              ),
-
-                            // Question Context
-                            Expanded(
-                              child: Center(
-                                child: SingleChildScrollView(
-                                  child: _buildQuestionContent(
-                                    context,
-                                    item,
-                                    state,
-                                    appColors,
-                                  ),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: appColors.textSecondary,
+                                  fontSize: 18,
+                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
                             ),
 
-                            // Score / Feedback
-                            if (state.attempts > 0 && !state.passed)
-                              _buildFeedback(state, appColors),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          _buildFooterActions(
-                            item,
-                            state,
-                            appColors,
+                          // Question Context
+                          Expanded(
+                            child: Center(
+                              child: SingleChildScrollView(
+                                child: _buildQuestionContent(
+                                  context,
+                                  item,
+                                  state,
+                                  appColors,
+                                ),
+                              ),
+                            ),
                           ),
+
+                          // Score / Feedback
+                          if (state.attempts > 0 && !state.passed)
+                            _buildFeedback(state, appColors),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildFooterActions(
+                          item,
+                          state,
+                          appColors,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -487,9 +480,11 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
           const SizedBox(width: 16),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: appColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              backgroundColor: appColors.primary.withValues(alpha: 0.15),
+              foregroundColor: appColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
               elevation: 0,
@@ -546,26 +541,14 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: _isRecording ? Colors.red : appColors.primary,
+          color: _isRecording
+              ? appColors.primary.withValues(alpha: 0.15)
+              : Colors.grey.withValues(alpha: 0.1),
           shape: BoxShape.circle,
-          border: Border.all(
-            color: _isRecording
-                ? Colors.red.withValues(alpha: 0.2)
-                : Colors.transparent,
-            width: 4,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: (_isRecording ? Colors.red : appColors.primary)
-                  .withValues(alpha: 0.4),
-              blurRadius: 10,
-              spreadRadius: _isRecording ? 4 : 0,
-            ),
-          ],
         ),
         child: Icon(
-          _isRecording ? Icons.mic_off : isRecordingOrPassedIcon(state),
-          color: Colors.white,
+          Icons.mic,
+          color: _isRecording ? appColors.primary : Colors.grey,
           size: 24,
         ),
       ),

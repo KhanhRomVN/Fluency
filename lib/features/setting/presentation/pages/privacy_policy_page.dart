@@ -1,6 +1,5 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -11,110 +10,289 @@ class PrivacyPolicyPage extends StatelessWidget {
     final primaryColor = colors?.primary ?? Theme.of(context).primaryColor;
 
     return Scaffold(
+      backgroundColor: colors?.background,
       body: SafeArea(
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             // Header
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 24, 16, 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Positioned(
-                      left: 0,
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: SvgPicture.asset(
-                          'assets/icons/chevron_left.svg',
-                          width: 24,
-                          height: 24,
-                          colorFilter: ColorFilter.mode(
-                            colors?.textPrimary ?? Colors.black,
-                            BlendMode.srcIn,
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: colors?.inputBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: colors?.border.withValues(alpha: 0.4) ??
+                                  Colors.transparent,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: colors?.textPrimary,
+                            size: 14,
                           ),
                         ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
                       ),
                     ),
                     Text(
                       'Privacy Policy',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colors?.textPrimary,
-                          ),
+                      style: TextStyle(
+                        color: colors?.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
 
+            // Hero Banner
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Large Lock Icon
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF06B6D4)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6366F1)
+                                  .withValues(alpha: 0.4),
+                              blurRadius: 25,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.lock_rounded,
+                            color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(height: 18),
+                      RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                            color: colors?.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Your privacy is our '),
+                            TextSpan(
+                              text: 'priority',
+                              style: TextStyle(
+                                foreground: Paint()
+                                  ..shader = const LinearGradient(
+                                    colors: [
+                                      Color(0xFF818CF8),
+                                      Color(0xFF22D3EE)
+                                    ],
+                                  ).createShader(const Rect.fromLTWH(
+                                      0.0, 0.0, 200.0, 70.0)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Fluency is designed from the ground up to protect your personal data. Everything runs locally on your device — we believe privacy is a right.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colors?.textSecondary,
+                          height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Trust Badges
+                      Row(
+                        children: [
+                          _buildTrustBadge(
+                              '100% Local', const Color(0xFF34D399), '📱'),
+                          const SizedBox(width: 8),
+                          _buildTrustBadge(
+                              'No Tracking', const Color(0xFF60A5FA), '🚫'),
+                          const SizedBox(width: 8),
+                          _buildTrustBadge(
+                              'Open Source', const Color(0xFFA78BFA), '💻'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             // Content
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  const SizedBox(height: 24),
-
-                  // Privacy First
-                  _buildSection(
+                  _buildPolicyCard(
                     context,
-                    icon: Icons.privacy_tip_rounded,
                     title: 'Privacy First',
-                    content:
-                        'Fluency respects your privacy. We do not collect, store, or transmit any personal information. All your learning data stays on your device.',
-                    primaryColor: primaryColor,
+                    body:
+                        'Fluency respects your privacy. We do not collect, store, or transmit any personal information. All your learning data stays entirely on your device.',
+                    gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    color: const Color(0xFF818CF8),
+                    icon: Icons.shield_rounded,
                     colors: colors,
                   ),
-
-                  Divider(height: 32, color: colors?.divider.withOpacity(0.3)),
-
-                  // Local Storage Only
-                  _buildSection(
+                  _buildPolicyCard(
                     context,
-                    icon: Icons.storage_rounded,
                     title: 'Local Storage Only',
-                    content:
+                    body:
                         'Your learning progress, preferences, and course data are stored locally on your device. We have no access to this information.',
-                    primaryColor: primaryColor,
+                    gradient: const [Color(0xFF0EA5E9), Color(0xFF06B6D4)],
+                    color: const Color(0xFF38BDF8),
+                    icon: Icons.storage_rounded,
                     colors: colors,
                   ),
-
-                  Divider(height: 32, color: colors?.divider.withOpacity(0.3)),
-
-                  // No Third-Party Tracking
-                  _buildSection(
+                  _buildPolicyCard(
                     context,
-                    icon: Icons.block_rounded,
                     title: 'No Third-Party Tracking',
-                    content:
-                        'Fluency does not use any analytics, tracking, or advertising services. Your activity is completely private.',
-                    primaryColor: primaryColor,
+                    body:
+                        'Fluency does not integrate any analytics, advertising, or tracking SDKs. Your activity is completely private.',
+                    gradient: const [Color(0xFF10B981), Color(0xFF059669)],
+                    color: const Color(0xFF34D399),
+                    icon: Icons.block_rounded,
                     colors: colors,
                   ),
-
-                  Divider(height: 32, color: colors?.divider.withOpacity(0.3)),
-
-                  // Transparent & Open
-                  _buildSection(
+                  _buildPolicyCard(
                     context,
-                    icon: Icons.code_rounded,
                     title: 'Transparent & Open',
-                    content:
-                        'Our app is built with transparency in mind. You can verify our privacy practices by reviewing the source code.',
-                    primaryColor: primaryColor,
+                    body:
+                        'Our app is built with transparency in mind. You can verify our privacy practices by reviewing the source code on GitHub.',
+                    gradient: const [Color(0xFFEC4899), Color(0xFF8B5CF6)],
+                    color: const Color(0xFFF472B6),
+                    icon: Icons.code_rounded,
                     colors: colors,
                   ),
 
-                  const SizedBox(height: 48),
-                  Center(
-                    child: Text(
-                      'Last Updated: February 2026',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colors?.textSecondary,
-                            fontWeight: FontWeight.bold,
+                  const SizedBox(height: 16),
+                  // Contact Footer
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: colors?.cardBackground,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: colors?.border.withValues(alpha: 0.1) ??
+                            Colors.transparent,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6366F1)
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
+                          child: const Icon(Icons.mail_rounded,
+                              color: Colors.white, size: 18),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Questions about privacy?',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: colors?.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'khanhromvn@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF6366F1),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+                  Center(
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: colors?.textSecondary.withValues(alpha: 0.5),
+                        ),
+                        children: [
+                          const TextSpan(text: 'Last Updated: '),
+                          TextSpan(
+                            text: 'February 2026',
+                            style: TextStyle(
+                              foreground: Paint()
+                                ..shader = const LinearGradient(
+                                  colors: [
+                                    Color(0xFF818CF8),
+                                    Color(0xFF22D3EE)
+                                  ],
+                                ).createShader(
+                                    const Rect.fromLTWH(0.0, 0.0, 150.0, 20.0)),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -127,53 +305,146 @@ class PrivacyPolicyPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String content,
-    required Color primaryColor,
-    required AppColorsExtension? colors,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  Widget _buildTrustBadge(String label, Color color, String emoji) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                color: primaryColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colors?.textPrimary,
-                    ),
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: 0.2,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Text(
-          content,
-          style: TextStyle(
-            height: 1.6,
-            fontSize: 14,
-            color: colors?.textSecondary,
-          ),
+      ),
+    );
+  }
+
+  Widget _buildPolicyCard(
+    BuildContext context, {
+    required String title,
+    required String body,
+    required List<Color> gradient,
+    required Color color,
+    required IconData icon,
+    required AppColorsExtension? colors,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: colors?.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colors?.border.withValues(alpha: 0.1) ?? Colors.transparent,
         ),
-      ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 3.5,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: gradient,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: gradient,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.4),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: colors?.textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: color.withValues(alpha: 0.3)),
+                      ),
+                      child: Icon(Icons.check_rounded, color: color, size: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  height: 1,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.05),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.6,
+                    color: colors?.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

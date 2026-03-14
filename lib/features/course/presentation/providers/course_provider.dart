@@ -72,14 +72,17 @@ class CourseProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> importCourseFromBytes(Uint8List bytes, String filename) async {
+  Future<Course?> importCourseFromBytes(Uint8List bytes, String filename,
+      {bool force = false}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      await _repository.importCourseFromBytes(bytes, filename);
+      final course = await _repository.importCourseFromBytes(bytes, filename,
+          force: force);
       // Reload courses to reflect changes
       await loadCourses();
+      return course;
     } catch (e) {
       _isLoading = false;
       notifyListeners();
@@ -87,14 +90,15 @@ class CourseProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> importCourse(String path) async {
+  Future<Course?> importCourse(String path, {bool force = false}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      await _repository.importCourse(path);
+      final course = await _repository.importCourse(path, force: force);
       // Reload courses to reflect changes
       await loadCourses();
+      return course;
     } catch (e) {
       _isLoading = false;
       notifyListeners();
@@ -102,13 +106,14 @@ class CourseProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> importCourseFromUrl(String url) async {
+  Future<Course?> importCourseFromUrl(String url, {bool force = false}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      await _repository.importCourseFromUrl(url);
+      final course = await _repository.importCourseFromUrl(url, force: force);
       await loadCourses();
+      return course;
     } catch (e) {
       _isLoading = false;
       notifyListeners();

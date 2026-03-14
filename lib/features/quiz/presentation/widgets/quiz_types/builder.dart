@@ -1,6 +1,5 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
 
 class QuizBuilder extends StatefulWidget {
@@ -42,7 +41,6 @@ class _QuizBuilderState extends State<QuizBuilder> {
 
   List<int> get _currentSelected => _selectedIndices[_currentItem?.id] ?? [];
   bool get _currentIsChecked => _isCheckedMap[_currentItem?.id] ?? false;
-  bool? get _currentIsCorrect => _correctness[_currentItem?.id];
 
   @override
   void initState() {
@@ -123,12 +121,6 @@ class _QuizBuilderState extends State<QuizBuilder> {
     });
   }
 
-  String _getCorrectString() {
-    final currentItem = _currentItem;
-    if (currentItem == null) return '';
-    return currentItem.validAnswers.firstOrNull ?? '';
-  }
-
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -148,312 +140,296 @@ class _QuizBuilderState extends State<QuizBuilder> {
     final options = currentItem.options;
     final hint = currentItem.question;
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is OverscrollNotification) {
-          if (notification.overscroll < 0) {
-            widget.onPrev?.call();
-          } else if (notification.overscroll > 0) {
-            widget.onNext?.call();
-          }
-        }
-        return false;
-      },
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const ClampingScrollPhysics(),
-        itemCount: questions.length,
-        itemBuilder: (context, index) {
-          final item = questions[index];
-          final options = item.options;
-          final hint = item.question;
-          final isChecked = _isCheckedMap[item.id] ?? false;
-          final isCorrect = _correctness[item.id];
-          final selected = _selectedIndices[item.id] ?? [];
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: _onPageChanged,
+      physics: const ClampingScrollPhysics(),
+      itemCount: questions.length,
+      itemBuilder: (context, index) {
+        final item = questions[index];
+        final options = item.options;
+        final hint = item.question;
+        final isChecked = _isCheckedMap[item.id] ?? false;
+        final isCorrect = _correctness[item.id];
+        final selected = _selectedIndices[item.id] ?? [];
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: appColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: appColors.cardBackground,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: CustomPaint(
+                  painter: _DashedBorderPainter(
+                    color: borderColor,
+                    strokeWidth: 2,
+                    gap: 4,
+                    borderRadius: 12,
                   ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: Column(
-                      children: [
-                        // Card Header: Counter & Progress
-                        _buildCardHeader(
-                          context,
-                          appColors,
-                          questions,
-                          index,
-                        ),
-                        const Divider(height: 1),
+                  child: Column(
+                    children: [
+                      // Card Header: Counter & Progress
+                      _buildCardHeader(
+                        context,
+                        appColors,
+                        questions,
+                        index,
+                      ),
+                      const Divider(height: 1),
 
-                        // Content
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Context Hint
-                                if (hint.isNotEmpty) ...[
-                                  Text(
-                                    hint,
-                                    style: TextStyle(
-                                      color: appColors.textSecondary,
-                                      fontSize: 14,
-                                    ),
+                      // Content
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Context Hint
+                              if (hint.isNotEmpty) ...[
+                                Text(
+                                  hint,
+                                  style: TextStyle(
+                                    color: appColors.textSecondary,
+                                    fontSize: 14,
                                   ),
-                                  const SizedBox(height: 16),
-                                ],
+                                ),
+                                const SizedBox(height: 16),
+                              ],
 
-                                // Built Sentence Display (Dashed Border)
-                                Container(
-                                  width: double.infinity,
-                                  constraints:
-                                      const BoxConstraints(minHeight: 80),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
+                              // Built Sentence Display (Dashed Border)
+                              Container(
+                                width: double.infinity,
+                                constraints:
+                                    const BoxConstraints(minHeight: 80),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: isChecked
+                                      ? (isCorrect ?? false
+                                          ? Colors.green.withValues(alpha: 0.1)
+                                          : Colors.red.withValues(alpha: 0.1))
+                                      : appColors.cardBackground,
+                                  border: Border.all(
                                     color: isChecked
                                         ? (isCorrect ?? false
                                             ? Colors.green
-                                                .withValues(alpha: 0.1)
-                                            : Colors.red.withValues(alpha: 0.1))
-                                        : appColors.cardBackground,
-                                    border: Border.all(
-                                      color: isChecked
-                                          ? (isCorrect ?? false
-                                              ? Colors.green
-                                              : Colors.red)
-                                          : appColors.primary
-                                              .withValues(alpha: 0.5),
-                                      width: 2,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
+                                            : Colors.red)
+                                        : appColors.primary
+                                            .withValues(alpha: 0.5),
+                                    width: 2,
                                   ),
-                                  child: selected.isEmpty
-                                      ? Center(
-                                          child: Text(
-                                            'Tap blocks below to build',
-                                            style: TextStyle(
-                                              color: appColors.textSecondary,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        )
-                                      : Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: selected.map((idx) {
-                                            return GestureDetector(
-                                              onTap: isChecked
-                                                  ? null
-                                                  : () => _handleItemClick(idx),
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 8,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: isChecked
-                                                      ? appColors.background
-                                                      : appColors.primary,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: Text(
-                                                  options[idx],
-                                                  style: TextStyle(
-                                                    color: isChecked
-                                                        ? appColors.textPrimary
-                                                        : Colors.white,
-                                                    fontWeight: FontWeight.w500,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-
-                                // Correct Answer (shown after check if wrong)
-                                if (isChecked && isCorrect == false) ...[
-                                  const SizedBox(height: 16),
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.green.withValues(alpha: 0.1),
-                                      border: Border.all(color: Colors.green),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Correct answer:',
+                                child: selected.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          'Tap blocks below to build',
                                           style: TextStyle(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w500,
+                                            color: appColors.textSecondary,
                                             fontSize: 14,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
+                                      )
+                                    : Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: selected.map((idx) {
+                                          return GestureDetector(
+                                            onTap: isChecked
+                                                ? null
+                                                : () => _handleItemClick(idx),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 8,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: isChecked
+                                                    ? appColors.background
+                                                    : appColors.primary,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                options[idx],
+                                                style: TextStyle(
+                                                  color: isChecked
+                                                      ? appColors.textPrimary
+                                                      : Colors.white,
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                              ),
+
+                              // Correct Answer (shown after check if wrong)
+                              if (isChecked && isCorrect == false) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withValues(alpha: 0.1),
+                                    border: Border.all(color: Colors.green),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Correct answer:',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item.validAnswers.firstOrNull ?? '',
+                                        style: TextStyle(
+                                          color: appColors.textPrimary,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
+                              // Explanation Button
+                              if (isChecked && item.explain.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: InkWell(
+                                    onTap: () {
+                                      widget.onShowExplain?.call(item.explain);
+                                    },
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.menu_book_outlined,
+                                          size: 16,
+                                          color: appColors.primary,
+                                        ),
+                                        const SizedBox(width: 4),
                                         Text(
-                                          item.validAnswers.firstOrNull ?? '',
+                                          'Explain',
                                           style: TextStyle(
-                                            color: appColors.textPrimary,
+                                            color: appColors.primary,
+                                            fontWeight: FontWeight.bold,
                                             fontSize: 16,
+                                            decoration:
+                                                TextDecoration.underline,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ],
+                                ),
+                              ],
 
-                                // Explanation Button
-                                if (isChecked && item.explain.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: InkWell(
-                                      onTap: () {
-                                        widget.onShowExplain
-                                            ?.call(item.explain);
-                                      },
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.menu_book_outlined,
-                                            size: 16,
-                                            color: appColors.primary,
+                              const SizedBox(height: 24),
+
+                              // Item Blocks (Available Words)
+                              Center(
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 12,
+                                  children:
+                                      options.asMap().entries.map((entry) {
+                                    final idx = entry.key;
+                                    final word = entry.value;
+                                    final isSelected = selected.contains(idx);
+
+                                    return GestureDetector(
+                                      onTap: () => _handleItemClick(idx),
+                                      child: AnimatedOpacity(
+                                        duration:
+                                            const Duration(milliseconds: 200),
+                                        opacity:
+                                            isSelected || isChecked ? 0.5 : 1.0,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Explain',
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? appColors.background
+                                                : appColors.cardBackground,
+                                            border: Border.all(
+                                              color: appColors.border,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            boxShadow: isSelected
+                                                ? null
+                                                : [
+                                                    BoxShadow(
+                                                      color: Colors.black
+                                                          .withValues(
+                                                              alpha: 0.05),
+                                                      blurRadius: 2,
+                                                      offset:
+                                                          const Offset(0, 2),
+                                                    ),
+                                                  ],
+                                          ),
+                                          child: Text(
+                                            word,
                                             style: TextStyle(
-                                              color: appColors.primary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-
-                                const SizedBox(height: 24),
-
-                                // Item Blocks (Available Words)
-                                Center(
-                                  child: Wrap(
-                                    alignment: WrapAlignment.center,
-                                    spacing: 8,
-                                    runSpacing: 12,
-                                    children:
-                                        options.asMap().entries.map((entry) {
-                                      final idx = entry.key;
-                                      final word = entry.value;
-                                      final isSelected = selected.contains(idx);
-
-                                      return GestureDetector(
-                                        onTap: () => _handleItemClick(idx),
-                                        child: AnimatedOpacity(
-                                          duration:
-                                              const Duration(milliseconds: 200),
-                                          opacity: isSelected || isChecked
-                                              ? 0.5
-                                              : 1.0,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 10,
-                                            ),
-                                            decoration: BoxDecoration(
                                               color: isSelected
-                                                  ? appColors.background
-                                                  : appColors.cardBackground,
-                                              border: Border.all(
-                                                color: appColors.border,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              boxShadow: isSelected
-                                                  ? null
-                                                  : [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withValues(
-                                                                alpha: 0.05),
-                                                        blurRadius: 2,
-                                                        offset:
-                                                            const Offset(0, 2),
-                                                      ),
-                                                    ],
-                                            ),
-                                            child: Text(
-                                              word,
-                                              style: TextStyle(
-                                                color: isSelected
-                                                    ? appColors.textSecondary
-                                                    : appColors.textPrimary,
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 16,
-                                              ),
+                                                  ? appColors.textSecondary
+                                                  : appColors.textPrimary,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 16,
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
-                                  ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
-                                // Spacing at bottom for scrolling past floating button
-                                const SizedBox(height: 24),
-                              ],
-                            ),
+                              ),
+                              // Spacing at bottom for scrolling past floating button
+                              const SizedBox(height: 24),
+                            ],
                           ),
                         ),
-                        // Footer
-                        if (isChecked || selected.isNotEmpty) ...[
-                          const Divider(height: 1),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                _buildFooterActions(appColors, item),
-                              ],
-                            ),
+                      ),
+                      // Footer
+                      if (isChecked || selected.isNotEmpty) ...[
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              _buildFooterActions(appColors, item),
+                            ],
                           ),
-                        ],
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -527,9 +503,11 @@ class _QuizBuilderState extends State<QuizBuilder> {
     if (isChecked) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -549,9 +527,11 @@ class _QuizBuilderState extends State<QuizBuilder> {
       return ElevatedButton(
         onPressed: _checkAnswer,
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -566,9 +546,11 @@ class _QuizBuilderState extends State<QuizBuilder> {
       return ElevatedButton(
         onPressed: () => _resetItem(item.id),
         style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.textSecondary.withValues(alpha: 0.15),
           foregroundColor: appColors.textSecondary,
-          backgroundColor: appColors.cardBackground,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),

@@ -78,6 +78,11 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
         }
 
         _checkIfAllGapsFilled();
+
+        // If already checked, notify parent to show transcript/etc
+        if (_isChecked) {
+          widget.onCheck?.call();
+        }
       });
     }
   }
@@ -169,38 +174,26 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
           children: [
             // Question Card
             Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (notification is OverscrollNotification) {
-                    if (notification.overscroll < 0) {
-                      widget.onPrev?.call();
-                    } else if (notification.overscroll > 0) {
-                      widget.onNext?.call();
-                    }
-                  }
-                  return false;
-                },
-                child: PageView(
-                  controller: _pageController,
-                  physics: const ClampingScrollPhysics(),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                      child: Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          color: appColors.cardBackground,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: CustomPaint(
-                          painter: _DashedBorderPainter(
-                            color: borderColor,
-                            strokeWidth: 2,
-                            gap: 4,
-                            borderRadius: 12,
-                          ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: appColors.cardBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: CustomPaint(
+                    painter: _DashedBorderPainter(
+                      color: borderColor,
+                      strokeWidth: 2,
+                      gap: 4,
+                      borderRadius: 12,
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.all(24),
                             child: Column(
@@ -224,24 +217,22 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
                             ),
                           ),
                         ),
-                      ),
+                        if (_isChecked || _areAllGapsFilled)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _buildActionButtons(appColors),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-            if (_isChecked || _areAllGapsFilled) ...[
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _buildActionButtons(appColors),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ],
@@ -252,9 +243,11 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
     if (_isChecked) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -274,9 +267,11 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
           widget.onCheck?.call();
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -418,16 +413,20 @@ class _DropdownTrigger extends StatelessWidget {
 
     return Theme(
       data: Theme.of(context).copyWith(
-        cardColor: Colors.white,
+        cardColor: appColors.inputBackground,
       ),
       child: PopupMenuButton<String>(
         onSelected: onChanged,
         offset: const Offset(0, 30),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: appColors.border, width: 1.5),
+        ),
         itemBuilder: (context) => options
             .map(
-              (opt) => PopupMenuItem(
+              (opt) => PopupMenuItem<String>(
                 value: opt,
+                height: 38,
                 child: Text(
                   opt,
                   style: TextStyle(

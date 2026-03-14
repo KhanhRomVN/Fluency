@@ -1,6 +1,5 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
 
 class SentenceBuilder extends StatefulWidget {
@@ -82,109 +81,95 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
     return Column(
       children: [
         Expanded(
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is OverscrollNotification) {
-                if (notification.overscroll < 0) {
-                  widget.onPrev?.call();
-                } else if (notification.overscroll > 0) {
-                  widget.onNext?.call();
-                }
-              }
-              return false;
-            },
-            child: PageView(
-              controller: _pageController,
-              physics: const ClampingScrollPhysics(),
-              children: [
-                ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                  children: [
-                    // Instruction
+          child: PageView(
+            controller: _pageController,
+            physics: const ClampingScrollPhysics(),
+            children: [
+              ListView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                children: [
+                  // Instruction
 
-                    // Selected Words Area
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: appColors.border, width: 2),
-                        borderRadius: BorderRadius.circular(12),
-                        color: appColors.cardBackground,
-                      ),
-                      child: _selectedWords.isEmpty
-                          ? Text(
-                              'Tap words below to build your sentence',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: appColors.textSecondary,
-                                    fontStyle: FontStyle.italic,
-                                    fontSize: 16,
-                                  ),
-                            )
-                          : Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children:
-                                  _selectedWords.asMap().entries.map((entry) {
-                                return GestureDetector(
-                                  onTap: () => _removeWord(entry.key),
-                                  child: Chip(
-                                    label: Text(entry.value),
-                                    deleteIcon:
-                                        const Icon(Icons.close, size: 16),
-                                    onDeleted: () => _removeWord(entry.key),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                  // Selected Words Area
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: appColors.border, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                      color: appColors.cardBackground,
                     ),
+                    child: _selectedWords.isEmpty
+                        ? Text(
+                            'Tap words below to build your sentence',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: appColors.textSecondary,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 16,
+                                ),
+                          )
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children:
+                                _selectedWords.asMap().entries.map((entry) {
+                              return GestureDetector(
+                                onTap: () => _removeWord(entry.key),
+                                child: Chip(
+                                  label: Text(entry.value),
+                                  deleteIcon: const Icon(Icons.close, size: 16),
+                                  onDeleted: () => _removeWord(entry.key),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                  ),
 
-                    if (_selectedWords.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: TextButton.icon(
-                            onPressed: _clearAll,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Reset'),
-                            style: TextButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12.5),
-                            ),
+                  if (_selectedWords.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: TextButton.icon(
+                          onPressed: _clearAll,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reset'),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12.5),
                           ),
                         ),
                       ),
-
-                    const SizedBox(height: 24),
-
-                    // Available Words
-                    Text(
-                      'Available Words:',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: appColors.textPrimary,
-                            fontSize: 16,
-                          ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _availableWords.map((word) {
-                        return ActionChip(
-                          label: Text(word),
-                          onPressed: () => _addWord(word),
-                          backgroundColor: appColors.cardBackground,
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+
+                  const SizedBox(height: 24),
+
+                  // Available Words
+                  Text(
+                    'Available Words:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: appColors.textPrimary,
+                          fontSize: 16,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _availableWords.map((word) {
+                      return ActionChip(
+                        label: Text(word),
+                        onPressed: () => _addWord(word),
+                        backgroundColor: appColors.cardBackground,
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
 
@@ -203,12 +188,15 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
               child: ElevatedButton(
                 onPressed: widget.onCheck,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.primary,
+                  backgroundColor: appColors.primary.withValues(alpha: 0.15),
+                  foregroundColor: appColors.primary,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                      borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
                 ),
                 child: const Text(
                   'Check Answer',

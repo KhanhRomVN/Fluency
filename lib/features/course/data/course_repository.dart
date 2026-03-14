@@ -16,6 +16,23 @@ import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 import 'package:uuid/uuid.dart';
 
+enum CourseConflictType { older, same, newer }
+
+class CourseVersionConflictException implements Exception {
+  final CourseConflictType type;
+  final Course oldCourse;
+  final Course newCourse;
+
+  CourseVersionConflictException({
+    required this.type,
+    required this.oldCourse,
+    required this.newCourse,
+  });
+
+  @override
+  String toString() => 'CourseVersionConflictException: $type';
+}
+
 class CourseRepository {
   // List of known course files in assets
   static const String _coursesAssetPath = 'assets/courses';
@@ -24,15 +41,18 @@ class CourseRepository {
   // Web Only: specific cache for imported courses in current session
   final List<Course> _webImportedCourses = [];
 
-  Future<void> importCourseFromUrl(String url) async {
+  Future<Course> importCourseFromUrl(String url, {bool force = false}) async {
     if (kIsWeb) {
       final client = http.Client();
       try {
         final response = await client.get(Uri.parse(url));
         if (response.statusCode == 200) {
           final fileName = url.split('/').last;
-          await importCourseFromBytes(
-              response.bodyBytes, fileName.isEmpty ? 'download.zip' : fileName);
+          return await importCourseFromBytes(
+            response.bodyBytes,
+            fileName.isEmpty ? 'download.zip' : fileName,
+            force: force,
+          );
         } else {
           throw Exception('Failed to download course: ${response.statusCode}');
         }
@@ -42,7 +62,6 @@ class CourseRepository {
       } finally {
         client.close();
       }
-      return;
     }
 
     final tempDir = await getTemporaryDirectory();
@@ -63,7 +82,7 @@ class CourseRepository {
       await response.stream.pipe(sink);
       await sink.close();
 
-      await importCourse(tempFile.path);
+      return await importCourse(tempFile.path, force: force);
     } finally {
       client.close();
       if (tempFile.existsSync()) {
@@ -72,7 +91,8 @@ class CourseRepository {
     }
   }
 
-  Future<void> importCourseFromBytes(Uint8List bytes, String filename) async {
+  Future<Course> importCourseFromBytes(Uint8List bytes, String filename,
+      {bool force = false}) async {
     if (kIsWeb) {
       try {
         final extractedFiles = await _zipLoader.extractZipToMemory(bytes);
@@ -113,6 +133,33 @@ class CourseRepository {
         );
 
         // Check duplication
+        final existingCourse = _webImportedCourses.cast<Course?>().firstWhere(
+              (c) => c?.id == course.id,
+              orElse: () => null,
+            );
+
+        if (existingCourse != null && !force) {
+          if (course.version < existingCourse.version) {
+            throw CourseVersionConflictException(
+              type: CourseConflictType.older,
+              oldCourse: existingCourse,
+              newCourse: course,
+            );
+          } else if (course.version == existingCourse.version) {
+            throw CourseVersionConflictException(
+              type: CourseConflictType.same,
+              oldCourse: existingCourse,
+              newCourse: course,
+            );
+          } else {
+            throw CourseVersionConflictException(
+              type: CourseConflictType.newer,
+              oldCourse: existingCourse,
+              newCourse: course,
+            );
+          }
+        }
+
         _webImportedCourses.removeWhere((c) => c.id == course.id);
         _webImportedCourses.insert(0, course);
 
@@ -130,6 +177,7 @@ class CourseRepository {
             'version': course.version,
           },
         ));
+        return course;
       } catch (e) {
         debugPrint('Error importing course from bytes: $e');
         rethrow;
@@ -139,11 +187,11 @@ class CourseRepository {
       final tempDir = await getTemporaryDirectory();
       final tempFile = File(path_utils.join(tempDir.path, filename));
       await tempFile.writeAsBytes(bytes);
-      await importCourse(tempFile.path);
+      return await importCourse(tempFile.path, force: force);
     }
   }
 
-  Future<void> importCourse(String path) async {
+  Future<Course> importCourse(String path, {bool force = false}) async {
     try {
       final file = File(path);
       if (!file.existsSync()) {
@@ -168,19 +216,30 @@ class CourseRepository {
             orElse: () => null,
           );
 
-      if (existingCourse != null) {
+      if (existingCourse != null && !force) {
         if (newCourse.version < existingCourse.version) {
-          throw Exception(
-              'Bạn đang import phiên bản cũ (v${newCourse.version}). Phiên bản hiện tại là v${existingCourse.version}.');
+          throw CourseVersionConflictException(
+            type: CourseConflictType.older,
+            oldCourse: existingCourse,
+            newCourse: newCourse,
+          );
         } else if (newCourse.version == existingCourse.version) {
-          debugPrint(
-              'Same version (v${newCourse.version}) already exists. Skipping import.');
-          return;
+          throw CourseVersionConflictException(
+            type: CourseConflictType.same,
+            oldCourse: existingCourse,
+            newCourse: newCourse,
+          );
         } else {
-          debugPrint(
-              'Newer version found (v${newCourse.version} > v${existingCourse.version}). Replacing old version.');
-          await deleteCourse(existingCourse);
+          throw CourseVersionConflictException(
+            type: CourseConflictType.newer,
+            oldCourse: existingCourse,
+            newCourse: newCourse,
+          );
         }
+      }
+
+      if (existingCourse != null && force) {
+        await deleteCourse(existingCourse);
       }
 
       // 2. Perform actual import
@@ -209,6 +268,8 @@ class CourseRepository {
           'version': newCourse.version,
         },
       ));
+
+      return newCourse;
     } catch (e) {
       debugPrint('Error importing course: $e');
       rethrow;

@@ -68,42 +68,57 @@ class HintDrawer extends StatelessWidget {
 
                 // Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.lightbulb_outline,
-                            color: appColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Hint',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: appColors.textPrimary,
-                                ),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hint',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: appColors.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              'A little help to get you started',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: appColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       InkWell(
                         onTap: onClose,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: SvgPicture.asset(
-                            'assets/icons/x.svg',
-                            width: 20,
-                            height: 20,
-                            colorFilter: ColorFilter.mode(
-                              appColors.textSecondary,
-                              BlendMode.srcIn,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: appColors.inputBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: appColors.border.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Center(
+                            child: SvgPicture.asset(
+                              'assets/icons/x.svg',
+                              width: 14,
+                              height: 14,
+                              colorFilter: ColorFilter.mode(
+                                appColors.textSecondary,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),

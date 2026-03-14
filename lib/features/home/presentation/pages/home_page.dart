@@ -1,12 +1,12 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/core/themes/theme_provider.dart';
 import 'package:fluency/features/home/presentation/providers/stats_provider.dart';
-import 'package:fluency/features/achievement/presentation/providers/achievement_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/achievement_provider.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/course/presentation/widgets/course_image.dart';
+import 'package:fluency/features/course/presentation/pages/course_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smooth_gradient/smooth_gradient.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -35,25 +35,6 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: colors.background,
       body: Stack(
         children: [
-          // Single Uniform Top Shadow Layer
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: MediaQuery.of(context).size.height * 0.25,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    colors.primary.withOpacity(0.15),
-                    colors.primary.withOpacity(0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
@@ -77,8 +58,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 10),
                   const _ContinueLearningCard(),
-                  const SizedBox(height: 12),
-                  const _GradientPromotionCard(),
                   const SizedBox(height: 20),
                   Text(
                     "Today's Tasks",
@@ -138,13 +117,13 @@ class _HomeHeader extends StatelessWidget {
                   fontFamily: 'DM Sans',
                 ),
                 children: const [
-                  TextSpan(text: 'Welcome back!'),
+                  TextSpan(text: 'Ready to learn'),
                 ],
               ),
             ),
             const SizedBox(height: 2),
             Text(
-              'Ready to learn something new?',
+              'something new today?',
               style: TextStyle(
                 fontSize: 12,
                 color: colors.textSecondary,
@@ -465,66 +444,76 @@ class _ContinueLearningCard extends StatelessWidget {
         ? 0.0
         : course.completedLessons / course.lessons.length;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.border),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: course.imageUrl.isNotEmpty
-                  ? CourseImage(
-                      imageUrl: course.imageUrl,
-                      width: 44,
-                      height: 44,
-                    )
-                  : const Center(
-                      child: Text('📚', style: TextStyle(fontSize: 20))),
-            ),
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CourseDetailPage(course: course),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  course.title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Next: Lesson ${course.completedLessons + 1}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 5,
-                    backgroundColor: colors.textPrimary.withOpacity(0.12),
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)),
-                  ),
-                ),
-              ],
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colors.cardBackground,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.border),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: course.imageUrl.isNotEmpty
+                    ? CourseImage(
+                        imageUrl: course.imageUrl,
+                        width: 44,
+                        height: 44,
+                      )
+                    : const Center(
+                        child: Text('📚', style: TextStyle(fontSize: 20))),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course.title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: colors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Next: Lesson ${course.completedLessons + 1}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                      backgroundColor: colors.textPrimary.withOpacity(0.12),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF22C55E)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -675,31 +664,6 @@ class _TaskItem extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GradientPromotionCard extends StatelessWidget {
-  const _GradientPromotionCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColorsExtension>()!;
-
-    return Container(
-      width: double.infinity,
-      height: 60,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: SmoothGradient(
-          from: const Color(0xFF1565C0), // Xanh biển đậm
-          to: Colors.transparent,
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          curve: Curves.easeInOut,
-        ),
       ),
     );
   }

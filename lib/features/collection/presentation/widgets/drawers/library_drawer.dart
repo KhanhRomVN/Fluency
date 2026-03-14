@@ -19,76 +19,83 @@ class LibraryDrawer extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.only(bottom: 28),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: appColors.cardBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 40,
-            offset: const Offset(0, -10),
-          ),
-        ],
+        color: appColors.drawerBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        border: Border.all(
+          color: appColors.border.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
+          // Drag handle
           const SizedBox(height: 12),
           Container(
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: appColors.textSecondary.withValues(alpha: 0.2),
+              color: appColors.textSecondary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(99),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Add Collection',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: appColors.textPrimary,
-                        letterSpacing: -0.3,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Add Collection',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: appColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Choose how to create your dictionary',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: appColors.textSecondary,
+                      Text(
+                        'Choose how to create your dictionary',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
-                    padding: const EdgeInsets.all(6),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: appColors.inputBackground.withValues(alpha: 0.5),
-                      shape: BoxShape.circle,
+                      color: appColors.inputBackground,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: appColors.border.withValues(alpha: 0.4),
+                      ),
                     ),
-                    child: Icon(
-                      Icons.close_rounded,
-                      size: 16,
-                      color: appColors.textSecondary.withValues(alpha: 0.5),
+                    child: Center(
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: appColors.textSecondary,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Column(
@@ -115,7 +122,7 @@ class LibraryDrawer extends StatelessWidget {
                   },
                   appColors: appColors,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _buildOption(
                   context,
                   icon: Icons.upload_file_rounded,
@@ -138,7 +145,7 @@ class LibraryDrawer extends StatelessWidget {
                   },
                   appColors: appColors,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _buildOption(
                   context,
                   icon: Icons.auto_awesome_rounded,
@@ -157,7 +164,7 @@ class LibraryDrawer extends StatelessWidget {
                   },
                   appColors: appColors,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _buildOption(
                   context,
                   icon: Icons.share_rounded,
@@ -193,33 +200,30 @@ class LibraryDrawer extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: appColors.inputBackground.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(16),
+          color: appColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: appColors.border.withValues(alpha: 0.1),
+            color: appColors.border,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 gradient: gradient,
-                borderRadius: BorderRadius.circular(13),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(icon, color: Colors.white, size: 20),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +231,7 @@ class LibraryDrawer extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: appColors.textPrimary,
                     ),
@@ -236,8 +240,9 @@ class LibraryDrawer extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: appColors.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -247,8 +252,8 @@ class LibraryDrawer extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              size: 20,
-              color: appColors.textSecondary.withValues(alpha: 0.3),
+              size: 16,
+              color: appColors.textSecondary,
             ),
           ],
         ),
