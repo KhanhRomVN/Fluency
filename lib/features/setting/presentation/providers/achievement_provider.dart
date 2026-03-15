@@ -27,8 +27,8 @@ class AchievementProvider extends ChangeNotifier {
           rarity: AchievementRarity.epic,
         ),
       ],
-      currentValue: 12, // Progressing towards Level 2
-      currentLevelIndex: 1,
+      currentValue: 0,
+      currentLevelIndex: 0,
     ),
     Achievement(
       id: 'streak',
@@ -54,8 +54,8 @@ class AchievementProvider extends ChangeNotifier {
           rarity: AchievementRarity.epic,
         ),
       ],
-      currentValue: 7,
-      currentLevelIndex: 2, // At Level 3
+      currentValue: 0,
+      currentLevelIndex: 0,
       prerequisiteId: 'vocab',
     ),
     Achievement(
@@ -82,7 +82,7 @@ class AchievementProvider extends ChangeNotifier {
           rarity: AchievementRarity.epic,
         ),
       ],
-      currentValue: 3,
+      currentValue: 0,
       currentLevelIndex: 0,
     ),
     Achievement(
@@ -164,7 +164,7 @@ class AchievementProvider extends ChangeNotifier {
           rarity: AchievementRarity.epic,
         ),
       ],
-      currentValue: 1,
+      currentValue: 0,
       currentLevelIndex: 0,
     ),
     Achievement(

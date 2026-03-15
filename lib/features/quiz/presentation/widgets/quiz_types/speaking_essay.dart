@@ -2,6 +2,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
@@ -213,6 +214,12 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
     setState(() {
       _stepSubmitted[_activeIndex] = true;
       _isRecording = false;
+
+      // Play sound effect
+      if (mounted) {
+        context.read<SoundEffectProvider>().playCorrect();
+      }
+
       _saveProgress();
     });
   }

@@ -5,6 +5,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/domain/entities/transcript_model.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:provider/provider.dart';
@@ -165,50 +166,45 @@ class _ListeningChoiceState extends State<ListeningChoice> {
     );
 
     if (progress != null && mounted) {
+      // Restore submitted questions
+      final submittedIds =
+          progress.data?['submittedQuestions'] as List<dynamic>?;
+      if (submittedIds != null) {
+        _submittedQuestions.addAll(submittedIds.cast<String>());
+      }
+
+      final correctness =
+          progress.data?['questionCorrectness'] as Map<String, dynamic>?;
+      if (correctness != null) {
+        correctness.forEach((key, value) {
+          _questionCorrectness[key] = value as bool;
+        });
+      }
+
+      final selected =
+          progress.data?['selectedAnswers'] as Map<String, dynamic>?;
+      if (selected != null) {
+        selected.forEach((questionId, answer) {
+          _selectedAnswers[questionId] = answer.toString();
+        });
+      }
+
+      // Find first unsubmitted question index
+      final questions = widget.quiz.questions;
+      int firstUnsubmitted = 0;
+      for (int i = 0; i < questions.length; i++) {
+        if (!_submittedQuestions.contains(questions[i].id)) {
+          firstUnsubmitted = i;
+          break;
+        }
+      }
+
       setState(() {
-        _currentQuestionIndex =
-            progress.data?['currentQuestionIndex'] as int? ?? 0;
+        _currentQuestionIndex = firstUnsubmitted;
 
         // Jump to saved page
         if (_pageController.hasClients) {
           _pageController.jumpToPage(_currentQuestionIndex);
-        } else {
-          // If controller not attached yet, initialPage handles it,
-          // but we already created controller with default init (0).
-          // We might need to recreate controller if initState already ran?
-          // Actually create controller with this index is safer if this runs early.
-          // However, initState runs once.
-          // Better: rely on jumpToPage.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_pageController.hasClients) {
-              _pageController.jumpToPage(_currentQuestionIndex);
-            } else {
-              _pageController =
-                  PageController(initialPage: _currentQuestionIndex);
-            }
-          });
-        }
-
-        final submittedIds =
-            progress.data?['submittedQuestions'] as List<dynamic>?;
-        if (submittedIds != null) {
-          _submittedQuestions.addAll(submittedIds.cast<String>());
-        }
-
-        final correctness =
-            progress.data?['questionCorrectness'] as Map<String, dynamic>?;
-        if (correctness != null) {
-          correctness.forEach((key, value) {
-            _questionCorrectness[key] = value as bool;
-          });
-        }
-
-        final selected =
-            progress.data?['selectedAnswers'] as Map<String, dynamic>?;
-        if (selected != null) {
-          selected.forEach((questionId, answer) {
-            _selectedAnswers[questionId] = answer.toString();
-          });
         }
 
         // If quiz is completed, notify parent to show transcript/etc
@@ -277,6 +273,16 @@ class _ListeningChoiceState extends State<ListeningChoice> {
       final isCorrect = selected == question.answer ||
           question.validAnswers.contains(selected);
       _questionCorrectness[question.id] = isCorrect;
+
+      // Play sound effect
+      if (mounted) {
+        final soundProvider = context.read<SoundEffectProvider>();
+        if (isCorrect) {
+          soundProvider.playCorrect();
+        } else {
+          soundProvider.playWrong();
+        }
+      }
     });
 
     await _saveProgress();
@@ -443,7 +449,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
     final isSubmitted = _submittedQuestions.contains(currentQuestion.id);
     if (isSubmitted) {
       return (_questionCorrectness[currentQuestion.id] ?? false)
-          ? appColors.primary
+          ? Colors.green
           : Colors.red;
     }
     return appColors.border.withValues(alpha: 0.5);

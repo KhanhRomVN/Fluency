@@ -5,11 +5,12 @@ import 'dart:math' as math;
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/core/services/tts/tts_service.dart';
-import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
+import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -660,6 +661,16 @@ class _ScriptedChatState extends State<ScriptedChat> {
           feedback: feedback,
           transcript: transcript,
         );
+
+        // Play sound effect
+        if (mounted) {
+          final soundProvider = context.read<SoundEffectProvider>();
+          if (score >= 50) {
+            soundProvider.playCorrect();
+          } else {
+            soundProvider.playWrong();
+          }
+        }
 
         if (score >= 50 && messageIndex == _visibleCount - 1) {
           _currentSequenceIndex = messageIndex + 1;

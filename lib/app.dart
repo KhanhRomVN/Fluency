@@ -2,6 +2,7 @@ import 'package:fluency/core/l10n/app_localizations.dart';
 import 'package:fluency/core/themes/theme_provider.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/stt_setting_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/achievement_provider.dart';
@@ -25,6 +26,8 @@ class Application extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CourseProvider()..loadCourses()),
         ChangeNotifierProvider(create: (_) => QuizStateProvider()),
         ChangeNotifierProvider(
+            create: (_) => SoundEffectProvider(sharedPreferences)),
+        ChangeNotifierProvider(
             create: (_) => SttSettingProvider(sharedPreferences)),
         ChangeNotifierProvider(create: (_) => TtsProvider(sharedPreferences)),
         ChangeNotifierProvider(create: (_) => AchievementProvider()),
@@ -47,6 +50,19 @@ class Application extends StatelessWidget {
             theme: themeProvider.currentTheme, // Dynamic theme
             // darkTheme: AppTheme.dark, // We control everything via 'theme' now
             routerConfig: AppRouter.router,
+            builder: (context, child) {
+              return MediaQuery(
+                // Ngăn chặn điện thoại phóng to chữ quá mức làm vỡ layout
+                // Đồng thời set default text style để chặn font hệ thống
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: const TextScaler.linear(1.0),
+                ),
+                child: DefaultTextStyle(
+                  style: const TextStyle(fontFamily: 'DM Sans'),
+                  child: child!,
+                ),
+              );
+            },
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,

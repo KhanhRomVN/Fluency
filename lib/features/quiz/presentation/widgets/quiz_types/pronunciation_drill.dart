@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
@@ -76,23 +77,32 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     );
 
     if (progress != null && mounted) {
-      setState(() {
-        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+      final savedStates = progress.data?['itemStates'] as Map<String, dynamic>?;
+      if (savedStates != null) {
+        savedStates.forEach((key, value) {
+          final data = value as Map<String, dynamic>;
+          _itemStates[key] = _PronunciationDrillItemState(
+            score: data['score'] as int? ?? 0,
+            bestScore: data['bestScore'] as int? ?? 0,
+            passed: data['passed'] as bool? ?? false,
+            attempts: data['attempts'] as int? ?? 0,
+            transcript: data['transcript'] as String?,
+          );
+        });
+      }
 
-        final savedStates =
-            progress.data?['itemStates'] as Map<String, dynamic>?;
-        if (savedStates != null) {
-          savedStates.forEach((key, value) {
-            final data = value as Map<String, dynamic>;
-            _itemStates[key] = _PronunciationDrillItemState(
-              score: data['score'] as int? ?? 0,
-              bestScore: data['bestScore'] as int? ?? 0,
-              passed: data['passed'] as bool? ?? false,
-              attempts: data['attempts'] as int? ?? 0,
-              transcript: data['transcript'] as String?,
-            );
-          });
+      // Find first unpassed item index
+      final drills = widget.quiz.pronunciations ?? [];
+      int firstUnpassed = 0;
+      for (int i = 0; i < drills.length; i++) {
+        if (!(_itemStates[drills[i].id]?.passed ?? false)) {
+          firstUnpassed = i;
+          break;
         }
+      }
+
+      setState(() {
+        _currentIndex = firstUnpassed;
       });
 
       // Sync PageView with restored index
@@ -109,7 +119,6 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     // Auto-speak like Flashcard
     if (mounted) {
       final ttsProvider = context.read<TtsProvider>();
-      int retries = 0;
       if (!ttsProvider.isInitialized) {
         await ttsProvider.initService();
       }
@@ -241,6 +250,17 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
             attempts: current.attempts + 1,
             transcript: transcript,
           );
+
+          // Play sound effect
+          if (mounted) {
+            final soundProvider = context.read<SoundEffectProvider>();
+            if (passed) {
+              soundProvider.playCorrect();
+            } else {
+              soundProvider.playWrong();
+            }
+          }
+
           _saveProgress();
         });
       }
@@ -270,7 +290,6 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final drills = widget.quiz.pronunciations ?? [];
-    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     if (drills.isEmpty) {
       return Center(
@@ -306,6 +325,12 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                   final item = drills[index];
                   final state =
                       _itemStates[item.id] ?? _PronunciationDrillItemState();
+
+                  final borderColor = state.passed
+                      ? Colors.green
+                      : (state.attempts > 0
+                          ? Colors.red
+                          : Colors.grey.withValues(alpha: 0.5));
                   return Padding(
                     padding: const EdgeInsets.only(
                         left: 16, right: 16, bottom: 24, top: 24),

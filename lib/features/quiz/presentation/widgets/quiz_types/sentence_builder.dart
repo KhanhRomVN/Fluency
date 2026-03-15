@@ -1,10 +1,14 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class SentenceBuilder extends StatefulWidget {
   const SentenceBuilder({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     required this.isChecked,
     required this.onCheck,
     this.onNext,
@@ -13,6 +17,8 @@ class SentenceBuilder extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final bool isChecked;
   final VoidCallback onCheck;
   final VoidCallback? onNext;
@@ -42,6 +48,43 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      final selected = progress.data?['selectedWords'] as List<dynamic>?;
+      if (selected != null) {
+        setState(() {
+          _selectedWords.clear();
+          _selectedWords.addAll(selected.cast<String>());
+        });
+      }
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'sentence-builder',
+      completedItems: widget.isChecked
+          ? 1
+          : (_selectedWords.isNotEmpty
+              ? 0
+              : 0), // Not really paginated in the items sense
+      totalItems: 1,
+      data: {
+        'selectedWords': _selectedWords,
+      },
+    );
   }
 
   @override
@@ -55,6 +98,7 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
       setState(() {
         _selectedWords.add(word);
       });
+      _saveProgress();
     }
   }
 
@@ -63,6 +107,7 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
       setState(() {
         _selectedWords.removeAt(index);
       });
+      _saveProgress();
     }
   }
 

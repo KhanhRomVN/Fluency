@@ -1,6 +1,7 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -161,10 +162,23 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
     }
   }
 
+  bool _allGapsCorrect() {
+    for (final answer in widget.answers) {
+      final selectedValue = _selections[answer.id] ?? '';
+      final isCorrect = answer.answer.any(
+        (ans) => selectedValue.toLowerCase().trim() == ans.toLowerCase().trim(),
+      );
+      if (!isCorrect) return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    final borderColor = Colors.grey.withValues(alpha: 0.5);
+    final borderColor = _isChecked
+        ? (_allGapsCorrect() ? Colors.green : Colors.red)
+        : Colors.grey.withValues(alpha: 0.5);
 
     return Stack(
       children: [
@@ -263,6 +277,31 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
           setState(() {
             _isChecked = true;
           });
+
+          // Check if all are correct to play sound
+          bool allCorrect = true;
+          for (final answer in widget.answers) {
+            final selectedValue = _selections[answer.id] ?? '';
+            final isCorrect = answer.answer.any(
+              (ans) =>
+                  selectedValue.toLowerCase().trim() ==
+                  ans.toLowerCase().trim(),
+            );
+            if (!isCorrect) {
+              allCorrect = false;
+              break;
+            }
+          }
+
+          if (mounted) {
+            final soundProvider = context.read<SoundEffectProvider>();
+            if (allCorrect) {
+              soundProvider.playCorrect();
+            } else {
+              soundProvider.playWrong();
+            }
+          }
+
           _saveProgress();
           widget.onCheck?.call();
         },

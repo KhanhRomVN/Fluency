@@ -1,5 +1,5 @@
 import 'package:fluency/core/constants/route_constants.dart';
-import 'package:fluency/features/collection/presentation/pages/collection_page.dart';
+import 'package:fluency/features/collection/presentation/pages/collection_list_page.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/course/presentation/pages/course_detail_page.dart';
 import 'package:fluency/features/course/presentation/pages/course_list_page.dart';
@@ -81,7 +81,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: RouteConstants.collection,
-                builder: (context, state) => const CollectionPage(),
+                builder: (context, state) => const CollectionListPage(),
               ),
             ],
           ),

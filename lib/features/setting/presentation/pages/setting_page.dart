@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:fluency/features/setting/presentation/pages/achievement_page.dart';
 import 'package:fluency/features/setting/presentation/pages/privacy_policy_page.dart';
@@ -14,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 
 import 'package:fluency/core/themes/theme_provider.dart';
 
@@ -548,7 +550,30 @@ class SettingPage extends StatelessWidget {
                           value: isDark,
                           onChanged: (v) => themeProvider.toggleTheme(),
                         ),
-                        showDivider: false,
+                        showDivider: true,
+                      ),
+                      Consumer<TtsProvider>(
+                        builder: (context, ttsProvider, child) {
+                          final isFemale =
+                              ttsProvider.preferredGender == 'female';
+                          return SettingTile(
+                            icon: Icons.record_voice_over_outlined,
+                            gradient: const [
+                              Color(0xFF3B82F6),
+                              Color(0xFF8B5CF6)
+                            ],
+                            title: 'Voice Gender',
+                            subtitle: isFemale ? 'Female Voice' : 'Male Voice',
+                            onTap: () => ttsProvider.setPreferredGender(
+                                isFemale ? 'male' : 'female'),
+                            trailing: _VoiceToggle(
+                              isFemale: isFemale,
+                              onChanged: (v) => ttsProvider
+                                  .setPreferredGender(v ? 'female' : 'male'),
+                            ),
+                            showDivider: false,
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -1072,6 +1097,95 @@ class _ImportStatusDrawerState extends State<_ImportStatusDrawer> {
               Icons.chevron_right_rounded,
               size: 16,
               color: widget.appColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VoiceToggle extends StatelessWidget {
+  const _VoiceToggle({required this.isFemale, required this.onChanged});
+  final bool isFemale;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!isFemale),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        width: 64,
+        height: 32,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: isFemale
+              ? const Color(0xFFEC4899).withValues(alpha: 0.15)
+              : const Color(0xFF3B82F6).withValues(alpha: 0.15),
+          border: Border.all(
+            color: isFemale
+                ? const Color(0xFFEC4899).withValues(alpha: 0.4)
+                : const Color(0xFF3B82F6).withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+        ),
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 300),
+              curve: const Cubic(0.34, 1.56, 0.64, 1),
+              alignment:
+                  isFemale ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: isFemale
+                      ? const Color(0xFFEC4899)
+                      : const Color(0xFF3B82F6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isFemale
+                              ? const Color(0xFFEC4899)
+                              : const Color(0xFF3B82F6))
+                          .withValues(alpha: 0.4),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  isFemale ? Icons.female_rounded : Icons.male_rounded,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+            ),
+            Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Opacity(
+                      opacity: isFemale ? 0.3 : 0,
+                      child: const Icon(Icons.male_rounded,
+                          size: 14, color: Color(0xFF3B82F6)),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Opacity(
+                      opacity: isFemale ? 0 : 0.3,
+                      child: const Icon(Icons.female_rounded,
+                          size: 14, color: Color(0xFFEC4899)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -126,11 +127,23 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
     );
   }
 
+  bool _allMatch() {
+    final matchings = widget.quiz.matchings ?? [];
+    for (final matching in matchings) {
+      final selectedKey = _selectedAnswers[matching.id] ?? '';
+      final correctKey = _getCorrectOptionKey(matching.answer);
+      if (selectedKey != correctKey) return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final matchings = widget.quiz.matchings ?? [];
-    final borderColor = Colors.grey.withValues(alpha: 0.5);
+    final borderColor = _isChecked
+        ? (_allMatch() ? Colors.green : Colors.red)
+        : Colors.grey.withValues(alpha: 0.5);
 
     return Stack(
       children: [
@@ -222,6 +235,28 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
           setState(() {
             _isChecked = true;
           });
+
+          // Check if all are correct to play sound
+          bool allCorrect = true;
+          final matchings = widget.quiz.matchings ?? [];
+          for (final matching in matchings) {
+            final selectedKey = _selectedAnswers[matching.id] ?? '';
+            final correctKey = _getCorrectOptionKey(matching.answer);
+            if (selectedKey != correctKey) {
+              allCorrect = false;
+              break;
+            }
+          }
+
+          if (mounted) {
+            final soundProvider = context.read<SoundEffectProvider>();
+            if (allCorrect) {
+              soundProvider.playCorrect();
+            } else {
+              soundProvider.playWrong();
+            }
+          }
+
           widget.onCheck();
           await _saveProgress();
         },

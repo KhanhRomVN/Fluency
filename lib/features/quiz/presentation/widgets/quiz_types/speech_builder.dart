@@ -4,6 +4,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -59,29 +60,42 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
     );
 
     if (progress != null && mounted) {
-      setState(() {
-        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+      final savedStates = progress.data?['itemStates'] as Map<String, dynamic>?;
+      if (savedStates != null) {
+        savedStates.forEach((key, value) {
+          final data = value as Map<String, dynamic>;
+          _itemStates[key] = _SpeechBuilderItemState(
+            score: data['score'] as int? ?? 0,
+            bestScore: data['bestScore'] as int? ?? 0,
+            passed: data['passed'] as bool? ?? false,
+            attempts: data['attempts'] as int? ?? 0,
+            transcript: data['transcript'] as String?,
+          );
+        });
+      }
 
-        final savedStates =
-            progress.data?['itemStates'] as Map<String, dynamic>?;
-        if (savedStates != null) {
-          savedStates.forEach((key, value) {
-            final data = value as Map<String, dynamic>;
-            _itemStates[key] = _SpeechBuilderItemState(
-              score: data['score'] as int? ?? 0,
-              bestScore: data['bestScore'] as int? ?? 0,
-              passed: data['passed'] as bool? ?? false,
-              attempts: data['attempts'] as int? ?? 0,
-              transcript: data['transcript'] as String?,
-            );
-          });
+      // Find first unpassed item index
+      final items = widget.quiz.speechBuilders ?? [];
+      int firstUnpassed = 0;
+      for (int i = 0; i < items.length; i++) {
+        if (!(_itemStates[items[i].id]?.passed ?? false)) {
+          firstUnpassed = i;
+          break;
         }
+      }
+
+      setState(() {
+        _currentIndex = firstUnpassed;
 
         // If quiz is completed, notify parent to show transcript/etc
         if (progress.isCompleted) {
           widget.onCheck?.call();
         }
       });
+
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
     }
   }
 
@@ -164,6 +178,17 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
         transcript:
             passed ? targetText : 'I am trying to speak...', // Mock transcript
       );
+
+      // Play sound effect
+      if (mounted) {
+        final soundProvider = context.read<SoundEffectProvider>();
+        if (passed) {
+          soundProvider.playCorrect();
+        } else {
+          soundProvider.playWrong();
+        }
+      }
+
       _saveProgress();
     });
   }
@@ -204,7 +229,11 @@ class _SpeechBuilderState extends State<SpeechBuilder> {
             ),
             child: CustomPaint(
               painter: _DashedBorderPainter(
-                color: appColors.primary.withValues(alpha: 0.5),
+                color: state.passed
+                    ? Colors.green
+                    : (state.attempts > 0
+                        ? Colors.red
+                        : appColors.border.withValues(alpha: 0.5)),
                 strokeWidth: 2,
                 gap: 4,
                 borderRadius: 12,

@@ -1,10 +1,15 @@
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class QuizBuilder extends StatefulWidget {
   const QuizBuilder({
     required this.quiz,
+    required this.lessonId,
+    required this.quizId,
     this.onCheck,
     this.onNext,
     this.onPrev,
@@ -14,6 +19,8 @@ class QuizBuilder extends StatefulWidget {
   });
 
   final Quiz quiz;
+  final String lessonId;
+  final String quizId;
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
@@ -46,6 +53,86 @@ class _QuizBuilderState extends State<QuizBuilder> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentIndex);
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final progress = await quizStateProvider.loadQuizProgress(
+      widget.lessonId,
+      widget.quizId,
+    );
+
+    if (progress != null && mounted) {
+      final savedIndices =
+          progress.data?['selectedIndices'] as Map<String, dynamic>?;
+      if (savedIndices != null) {
+        savedIndices.forEach((key, value) {
+          _selectedIndices[key] = (value as List<dynamic>).cast<int>();
+        });
+      }
+
+      final savedCorrectness =
+          progress.data?['correctness'] as Map<String, dynamic>?;
+      if (savedCorrectness != null) {
+        savedCorrectness.forEach((key, value) {
+          _correctness[key] = value as bool?;
+        });
+      }
+
+      final savedChecked =
+          progress.data?['isCheckedMap'] as Map<String, dynamic>?;
+      if (savedChecked != null) {
+        savedChecked.forEach((key, value) {
+          _isCheckedMap[key] = value as bool;
+        });
+      }
+
+      // Find first unpassed item index
+      final questions = widget.quiz.questions;
+      int firstUnpassed = 0;
+      for (int i = 0; i < questions.length; i++) {
+        if (!(_isCheckedMap[questions[i].id] ?? false)) {
+          firstUnpassed = i;
+          break;
+        }
+      }
+
+      setState(() {
+        _currentIndex = firstUnpassed;
+
+        // If quiz is completed, notify parent to show transcript/etc
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
+        }
+      });
+
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
+    }
+  }
+
+  Future<void> _saveProgress() async {
+    final quizStateProvider = context.read<QuizStateProvider>();
+    final totalItems = widget.quiz.questions.length;
+    final completedItems = _isCheckedMap.values.where((v) => v).length;
+    final correctItems = _correctness.values.where((v) => v == true).length;
+
+    await quizStateProvider.saveQuizProgress(
+      lessonId: widget.lessonId,
+      quizId: widget.quizId,
+      quizType: 'builder',
+      completedItems: completedItems,
+      totalItems: totalItems,
+      correctItems: correctItems,
+      data: {
+        'currentIndex': _currentIndex,
+        'selectedIndices': _selectedIndices,
+        'correctness': _correctness,
+        'isCheckedMap': _isCheckedMap,
+      },
+    );
   }
 
   @override
@@ -58,6 +145,7 @@ class _QuizBuilderState extends State<QuizBuilder> {
     setState(() {
       _currentIndex = index;
     });
+    _saveProgress();
   }
 
   void _animateToNextQuestion() {
@@ -108,9 +196,33 @@ class _QuizBuilderState extends State<QuizBuilder> {
     setState(() {
       _correctness[currentItem.id] = isCorrect;
       _isCheckedMap[currentItem.id] = true;
+
+      // Play sound effect
+      if (mounted) {
+        final soundProvider = context.read<SoundEffectProvider>();
+        if (isCorrect) {
+          soundProvider.playCorrect();
+        } else {
+          soundProvider.playWrong();
+        }
+      }
+
+      _saveProgress();
+
+      if (isCorrect) {
+        // Auto-next logic:
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted &&
+              _currentIndex == widget.quiz.questions.indexOf(currentItem)) {
+            _animateToNextQuestion();
+          }
+        });
+      }
     });
 
-    widget.onCheck?.call();
+    if (_isCheckedMap.length == widget.quiz.questions.length) {
+      widget.onCheck?.call();
+    }
   }
 
   void _resetItem(String itemId) {
@@ -125,7 +237,6 @@ class _QuizBuilderState extends State<QuizBuilder> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final questions = widget.quiz.questions;
-    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     if (questions.isEmpty) {
       return Center(
@@ -152,6 +263,10 @@ class _QuizBuilderState extends State<QuizBuilder> {
         final isChecked = _isCheckedMap[item.id] ?? false;
         final isCorrect = _correctness[item.id];
         final selected = _selectedIndices[item.id] ?? [];
+
+        final borderColor = isChecked
+            ? (isCorrect ?? false ? Colors.green : Colors.red)
+            : Colors.grey.withValues(alpha: 0.5);
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),

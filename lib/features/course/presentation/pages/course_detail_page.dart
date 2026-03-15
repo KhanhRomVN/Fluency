@@ -11,7 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui' as ui;
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 
 class CourseDetailPage extends StatefulWidget {
   const CourseDetailPage({super.key, this.course});
@@ -940,10 +942,114 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     }
   }
 
+  void _showLoadingModal(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (BuildContext context) {
+        return PopScope(
+          canPop: false,
+          child: Center(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: appColors.cardBackground.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 60,
+                          height: 60,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              appColors.primary,
+                            ),
+                          ),
+                        ),
+                        SvgPicture.asset(
+                          'assets/icons/book_open.svg',
+                          width: 28,
+                          height: 28,
+                          colorFilter: ColorFilter.mode(
+                            appColors.primary,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Preparing lesson...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: appColors.textPrimary,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Initializing Piper voice engine',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: appColors.textPrimary.withValues(alpha: 0.5),
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _handleLessonTap(BuildContext context, Lesson lesson) async {
     final quizStateProvider = context.read<QuizStateProvider>();
+    final ttsProvider = context.read<TtsProvider>();
 
-    await quizStateProvider.init();
+    // Show loading modal
+    _showLoadingModal(context);
+
+    // Give the UI a frame to actually render the modal before heavy work starts
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    try {
+      // Parallel initialization
+      await Future.wait([
+        quizStateProvider.init(),
+        ttsProvider.initService(),
+      ]);
+    } catch (e) {
+      debugPrint('Error during lesson preparation: $e');
+    } finally {
+      // Dismiss loading modal - MUST use rootNavigator to match showDialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+
+    // Small delay to ensure modal is fully dismissed before showing next UI
+    await Future<void>.delayed(const Duration(milliseconds: 100));
 
     // Check if lesson has any saved progress
     final hasProgress = quizStateProvider.hasLessonProgress(lesson.id);

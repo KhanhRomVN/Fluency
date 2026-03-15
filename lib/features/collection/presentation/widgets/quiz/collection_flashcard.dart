@@ -14,12 +14,14 @@ class CollectionFlashcard extends StatefulWidget {
     required this.collectionId,
     required this.terms,
     required this.initialIndex,
+    this.onPageChanged,
     super.key,
   });
 
   final String collectionId;
   final List<Term> terms;
   final int initialIndex;
+  final ValueChanged<int>? onPageChanged;
 
   @override
   State<CollectionFlashcard> createState() => _CollectionFlashcardState();
@@ -80,12 +82,13 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
     await ttsProvider.speakWithGender(term.term);
   }
 
-  void _onPageChanged(int index) {
+  void _onPageChangedInternal(int index) {
     setState(() {
       _currentIndex = index;
       _isFlipped = false;
       _flipController.reset();
     });
+    widget.onPageChanged?.call(index);
     _speakCurrentTerm();
   }
 
@@ -100,104 +103,89 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
     });
   }
 
+  String _getDisplayText(String definition) {
+    if (!definition.startsWith('{')) return definition;
+    try {
+      final json = jsonDecode(definition) as Map<String, dynamic>;
+      final entry = DirectoryEntry.fromJson(json);
+      if (entry.meanings.isNotEmpty &&
+          entry.meanings.first.definitions.isNotEmpty) {
+        return entry.meanings.first.definitions.first.definition;
+      }
+    } catch (_) {
+      // Fallback to raw if parsing fails
+    }
+    return definition;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final terms = widget.terms;
 
     if (terms.isEmpty) {
-      return Scaffold(
-        backgroundColor: appColors.background,
-        appBar: AppBar(
-          backgroundColor: appColors.background,
-          elevation: 0,
-          leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.close, color: appColors.textPrimary),
-          ),
-        ),
-        body: Center(
-          child: Text(
-            'No terms available.',
-            style: TextStyle(color: appColors.textSecondary, fontSize: 16),
-          ),
+      return Center(
+        child: Text(
+          'No terms available.',
+          style: TextStyle(color: appColors.textSecondary, fontSize: 16),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: appColors.background,
-      appBar: AppBar(
-        backgroundColor: appColors.background,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.close, color: appColors.textPrimary),
-        ),
-        title: Text(
-          '${_currentIndex + 1} / ${terms.length}',
-          style: TextStyle(
-            color: appColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: PageView.builder(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        physics: const ClampingScrollPhysics(),
-        itemCount: terms.length,
-        itemBuilder: (context, index) {
-          final term = terms[index];
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: _onPageChangedInternal,
+      physics: const ClampingScrollPhysics(),
+      itemCount: terms.length,
+      itemBuilder: (context, index) {
+        final term = terms[index];
 
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: appColors.cardBackground,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: appColors.border, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: GestureDetector(
-                onTap: index == _currentIndex ? _performFlip : null,
-                child: AnimatedBuilder(
-                  animation: _flipAnimation,
-                  builder: (context, child) {
-                    final angle = (index == _currentIndex)
-                        ? _flipAnimation.value * math.pi
-                        : 0.0;
-                    final isBack = angle > math.pi / 2;
-
-                    return Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()
-                        ..setEntry(3, 2, 0.001)
-                        ..rotateY(angle),
-                      child: isBack
-                          ? Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.identity()..rotateY(math.pi),
-                              child: _buildBack(context, term, appColors),
-                            )
-                          : _buildFront(context, term, appColors),
-                    );
-                  },
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: appColors.cardBackground,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: appColors.border, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
+              ],
+            ),
+            child: GestureDetector(
+              onTap: index == _currentIndex ? _performFlip : null,
+              child: AnimatedBuilder(
+                animation: _flipAnimation,
+                builder: (context, child) {
+                  final angle = (index == _currentIndex)
+                      ? _flipAnimation.value * math.pi
+                      : 0.0;
+                  final isBack = angle > math.pi / 2;
+
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateY(angle),
+                    child: isBack
+                        ? Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()..rotateY(math.pi),
+                            child: _buildBack(context, term, appColors),
+                          )
+                        : _buildFront(context, term, appColors),
+                  );
+                },
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -214,61 +202,46 @@ class _CollectionFlashcardState extends State<CollectionFlashcard>
         color: appColors.cardBackground,
         borderRadius: BorderRadius.circular(24),
       ),
-      child: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(flex: 2),
-                Text(
-                  term.term,
-                  style: TextStyle(
-                    color: appColors.textPrimary,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                if (term.phonetics.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    term.phonetics.join(', '),
-                    style: TextStyle(
-                      color: appColors.textSecondary,
-                      fontSize: 18,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-                const Spacer(flex: 3),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.touch_app_outlined,
-                      size: 16, color: appColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Tap to flip',
-                    style: TextStyle(
-                      color: appColors.primary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Spacer(flex: 2),
+            Text(
+              term.term,
+              style: TextStyle(
+                color: appColors.textPrimary,
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
               ),
+              textAlign: TextAlign.center,
             ),
-          ),
-        ],
+            if (term.phonetics.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                term.phonetics.join(', '),
+                style: TextStyle(
+                  color: appColors.textSecondary,
+                  fontSize: 18,
+                  fontFamily: 'NotoSans',
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Text(
+              _getDisplayText(term.definition),
+              style: TextStyle(
+                color: appColors.textSecondary.withValues(alpha: 0.8),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Spacer(flex: 3),
+          ],
+        ),
       ),
     );
   }

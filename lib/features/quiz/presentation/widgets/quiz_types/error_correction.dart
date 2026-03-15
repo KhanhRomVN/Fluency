@@ -2,6 +2,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/explain_drawer.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -64,37 +65,46 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     );
 
     if (progress != null && mounted) {
-      setState(() {
-        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+      final savedStates = progress.data?['itemStates'] as Map<String, dynamic>?;
+      if (savedStates != null) {
+        savedStates.forEach((key, value) {
+          final data = value as Map<String, dynamic>;
+          _itemStates[key] = _ErrorCorrectionItemState(
+            solvedErrorIds:
+                (data['solvedErrorIds'] as List?)?.cast<String>().toSet() ?? {},
+            passed: data['passed'] as bool? ?? false,
+            feedbackMessage: data['feedbackMessage'] as String? ?? '',
+            isCorrectFeedback: data['isCorrectFeedback'] as bool? ?? true,
+            corrections: (data['corrections'] as Map<String, dynamic>?)?.map(
+                  (k, v) => MapEntry(int.parse(k), v as String),
+                ) ??
+                {},
+          );
+        });
+      }
 
-        final savedStates =
-            progress.data?['itemStates'] as Map<String, dynamic>?;
-        if (savedStates != null) {
-          savedStates.forEach((key, value) {
-            final data = value as Map<String, dynamic>;
-            _itemStates[key] = _ErrorCorrectionItemState(
-              solvedErrorIds:
-                  (data['solvedErrorIds'] as List?)?.cast<String>().toSet() ??
-                      {},
-              passed: data['passed'] as bool? ?? false,
-              feedbackMessage: data['feedbackMessage'] as String? ?? '',
-              isCorrectFeedback: data['isCorrectFeedback'] as bool? ?? true,
-              corrections: (data['corrections'] as Map<String, dynamic>?)?.map(
-                    (k, v) => MapEntry(int.parse(k), v as String),
-                  ) ??
-                  {},
-            );
-          });
+      // Find first unpassed item index
+      final items = widget.quiz.errorCorrections ?? [];
+      int firstUnpassed = 0;
+      for (int i = 0; i < items.length; i++) {
+        if (!(_itemStates[items[i].id]?.passed ?? false)) {
+          firstUnpassed = i;
+          break;
         }
-        if (_pageController.hasClients) {
-          _pageController.jumpToPage(_currentIndex);
-        }
+      }
+
+      setState(() {
+        _currentIndex = firstUnpassed;
 
         // If quiz is completed, notify parent to show transcript/etc
         if (progress.isCompleted) {
           widget.onCheck?.call();
         }
       });
+
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
     }
   }
 
@@ -269,6 +279,12 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
           feedbackMessage: "Incorrect selection. The error wasn't here.",
           isCorrectFeedback: false,
         );
+
+        // Play sound effect
+        if (mounted) {
+          context.read<SoundEffectProvider>().playWrong();
+        }
+
         // Reset selection
         _selectedTokenIndex = null;
         _inputValue = '';
@@ -300,6 +316,12 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
           feedbackMessage: allSolved ? 'Excellent!' : 'Correct!',
           isCorrectFeedback: true,
         );
+
+        // Play sound effect
+        if (mounted) {
+          context.read<SoundEffectProvider>().playCorrect();
+        }
+
         _selectedTokenIndex = null;
         _selectedError = null;
         _inputValue = '';
@@ -315,6 +337,12 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
           feedbackMessage: 'Right spot, but wrong fix. Expected: "$correctAns"',
           isCorrectFeedback: false,
         );
+
+        // Play sound effect
+        if (mounted) {
+          context.read<SoundEffectProvider>().playWrong();
+        }
+
         _saveProgress();
       });
     }
@@ -395,8 +423,11 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                       child: CustomPaint(
                         painter: _DashedBorderPainter(
                           color: state.passed
-                              ? appColors.primary
-                              : appColors.border,
+                              ? Colors.green
+                              : (state.feedbackMessage.isNotEmpty &&
+                                      !state.isCorrectFeedback
+                                  ? Colors.red
+                                  : appColors.border),
                           strokeWidth: 2,
                           gap: 4,
                           borderRadius: 16,

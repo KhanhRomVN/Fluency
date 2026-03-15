@@ -5,6 +5,8 @@ import 'package:fluency/features/setting/presentation/providers/achievement_prov
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/course/presentation/widgets/course_image.dart';
 import 'package:fluency/features/course/presentation/pages/course_detail_page.dart';
+import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
+import 'package:fluency/features/setting/presentation/widgets/voice_selection_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,8 +25,25 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         final achievementProvider = context.read<AchievementProvider>();
         context.read<StatsProvider>().loadStats(achievementProvider);
+
+        // Check for voice selection
+        final ttsProvider = context.read<TtsProvider>();
+        if (ttsProvider.preferredGender == null) {
+          _showVoiceSelection(context);
+        }
       }
     });
+  }
+
+  void _showVoiceSelection(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const VoiceSelectionDrawer(),
+    );
   }
 
   @override
@@ -166,10 +185,10 @@ class _DailyGoalBox extends StatelessWidget {
       0.0, // Mon: Missed
       0.0, // Tue: Missed
       0.0, // Wed: Missed
-      0.3, // Thu: Today (example progress)
-      0.0, // Fri: Future
-      0.0, // Sat: Future
-      0.0, // Sun: Future
+      0.0, // Thu
+      0.0, // Fri
+      0.0, // Sat
+      0.0, // Sun
     ];
 
     return Container(
@@ -195,9 +214,9 @@ class _DailyGoalBox extends StatelessWidget {
               ),
               Row(
                 children: [
-                  _miniStat('📖', '1/2', colors.primary),
+                  _miniStat('📖', '0/2', colors.primary),
                   const SizedBox(width: 10),
-                  _miniStat('🃏', '2/3', const Color(0xFFa78bfa)),
+                  _miniStat('🃏', '0/3', const Color(0xFFa78bfa)),
                 ],
               ),
             ],
@@ -530,7 +549,7 @@ class _DailyGoalsList extends StatelessWidget {
           icon: '📘',
           title: 'Complete 2 Lessons',
           subtitle: 'Vocabulary & Grammar',
-          progress: 0.45,
+          progress: 0.0,
           color: const Color(0xFF3B82F6),
         ),
         const SizedBox(height: 8),
@@ -538,7 +557,7 @@ class _DailyGoalsList extends StatelessWidget {
           icon: '🃏',
           title: 'Review 20 Flashcards',
           subtitle: 'Spaced Repetition',
-          progress: 0.70,
+          progress: 0.0,
           color: const Color(0xFF22C55E),
         ),
       ],

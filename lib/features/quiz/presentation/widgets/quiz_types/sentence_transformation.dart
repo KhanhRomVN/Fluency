@@ -2,6 +2,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -59,30 +60,43 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     );
 
     if (progress != null && mounted) {
-      setState(() {
-        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+      final savedStates = progress.data?['cardStates'] as Map<String, dynamic>?;
+      if (savedStates != null) {
+        savedStates.forEach((key, value) {
+          final data = value as Map<String, dynamic>;
+          _cardStates[key] = _CardState(
+            isChecked: data['isChecked'] as bool? ?? false,
+            isCorrect: data['isCorrect'] as bool?,
+            gapInputs: (data['gapInputs'] as Map<String, dynamic>?)?.map(
+                  (k, v) => MapEntry(k, v as String),
+                ) ??
+                {},
+          );
+        });
+      }
 
-        final savedStates =
-            progress.data?['cardStates'] as Map<String, dynamic>?;
-        if (savedStates != null) {
-          savedStates.forEach((key, value) {
-            final data = value as Map<String, dynamic>;
-            _cardStates[key] = _CardState(
-              isChecked: data['isChecked'] as bool? ?? false,
-              isCorrect: data['isCorrect'] as bool?,
-              gapInputs: (data['gapInputs'] as Map<String, dynamic>?)?.map(
-                    (k, v) => MapEntry(k, v as String),
-                  ) ??
-                  {},
-            );
-          });
+      // Find first unpassed item index
+      final items = widget.quiz.sentenceTransformations ?? [];
+      int firstUnpassed = 0;
+      for (int i = 0; i < items.length; i++) {
+        if (!(_cardStates[items[i].id]?.isChecked ?? false)) {
+          firstUnpassed = i;
+          break;
         }
+      }
+
+      setState(() {
+        _currentIndex = firstUnpassed;
 
         // If quiz is completed, notify parent to show transcript/etc
         if (progress.isCompleted) {
           widget.onCheck?.call();
         }
       });
+
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
     }
   }
 
@@ -189,6 +203,17 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
         isCorrect: isCorrect,
         isChecked: true,
       );
+
+      // Play sound effect
+      if (mounted) {
+        final soundProvider = context.read<SoundEffectProvider>();
+        if (isCorrect) {
+          soundProvider.playCorrect();
+        } else {
+          soundProvider.playWrong();
+        }
+      }
+
       _saveProgress();
     });
   }
@@ -241,7 +266,6 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final items = widget.quiz.sentenceTransformations ?? [];
-    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     if (items.isEmpty) {
       return Center(
@@ -263,6 +287,10 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
       itemBuilder: (context, index) {
         final item = items[index];
         final state = _cardStates[item.id] ?? _CardState();
+
+        final borderColor = state.isChecked
+            ? (state.isCorrect ?? false ? Colors.green : Colors.red)
+            : Colors.grey.withValues(alpha: 0.5);
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

@@ -4,8 +4,9 @@ import 'dart:math' as math;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
+import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -84,9 +85,11 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     if (progress != null && mounted) {
       debugPrint('Flashcard: Progress found, restoring');
       setState(() {
-        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+        // Find first uncompleted card index instead of just taking saved currentIndex
+        final flashcards = widget.quiz.flashcards ?? [];
+        int firstUncompleted = 0;
 
-        // Restore completed cards
+        // Restore completed cards first
         final completed =
             progress.data?['completedCards'] as Map<String, dynamic>?;
         if (completed != null) {
@@ -94,6 +97,16 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
             _completedCards[key] = value as bool;
           });
         }
+
+        // Find the index
+        for (int i = 0; i < flashcards.length; i++) {
+          if (!(_completedCards[flashcards[i].id] ?? false)) {
+            firstUncompleted = i;
+            break;
+          }
+        }
+
+        _currentIndex = firstUncompleted;
 
         // Restore card correctness
         final correctness =
@@ -351,13 +364,13 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                           Color? bgColor;
                           Widget? trailingIcon;
 
-                          if (isSelected) {
+                          if (localSelectedOption != null) {
                             if (isActuallyCorrect) {
                               borderColor = Colors.green;
                               bgColor = Colors.green.withValues(alpha: 0.1);
                               trailingIcon = const Icon(Icons.check,
                                   color: Colors.green, size: 20);
-                            } else {
+                            } else if (isSelected) {
                               borderColor = Colors.red;
                               bgColor = Colors.red.withValues(alpha: 0.1);
                               trailingIcon = const Icon(Icons.close,
@@ -379,6 +392,17 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                                       final isCorrect = isActuallyCorrect;
                                       _markAsCompleted(card.id, isCorrect);
 
+                                      // Play sound effect
+                                      if (context.mounted) {
+                                        final soundProvider =
+                                            context.read<SoundEffectProvider>();
+                                        if (isCorrect) {
+                                          soundProvider.playCorrect();
+                                        } else {
+                                          soundProvider.playWrong();
+                                        }
+                                      }
+
                                       // Delay to let user see the result
                                       await Future<void>.delayed(
                                           const Duration(milliseconds: 1500));
@@ -395,7 +419,11 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                                   color: bgColor ?? appColors.inputBackground,
                                   border: Border.all(
                                       color: borderColor,
-                                      width: isSelected ? 2 : 1),
+                                      width: (isSelected ||
+                                              (localSelectedOption != null &&
+                                                  isActuallyCorrect))
+                                          ? 2
+                                          : 1),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Row(
@@ -410,12 +438,15 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
-                                              color: isSelected
-                                                  ? (isActuallyCorrect
-                                                      ? Colors.green
-                                                      : Colors.red)
-                                                  : appColors.textPrimary
-                                                      .withValues(alpha: 0.9),
+                                              color: (localSelectedOption !=
+                                                          null &&
+                                                      isActuallyCorrect)
+                                                  ? Colors.green
+                                                  : (isSelected
+                                                      ? Colors.red
+                                                      : appColors.textPrimary
+                                                          .withValues(
+                                                              alpha: 0.9)),
                                             ),
                                           ),
                                         ),
@@ -488,6 +519,13 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     }
   }
 
+  Color _getBorderColor(String cardId) {
+    if (!_completedCards.containsKey(cardId)) {
+      return Colors.grey.withValues(alpha: 0.5);
+    }
+    return (_cardCorrectness[cardId] ?? false) ? Colors.green : Colors.red;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -524,7 +562,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
             ),
             child: CustomPaint(
               painter: _DashedBorderPainter(
-                color: Colors.grey.withValues(alpha: 0.5),
+                color: _getBorderColor(card.id),
                 strokeWidth: 2,
                 gap: 4,
                 borderRadius: 12,
@@ -534,6 +572,7 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                   _buildInternalHeader(context, appColors, cards, index),
                   Expanded(
                     child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: index == _currentIndex ? _handleFlipRequest : null,
                       child: AnimatedBuilder(
                         animation: _flipAnimation,
@@ -697,32 +736,6 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                 ],
                 const Spacer(flex: 3),
               ],
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.rotate_right, size: 16, color: appColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    (item.options != null && item.options!.isNotEmpty) ||
-                            (item.optionsTrans != null &&
-                                item.optionsTrans!.isNotEmpty)
-                        ? 'Tap to solve & flip'
-                        : 'Click to flip',
-                    style: TextStyle(
-                      color: appColors.primary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],

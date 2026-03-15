@@ -4,6 +4,12 @@ import 'package:flutter/material.dart';
 final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
   fontFamily: 'DM Sans',
+  textTheme: ThemeData.light().textTheme.apply(
+        fontFamily: 'DM Sans',
+      ),
+  primaryTextTheme: ThemeData.light().textTheme.apply(
+        fontFamily: 'DM Sans',
+      ),
   primaryColor: AppColors.primary,
   scaffoldBackgroundColor: AppColors.background,
   colorScheme: const ColorScheme.light(),

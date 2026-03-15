@@ -11,14 +11,14 @@ import 'package:fluency/features/quiz/presentation/widgets/directory_drawer.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class CollectionPage extends StatefulWidget {
-  const CollectionPage({super.key});
+class CollectionListPage extends StatefulWidget {
+  const CollectionListPage({super.key});
 
   @override
-  State<CollectionPage> createState() => _CollectionPageState();
+  State<CollectionListPage> createState() => _CollectionListPageState();
 }
 
-class _CollectionPageState extends State<CollectionPage> {
+class _CollectionListPageState extends State<CollectionListPage> {
   final CollectionRepository _repository = CollectionRepositoryImpl();
   final TextEditingController _searchController = TextEditingController();
   List<Collection> _collections = [];

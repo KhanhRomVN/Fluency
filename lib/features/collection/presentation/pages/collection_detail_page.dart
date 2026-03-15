@@ -4,12 +4,7 @@ import 'package:fluency/features/collection/data/repositories/collection_reposit
 import 'package:fluency/features/collection/domain/entities/collection.dart';
 import 'package:fluency/features/collection/domain/entities/term.dart';
 import 'package:fluency/features/collection/domain/repositories/collection_repository.dart';
-import 'package:fluency/features/collection/presentation/widgets/quiz/collection_flashcard.dart';
-import 'package:fluency/features/collection/presentation/widgets/quiz/collection_builder.dart';
-import 'package:fluency/features/collection/presentation/widgets/quiz/collection_multiple_choice.dart';
-import 'package:fluency/features/collection/presentation/widgets/quiz/collection_pronunciation_drill.dart';
-import 'package:fluency/features/collection/presentation/widgets/quiz/collection_sentence_builder.dart';
-import 'package:fluency/features/collection/presentation/widgets/quiz/collection_speech_builder.dart';
+import 'package:fluency/features/collection/presentation/pages/collection_quiz_page.dart';
 import 'package:fluency/features/collection/presentation/widgets/drawers/add_term_drawer.dart';
 import 'package:fluency/features/collection/presentation/widgets/drawers/edit_collection_drawer.dart';
 import 'package:fluency/features/collection/presentation/widgets/term_card.dart';
@@ -129,57 +124,14 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     final suitableTerms = _getSuitableTerms(type);
     if (suitableTerms.isEmpty) return;
 
-    Widget quizWidget;
-    switch (type) {
-      case 'flashcard':
-        quizWidget = CollectionFlashcard(
-          collectionId: widget.collectionId,
-          terms: suitableTerms,
-          initialIndex: index,
-        );
-        break;
-      case 'builder':
-        quizWidget = CollectionBuilder(
-          collectionId: widget.collectionId,
-          terms: suitableTerms,
-          initialIndex: index,
-        );
-        break;
-      case 'multiple_choice':
-        quizWidget = CollectionMultipleChoice(
-          collectionId: widget.collectionId,
-          terms: suitableTerms,
-          initialIndex: index,
-        );
-        break;
-      case 'pronunciation_drill':
-        quizWidget = CollectionPronunciationDrill(
-          collectionId: widget.collectionId,
-          terms: suitableTerms,
-          initialIndex: index,
-        );
-        break;
-      case 'sentence_builder':
-        quizWidget = CollectionSentenceBuilder(
-          collectionId: widget.collectionId,
-          terms: suitableTerms,
-          initialIndex: index,
-        );
-        break;
-      case 'speech_builder':
-        quizWidget = CollectionSpeechBuilder(
-          collectionId: widget.collectionId,
-          terms: suitableTerms,
-          initialIndex: index,
-        );
-        break;
-      default:
-        return;
-    }
-
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
-        builder: (context) => quizWidget,
+        builder: (context) => CollectionQuizPage(
+          quizType: type,
+          collectionId: widget.collectionId,
+          terms: suitableTerms,
+          initialIndex: index,
+        ),
       ),
     );
 
@@ -259,16 +211,18 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   Color _getTabColor(String tab, AppColorsExtension appColors) {
     switch (tab) {
-      case 'New':
-        return appColors.textSecondary.withValues(alpha: 0.5);
-      case 'Learning':
-        return const Color(0xFF94A3B8);
-      case 'Familiar':
-        return const Color(0xFF60A5FA);
-      case 'Proficient':
-        return const Color(0xFFF59E0B);
-      case 'Mastered':
+      case 'All':
         return appColors.primary;
+      case 'New':
+        return appColors.textSecondary;
+      case 'Learning':
+        return const Color(0xFFF472B6); // Pink
+      case 'Familiar':
+        return const Color(0xFF60A5FA); // Blue
+      case 'Proficient':
+        return const Color(0xFFF59E0B); // Amber
+      case 'Mastered':
+        return const Color(0xFF10B981); // Emerald
       default:
         return appColors.primary;
     }
@@ -287,6 +241,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
           final isActive = _activeTab == tab;
           final count = _getTabCount(tab);
           final tabColor = _getTabColor(tab, appColors);
+          final inactiveColor = appColors.textSecondary.withValues(alpha: 0.4);
 
           return Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -296,10 +251,10 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               onSelected: (selected) {
                 if (selected) setState(() => _activeTab = tab);
               },
-              selectedColor: tabColor,
-              backgroundColor: tabColor.withValues(alpha: 0.05),
+              selectedColor: tabColor.withValues(alpha: 0.15),
+              backgroundColor: inactiveColor.withValues(alpha: 0.05),
               labelStyle: TextStyle(
-                color: isActive ? Colors.white : tabColor,
+                color: isActive ? tabColor : inactiveColor,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
                 fontSize: 12,
               ),
@@ -308,7 +263,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
               side: BorderSide(
                 color: isActive
                     ? Colors.transparent
-                    : tabColor.withValues(alpha: 0.2),
+                    : inactiveColor.withValues(alpha: 0.2),
               ),
               showCheckmark: false,
               padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -426,54 +381,49 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
   void _showQuizTypeDrawer() {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final quizTypes = [
       {
         'id': 'flashcard',
         'name': 'Flashcards',
         'icon': Icons.style_rounded,
         'desc': 'Classic active recall practice',
-        'color': Colors.blue,
-        'min': 1,
+        'color': const Color(0xFF3B82F6),
       },
       {
         'id': 'builder',
         'name': 'Word Builder',
         'icon': Icons.extension_rounded,
         'desc': 'Construct words letter by letter',
-        'color': Colors.orange,
-        'min': 1,
+        'color': const Color(0xFFF59E0B),
       },
       {
         'id': 'multiple_choice',
         'name': 'Multiple Choice',
         'icon': Icons.checklist_rounded,
         'desc': 'Select the correct meaning',
-        'color': Colors.green,
-        'min': 4,
+        'color': const Color(0xFF10B981),
       },
       {
         'id': 'pronunciation_drill',
         'name': 'Pronunciation Drill',
         'icon': Icons.mic_rounded,
         'desc': 'Perfect your speaking skills',
-        'color': Colors.purple,
-        'min': 1,
+        'color': const Color(0xFF8B5CF6),
       },
       {
         'id': 'sentence_builder',
         'name': 'Sentence Builder',
         'icon': Icons.format_align_left_rounded,
         'desc': 'Learn words in context',
-        'color': Colors.teal,
-        'min': 1,
+        'color': const Color(0xFF14B8A6),
       },
       {
         'id': 'speech_builder',
         'name': 'Speech Builder',
         'icon': Icons.record_voice_over_rounded,
         'desc': 'Practice natural flow',
-        'color': Colors.indigo,
-        'min': 1,
+        'color': const Color(0xFF6366F1),
       },
     ];
 
@@ -482,61 +432,105 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
+        padding: const EdgeInsets.only(bottom: 28),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: appColors.drawerBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              blurRadius: 32,
+              offset: const Offset(0, -4),
+            ),
+          ],
+          border: Border.all(
+            color: appColors.border.withValues(alpha: 0.1),
+          ),
         ),
-        padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Drag Handle
+            // Handle
+            const SizedBox(height: 12),
             Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              width: 40,
+              width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: appColors.textSecondary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2),
+                color: appColors.textSecondary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(99),
               ),
             ),
+            const SizedBox(height: 12),
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Choose Quiz Type',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Choose Quiz Type',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: appColors.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'Practice and master your collection',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: appColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: appColors.inputBackground,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: appColors.border.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: appColors.textSecondary,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
+            const SizedBox(height: 16),
             Flexible(
-              child: ListView.builder(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 shrinkWrap: true,
                 itemCount: quizTypes.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 6),
                 itemBuilder: (context, index) {
                   final type = quizTypes[index];
                   final color = type['color'] as Color;
-                  final minCount = type['min'] as int;
 
-                  // Temporary filter to show count in UI without shuffling
+                  // Determine if enabled
+                  int minCount = 1;
+                  if (type['id'] == 'multiple_choice') minCount = 4;
+
                   int availableCount = 0;
                   if (type['id'] == 'sentence_builder' ||
                       type['id'] == 'speech_builder') {
@@ -563,60 +557,100 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
 
                   final bool isEnabled = availableCount >= minCount;
 
-                  return ListTile(
-                    enabled: isEnabled,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4), // Reduced from 8
-                    leading: Container(
-                      padding: const EdgeInsets.all(8), // Reduced from 10
-                      decoration: BoxDecoration(
-                        color: isEnabled
-                            ? color.withValues(alpha: 0.1)
-                            : Colors.grey.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(type['icon'] as IconData,
-                          color: isEnabled ? color : Colors.grey),
-                    ),
-                    title: Text(
-                      type['name'] as String,
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isEnabled
-                              ? appColors.textPrimary
-                              : appColors.textSecondary.withValues(alpha: 0.5)),
-                    ),
-                    subtitle: Text(
-                      type['desc'] as String,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: appColors.textSecondary
-                              .withValues(alpha: isEnabled ? 0.7 : 0.5)),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isEnabled
-                            ? Colors.green.withValues(alpha: 0.1)
-                            : Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Min: $minCount | Available: $availableCount',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isEnabled ? Colors.green : Colors.red,
-                        ),
-                      ),
-                    ),
+                  return InkWell(
                     onTap: isEnabled
                         ? () {
                             Navigator.pop(context);
                             _navigateToQuiz(type['id'] as String, 0);
                           }
                         : null,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+                      decoration: BoxDecoration(
+                        color: appColors.cardBackground,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isEnabled
+                              ? appColors.border
+                              : appColors.border.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: isEnabled
+                                  ? color
+                                  : Colors.grey.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: Icon(
+                              type['icon'] as IconData,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  type['name'] as String,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: isEnabled
+                                        ? appColors.textPrimary
+                                        : appColors.textSecondary
+                                            .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  type['desc'] as String,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: appColors.textSecondary
+                                        .withValues(alpha: isEnabled ? 1 : 0.4),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isEnabled)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '$availableCount/$minCount',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            )
+                          else
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              size: 16,
+                              color: appColors.textSecondary
+                                  .withValues(alpha: 0.6),
+                            ),
+                        ],
+                      ),
+                    ),
                   );
                 },
               ),
@@ -859,138 +893,191 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
   }
 
   void _showCollectionActions(AppColorsExtension appColors) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
+        padding: const EdgeInsets.only(bottom: 28),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: appColors.drawerBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              blurRadius: 32,
+              offset: const Offset(0, -4),
+            ),
+          ],
+          border: Border.all(
+            color: appColors.border.withValues(alpha: 0.1),
+          ),
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag Handle
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: appColors.textSecondary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            const SizedBox(height: 12),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: appColors.textSecondary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(99),
               ),
-              // Header
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Collection Actions',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textPrimary,
+            ),
+            const SizedBox(height: 12),
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Collection Actions',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: appColors.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'Manage and organize your collection',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: appColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: appColors.inputBackground,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: appColors.border.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: appColors.textSecondary,
+                        ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              _buildActionTile(
-                appColors: appColors,
-                icon: Icons.add_rounded,
-                iconColor: appColors.primary,
-                title: 'Add Term',
-                description: 'Search and add new terms to this collection',
-                onTap: () {
-                  Navigator.pop(context);
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => AddTermDrawer(
-                      onWordSelected: (word) {
-                        setState(() {
-                          _selectedWord = word;
-                          _showDirectoryDrawer = true;
-                        });
-                      },
-                    ),
-                  );
-                },
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Column(
+                children: [
+                  _buildActionTile(
+                    appColors: appColors,
+                    icon: Icons.add_rounded,
+                    iconColor: appColors.primary,
+                    title: 'Add Term',
+                    description: 'Search and add new terms to this collection',
+                    onTap: () {
+                      Navigator.pop(context);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => AddTermDrawer(
+                          onWordSelected: (word) {
+                            setState(() {
+                              _selectedWord = word;
+                              _showDirectoryDrawer = true;
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  _buildActionTile(
+                    appColors: appColors,
+                    icon: Icons.psychology_rounded,
+                    iconColor: Colors.orange,
+                    title: 'Start Review',
+                    description: 'Test your knowledge with various quiz types',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _showQuizTypeDrawer();
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  _buildActionTile(
+                    appColors: appColors,
+                    icon: Icons.checklist_rounded,
+                    iconColor: Colors.blue,
+                    title: 'Batch Delete',
+                    description:
+                        'Select multiple terms to remove from collection',
+                    onTap: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _isSelectionMode = true;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  _buildActionTile(
+                    appColors: appColors,
+                    icon: Icons.edit_rounded,
+                    iconColor: Colors.teal,
+                    title: 'Edit Collection',
+                    description: 'Update collection name and description',
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (_collection == null) return;
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => EditCollectionDrawer(
+                          collection: _collection!,
+                          onUpdated: _loadCollection,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  _buildActionTile(
+                    appColors: appColors,
+                    icon: Icons.delete_forever_rounded,
+                    iconColor: Colors.red,
+                    title: 'Delete Collection',
+                    description:
+                        'Permanently remove this collection and all its terms',
+                    isDangerous: true,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _confirmDeleteCollection(appColors);
+                    },
+                  ),
+                ],
               ),
-              _buildActionTile(
-                appColors: appColors,
-                icon: Icons.psychology_rounded,
-                iconColor: Colors.orange,
-                title: 'Start Review',
-                description: 'Test your knowledge with various quiz types',
-                onTap: () {
-                  Navigator.pop(context);
-                  _showQuizTypeDrawer();
-                },
-              ),
-              _buildActionTile(
-                appColors: appColors,
-                icon: Icons.checklist_rounded,
-                iconColor: Colors.blue,
-                title: 'Batch Delete',
-                description: 'Select multiple terms to remove from collection',
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    _isSelectionMode = true;
-                  });
-                },
-              ),
-              _buildActionTile(
-                appColors: appColors,
-                icon: Icons.edit_rounded,
-                iconColor: Colors.teal,
-                title: 'Edit Collection',
-                description: 'Update collection name and description',
-                onTap: () {
-                  Navigator.pop(context);
-                  if (_collection == null) return;
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => EditCollectionDrawer(
-                      collection: _collection!,
-                      onUpdated: _loadCollection,
-                    ),
-                  );
-                },
-              ),
-              _buildActionTile(
-                appColors: appColors,
-                icon: Icons.delete_forever_rounded,
-                iconColor: Colors.red,
-                title: 'Delete Collection',
-                description:
-                    'Permanently remove this collection and all its terms',
-                isDangerous: true,
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeleteCollection(appColors);
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1005,43 +1092,75 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     required VoidCallback onTap,
     bool isDangerous = false,
   }) {
-    return ListTile(
+    return InkWell(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(
-          horizontal: 24, vertical: 4), // Reduced from 8
-      leading: Container(
-        padding: const EdgeInsets.all(10), // Reduced from 12
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
         decoration: BoxDecoration(
-          color: (isDangerous ? Colors.red : iconColor).withValues(alpha: 0.15),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon,
-            color: isDangerous ? Colors.red : iconColor,
-            size: 22), // Reduced from 24
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: isDangerous ? Colors.red : appColors.textPrimary,
-          fontSize: 16,
-        ),
-      ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Text(
-          description,
-          style: TextStyle(
-            fontSize: 13,
-            color: (isDangerous ? Colors.red : appColors.textSecondary)
-                .withValues(alpha: 0.6),
+          color: isDangerous
+              ? Colors.red.withValues(alpha: 0.1)
+              : appColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDangerous
+                ? Colors.red.withValues(alpha: 0.3)
+                : appColors.border,
           ),
         ),
-      ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: (isDangerous ? Colors.red : appColors.textSecondary)
-            .withValues(alpha: 0.3),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isDangerous ? Colors.red : iconColor,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDangerous ? Colors.red : appColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDangerous
+                          ? Colors.red.withValues(alpha: 0.5)
+                          : appColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: isDangerous
+                  ? Colors.red.withValues(alpha: 0.5)
+                  : appColors.textSecondary.withValues(alpha: 0.6),
+            ),
+          ],
+        ),
       ),
     );
   }

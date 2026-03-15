@@ -120,13 +120,21 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(bottom: 28),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: appColors.drawerBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+            blurRadius: 32,
+            offset: const Offset(0, -4),
+          ),
+        ],
         border: Border.all(
           color: appColors.border.withValues(alpha: 0.1),
         ),
@@ -134,7 +142,7 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
+          // Handle
           const SizedBox(height: 12),
           Container(
             width: 36,
@@ -145,7 +153,7 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
             ),
           ),
           const SizedBox(height: 12),
-          // Header with Title and Close Button
+          // Header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -156,28 +164,24 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.collection.name,
+                        'Collection Actions',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: appColors.textPrimary,
                           letterSpacing: -0.5,
                         ),
+                      ),
+                      Text(
+                        widget.collection.name,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: appColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (widget.collection.description != null &&
-                          widget.collection.description!.isNotEmpty)
-                        Text(
-                          widget.collection.description!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: appColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
                     ],
                   ),
                 ),
@@ -206,15 +210,6 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
             ),
           ),
           const SizedBox(height: 16),
-          // Divider
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              height: 1,
-              color: appColors.divider.withValues(alpha: 0.1),
-            ),
-          ),
-          const SizedBox(height: 10),
           // Actions
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),

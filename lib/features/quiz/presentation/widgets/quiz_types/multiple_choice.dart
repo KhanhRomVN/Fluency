@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -67,35 +68,48 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     );
 
     if (progress != null && mounted) {
+      // Restore submitted questions first
+      final submittedIds =
+          progress.data?['submittedQuestions'] as List<dynamic>?;
+      if (submittedIds != null) {
+        _submittedQuestions.addAll(submittedIds.cast<String>());
+      }
+
+      // Restore correctness
+      final correctness =
+          progress.data?['questionCorrectness'] as Map<String, dynamic>?;
+      if (correctness != null) {
+        correctness.forEach((key, value) {
+          _questionCorrectness[key] = value as bool;
+        });
+      }
+
+      // Restore selected options
+      final selected =
+          progress.data?['selectedOptions'] as Map<String, dynamic>?;
+      if (selected != null) {
+        selected.forEach((questionId, options) {
+          _selectedOptions[questionId] =
+              (options as List<dynamic>).cast<String>().toSet();
+        });
+      }
+
+      // Find first unsubmitted question index
+      final questions = widget.quiz.questions;
+      int firstUnsubmitted = 0;
+      for (int i = 0; i < questions.length; i++) {
+        if (!_submittedQuestions.contains(questions[i].id)) {
+          firstUnsubmitted = i;
+          break;
+        }
+      }
+
       setState(() {
-        // Restore current question index
-        _currentQuestionIndex =
-            progress.data?['currentQuestionIndex'] as int? ?? 0;
+        _currentQuestionIndex = firstUnsubmitted;
 
-        // Restore submitted questions
-        final submittedIds =
-            progress.data?['submittedQuestions'] as List<dynamic>?;
-        if (submittedIds != null) {
-          _submittedQuestions.addAll(submittedIds.cast<String>());
-        }
-
-        // Restore correctness
-        final correctness =
-            progress.data?['questionCorrectness'] as Map<String, dynamic>?;
-        if (correctness != null) {
-          correctness.forEach((key, value) {
-            _questionCorrectness[key] = value as bool;
-          });
-        }
-
-        // Restore selected options
-        final selected =
-            progress.data?['selectedOptions'] as Map<String, dynamic>?;
-        if (selected != null) {
-          selected.forEach((questionId, options) {
-            _selectedOptions[questionId] =
-                (options as List<dynamic>).cast<String>().toSet();
-          });
+        // Jump to saved page
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(_currentQuestionIndex);
         }
 
         // If quiz is completed, notify parent to show transcript/etc
@@ -158,7 +172,7 @@ class _MultipleChoiceState extends State<MultipleChoice> {
         var borderColor = Colors.grey.withValues(alpha: 0.5);
         if (isSubmitted) {
           final isCorrect = _questionCorrectness[question.id] ?? false;
-          borderColor = isCorrect ? appColors.primary : Colors.red;
+          borderColor = isCorrect ? Colors.green : Colors.red;
         }
 
         return Padding(
@@ -584,6 +598,16 @@ class _MultipleChoiceState extends State<MultipleChoice> {
       }
 
       _questionCorrectness[question.id] = isCorrect;
+
+      // Play sound effect
+      if (mounted) {
+        final soundProvider = context.read<SoundEffectProvider>();
+        if (isCorrect) {
+          soundProvider.playCorrect();
+        } else {
+          soundProvider.playWrong();
+        }
+      }
     });
 
     // Save progress after submit

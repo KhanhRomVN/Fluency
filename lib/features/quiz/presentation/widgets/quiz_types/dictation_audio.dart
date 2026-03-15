@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -75,36 +76,48 @@ class _DictationAudioState extends State<DictationAudio> {
     );
 
     if (progress != null && mounted) {
-      setState(() {
-        _currentIndex = progress.data?['currentIndex'] as int? ?? 0;
+      final savedStates = progress.data?['itemStates'] as Map<String, dynamic>?;
+      if (savedStates != null) {
+        savedStates.forEach((key, value) {
+          final data = value as Map<String, dynamic>;
+          _itemStates[key] = _DictationItemState(
+            score: data['score'] as int? ?? 0,
+            passed: data['passed'] as bool? ?? false,
+            attempts: data['attempts'] as int? ?? 0,
+            wordInputs: (data['wordInputs'] as Map<String, dynamic>?)?.map(
+                  (k, v) => MapEntry(int.parse(k), v as String),
+                ) ??
+                {},
+            correctWords: (data['correctWords'] as Map<String, dynamic>?)?.map(
+                  (k, v) => MapEntry(int.parse(k), v as bool),
+                ) ??
+                {},
+          );
+        });
+      }
 
-        final savedStates =
-            progress.data?['itemStates'] as Map<String, dynamic>?;
-        if (savedStates != null) {
-          savedStates.forEach((key, value) {
-            final data = value as Map<String, dynamic>;
-            _itemStates[key] = _DictationItemState(
-              score: data['score'] as int? ?? 0,
-              passed: data['passed'] as bool? ?? false,
-              attempts: data['attempts'] as int? ?? 0,
-              wordInputs: (data['wordInputs'] as Map<String, dynamic>?)?.map(
-                    (k, v) => MapEntry(int.parse(k), v as String),
-                  ) ??
-                  {},
-              correctWords:
-                  (data['correctWords'] as Map<String, dynamic>?)?.map(
-                        (k, v) => MapEntry(int.parse(k), v as bool),
-                      ) ??
-                      {},
-            );
-          });
+      // Find first unpassed item index
+      final dictations = widget.quiz.dictations ?? [];
+      int firstUnpassed = 0;
+      for (int i = 0; i < dictations.length; i++) {
+        if (!(_itemStates[dictations[i].id]?.passed ?? false)) {
+          firstUnpassed = i;
+          break;
         }
+      }
+
+      setState(() {
+        _currentIndex = firstUnpassed;
 
         // If quiz is completed, notify parent to show transcript/etc
         if (progress.isCompleted) {
           widget.onCheck?.call();
         }
       });
+
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(_currentIndex);
+      }
     }
   }
 
@@ -296,6 +309,17 @@ class _DictationAudioState extends State<DictationAudio> {
         correctWords: correctWordsMap,
         wordInputs: allCorrect ? state.wordInputs : newWordInputs,
       );
+
+      // Play sound effect
+      if (mounted) {
+        final soundProvider = context.read<SoundEffectProvider>();
+        if (allCorrect) {
+          soundProvider.playCorrect();
+        } else {
+          soundProvider.playWrong();
+        }
+      }
+
       _saveProgress();
     });
   }
@@ -320,17 +344,6 @@ class _DictationAudioState extends State<DictationAudio> {
     final words = correctText.trim().split(RegExp(r'\s+'));
 
     // Check completion
-    var allFilled = true;
-    for (var i = 0; i < words.length; i++) {
-      final w = words[i];
-      final input = currentState.wordInputs[i] ?? '';
-      if (input.length != w.length) {
-        allFilled = false;
-        break;
-      }
-    }
-
-    final borderColor = Colors.grey.withValues(alpha: 0.5);
 
     return Column(
       children: [
@@ -360,6 +373,12 @@ class _DictationAudioState extends State<DictationAudio> {
                   break;
                 }
               }
+
+              final borderColor = state.passed
+                  ? Colors.green
+                  : (state.attempts > 0
+                      ? Colors.red
+                      : Colors.grey.withValues(alpha: 0.5));
 
               return Padding(
                 padding:

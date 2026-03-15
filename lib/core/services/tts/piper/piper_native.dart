@@ -30,21 +30,33 @@ class PiperTtsService implements TtsService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Use default or selected model
-    // For now, let's assume we need avalid model path.
-    // If no path is provided, we can't initialize fully (or wait for user to select).
+    // 1. Validate Model File
     if (selectedModelPath == null || !File(selectedModelPath!).existsSync()) {
-      debugPrint('No valid Piper model selected.');
-      return;
+      throw Exception('Piper model file not found at $selectedModelPath');
     }
 
-    if (espeakDataPath == null || !Directory(espeakDataPath!).existsSync()) {
-      debugPrint('No espeak-ng-data found at $espeakDataPath');
-      return;
+    final modelDir = path.dirname(selectedModelPath!);
+    final tokensPath = path.join(modelDir, 'tokens.txt');
+    final lexiconPath = path.join(modelDir, 'lexicon.txt');
+    final hasEspeakData =
+        espeakDataPath != null && Directory(espeakDataPath!).existsSync();
+    final hasLexicon = File(lexiconPath).existsSync();
+
+    // 2. Validate Tokens File (Vital for Sherpa-ONNX, otherwise it crashes native)
+    if (!File(tokensPath).existsSync()) {
+      throw Exception(
+          'Piper tokens file not found at $tokensPath. Sherpa-ONNX requires tokens.txt.');
+    }
+
+    // 3. Validate Phonemizer resources (espeak-ng-data or lexicon.txt)
+    if (!hasEspeakData && !hasLexicon) {
+      // Piper models using phonemes MUST have either espeak-ng-data or a lexicon file.
+      // Without them, sherpa-onnx crashes the process with a Segmentation Fault/exit.
+      throw Exception(
+          'Missing phonemization resources. Piper requires either espeak-ng-data or lexicon.txt in $modelDir to prevent native crash.');
     }
 
     try {
-      final modelDir = path.dirname(selectedModelPath!);
       debugPrint('Initializing Piper with model: $selectedModelPath');
       debugPrint('Espeak data: $espeakDataPath');
 
@@ -52,12 +64,10 @@ class PiperTtsService implements TtsService {
         model: OfflineTtsModelConfig(
           vits: OfflineTtsVitsModelConfig(
             model: selectedModelPath!,
-            // Assuming tokens are in same dir with specific name, or we need to pass it.
-            // Typically Piper models come with `tokens.txt`
-            tokens: path.join(modelDir, 'tokens.txt'),
-            // dataDir isn't always needed for VITS ONNX from Piper, check docs but usually empty is fine for some
-            // However, Sherpa might need it. Let's assume standard Piper export structure.
-            dataDir: espeakDataPath!, // Vital for phonemization
+            tokens: tokensPath,
+            // lexicon: hasLexicon ? lexiconPath : '',
+            dataDir:
+                hasEspeakData ? espeakDataPath! : '', // Only pass if it exists
           ),
           numThreads: 1,
           debug: true,
@@ -105,7 +115,7 @@ class PiperTtsService implements TtsService {
 
       // 3. Play and wait for completion
       final completer = Completer<void>();
-      StreamSubscription? subscription;
+      StreamSubscription<PlayerState>? subscription;
 
       subscription = _audioPlayer.onPlayerStateChanged.listen((state) {
         if (state == PlayerState.completed || state == PlayerState.stopped) {

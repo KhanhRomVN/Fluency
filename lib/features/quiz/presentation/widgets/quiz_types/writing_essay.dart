@@ -2,6 +2,7 @@ import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
+import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -117,6 +118,12 @@ class _WritingEssayState extends State<WritingEssay> {
     // Mock submit
     setState(() {
       _submitted = true;
+
+      // Play sound effect
+      if (mounted) {
+        context.read<SoundEffectProvider>().playCorrect();
+      }
+
       _saveProgress();
     });
   }
