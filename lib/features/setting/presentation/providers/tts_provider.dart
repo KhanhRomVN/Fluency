@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 
 class TtsProvider extends ChangeNotifier {
   static const String _engineKey = 'tts_engine';
@@ -62,8 +63,8 @@ class TtsProvider extends ChangeNotifier {
     await _ensureDefaultVoicesExist();
     await _ensureEspeakDataExists();
 
-    // Removed _initService() to prevent auto-loading
-    // await _initService();
+    // Re-enabled _initService() to allow Piper isolate to start in background
+    _initService();
   }
 
   Future<void> _ensureDefaultVoicesExist() async {
@@ -96,15 +97,19 @@ class TtsProvider extends ChangeNotifier {
           await File(jsonPath).writeAsBytes(jsonData.buffer.asUint8List());
           await File(tokensPath).writeAsBytes(tokensData.buffer.asUint8List());
           debugPrint('Copied default voice $voice and tokens from assets.');
-        } catch (e) {
+        } catch (e, stack) {
           debugPrint(
               'Default voice $voice not found in assets or copy failed: $e');
+          MonitoringService.captureError(e, stackTrace: stack);
         }
       }
     }
   }
 
-  Future<void> initService() => _initService();
+  Future<void> initService({bool force = false}) async {
+    if (_isInitialized && !force) return;
+    await _initService();
+  }
 
   Future<void> _ensureEspeakDataExists() async {
     final appDir = await getApplicationDocumentsDirectory();
@@ -131,8 +136,9 @@ class TtsProvider extends ChangeNotifier {
       });
 
       debugPrint('Successfully extracted espeak-ng-data');
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Failed to extract espeak-ng-data.zip: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
     }
   }
 
@@ -196,8 +202,9 @@ class TtsProvider extends ChangeNotifier {
 
       await _activeTtsService!.initialize();
       _isInitialized = true;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('TTS initialization failed, falling back to System: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       // Fallback to System TTS
       _activeTtsService?.dispose();
       _activeTtsService = SystemTtsService();

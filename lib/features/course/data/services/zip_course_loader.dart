@@ -1,13 +1,44 @@
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:encrypt/encrypt.dart' as encrypt_pkg;
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:fluency/core/security/zip_security.dart';
+import 'package:fluency/features/course/data/services/zip_isolate_workers.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
+
 class ZipCourseLoader {
   static const String _coursesAssetPath = 'assets/courses';
+  static const String _courseBoxName = 'encrypted_course_data';
+
+  /// Mở Hive Box được mã hóa
+  Future<Box> _openCourseBox() async {
+    final encryptionKey = await ZipSecurity.getHiveEncryptionKey();
+    return await Hive.openBox(_courseBoxName,
+        encryptionCipher: HiveAesCipher(encryptionKey));
+  }
+
+  /// Import dữ liệu từ JSON vào Hive
+  Future<void> _importToHive(String courseId, Map<String, dynamic> data) async {
+    final box = await _openCourseBox();
+    await box.put(courseId, json.encode(data));
+  }
+
+  /// Lấy dữ liệu từ Hive
+  Future<Map<String, dynamic>?> _getFromHive(String key) async {
+    final box = await _openCourseBox();
+    final data = box.get(key);
+    if (data != null) {
+      return json.decode(data as String) as Map<String, dynamic>;
+    }
+    return null;
+  }
 
   // Cache extracted courses to avoid re-extracting
   final Map<String, Directory> _extractedCourses = {};
@@ -53,8 +84,9 @@ class ZipCourseLoader {
           .toList();
 
       return zipFiles;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error listing ZIP files: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return [];
     }
   }
@@ -70,14 +102,16 @@ class ZipCourseLoader {
         }
       }
       return zipFiles;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error listing imported ZIP files: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return [];
     }
   }
 
   /// Extract a ZIP file from assets to cache directory
-  Future<Directory?> extractZipFile(String assetPath) async {
+  Future<Directory?> extractZipFile(String assetPath,
+      {void Function(double)? onProgress}) async {
     try {
       // Check if already extracted
       final courseName = assetPath.split('/').last.replaceAll('.zip', '');
@@ -85,6 +119,7 @@ class ZipCourseLoader {
         final cachedDir = _extractedCourses[courseName]!;
         if (cachedDir.existsSync()) {
           debugPrint('Using cached extracted course: $courseName');
+          onProgress?.call(1.0);
           return cachedDir;
         }
       }
@@ -105,23 +140,59 @@ class ZipCourseLoader {
       }
       await extractDir.create(recursive: true);
 
-      // Extract in isolate
-      await compute(_extractZipBytesIsolate, {
+      final password = await ZipSecurity.getZipPassword();
+      final key = await ZipSecurity.getEncryptionKey();
+
+      // Simple wrapper for calling extraction
+      final params = {
         'bytes': bytes,
         'extractPath': extractDir.path,
-      });
+        'zipPassword': password,
+        'encryptionKey': base64Encode(key.bytes),
+      };
+
+      // Extract in isolate with progress support
+      try {
+        final receivePort = ReceivePort();
+        await Isolate.spawn(
+          extractZipBytesIsolate,
+          {...params, 'sendPort': receivePort.sendPort},
+        );
+
+        await for (final message in receivePort) {
+          if (message is double) {
+            onProgress?.call(message);
+            if (message >= 1.0) receivePort.close();
+          } else if (message is String && message.startsWith('error:')) {
+            receivePort.close();
+            throw Exception(message);
+          }
+        }
+      } catch (e) {
+        debugPrint(
+            'Isolate extraction failed, falling back to main isolate: $e');
+        // Fallback: run directly in main isolate (passing null for SendPort)
+        extractZipBytesIsolate({...params, 'sendPort': null});
+        onProgress?.call(1.0);
+      }
 
       debugPrint('Successfully extracted $courseName to ${extractDir.path}');
       _extractedCourses[courseName] = extractDir;
+
+      // Import to Hive after extraction
+      await _syncWithHive(extractDir, key: key);
+
       return extractDir;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error extracting ZIP file $assetPath: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return null;
     }
   }
 
   /// Extract a ZIP file from a local File object
-  Future<Directory?> extractZipFileFromFile(File zipFile) async {
+  Future<Directory?> extractZipFileFromFile(File zipFile,
+      {void Function(double)? onProgress}) async {
     try {
       final courseName = zipFile.path.split('/').last.replaceAll('.zip', '');
 
@@ -130,6 +201,7 @@ class ZipCourseLoader {
         final cachedDir = _extractedCourses[courseName]!;
         if (cachedDir.existsSync()) {
           debugPrint('Using cached extracted course: $courseName');
+          onProgress?.call(1.0);
           return cachedDir;
         }
       }
@@ -144,141 +216,253 @@ class ZipCourseLoader {
       }
       await extractDir.create(recursive: true);
 
-      // Extract in isolate using path stream for memory efficiency
-      await compute(_extractZipPathIsolate, {
+      final password = await ZipSecurity.getZipPassword();
+      final key = await ZipSecurity.getEncryptionKey();
+
+      final params = {
         'zipPath': zipFile.path,
         'extractPath': extractDir.path,
-      });
+        'zipPassword': password,
+        'encryptionKey': base64Encode(key.bytes),
+      };
+
+      // Extract in isolate with progress support
+      try {
+        final receivePort = ReceivePort();
+        await Isolate.spawn(
+          extractZipPathIsolate,
+          {...params, 'sendPort': receivePort.sendPort},
+        );
+
+        await for (final message in receivePort) {
+          if (message is double) {
+            onProgress?.call(message);
+            if (message >= 1.0) receivePort.close();
+          } else if (message is String && message.startsWith('error:')) {
+            receivePort.close();
+            throw Exception(message);
+          }
+        }
+      } catch (e) {
+        debugPrint(
+            'Isolate extraction failed, falling back to main isolate: $e');
+        // Fallback: run directly in main isolate
+        extractZipPathIsolate({...params, 'sendPort': null});
+        onProgress?.call(1.0);
+      }
 
       debugPrint(
         'Successfully extracted local ZIP $courseName to ${extractDir.path}',
       );
       _extractedCourses[courseName] = extractDir;
+
+      // Import to Hive after extraction
+      await _syncWithHive(extractDir, key: key);
+
       return extractDir;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error extracting local ZIP file ${zipFile.path}: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return null;
     }
   }
 
-  // Helper function for asset extraction (using bytes)
-  static void _extractZipBytesIsolate(Map<String, dynamic> params) {
-    final bytes = params['bytes'] as Uint8List;
-    final extractPath = params['extractPath'] as String;
+  /// Sync extracted JSON files with Hive and delete them
+  Future<void> _syncWithHive(Directory extractedDir,
+      {encrypt_pkg.Key? key}) async {
+    try {
+      final encryptionKey = key ?? await ZipSecurity.getEncryptionKey();
+      final courseJson =
+          await _loadCourseJsonLegacy(extractedDir, key: encryptionKey);
+      if (courseJson != null && courseJson['id'] != null) {
+        final courseId = courseJson['id'] as String;
+        await _importToHive('course_$courseId', courseJson);
 
-    final archive = ZipDecoder().decodeBytes(bytes);
-    for (final file in archive) {
-      final filename = file.name;
-      final fullPath = '$extractPath/$filename';
-      if (file.isFile) {
-        final data = file.content as List<int>;
-        final outputFile = File(fullPath);
-        outputFile.parent.createSync(recursive: true);
-        outputFile.writeAsBytesSync(data);
-      } else {
-        Directory(fullPath).createSync(recursive: true);
+        // Load and import lessons
+        final lessons =
+            await _loadLessonJsonsLegacy(extractedDir, key: encryptionKey);
+        for (final lesson in lessons) {
+          if (lesson['id'] != null) {
+            await _importToHive('lesson_${lesson['id']}', lesson);
+          }
+        }
+
+        // Delete JSON files for security
+        final files = await extractedDir.list().toList();
+        for (final file in files) {
+          if (file is File && file.path.endsWith('.json')) {
+            await file.delete();
+          }
+        }
+        debugPrint('Synced course $courseId with Hive and deleted local JSONs');
       }
+    } catch (e, stack) {
+      debugPrint('Error syncing with Hive: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
     }
   }
 
-  // Helper function for file extraction (using path)
-  static void _extractZipPathIsolate(Map<String, dynamic> params) {
-    final zipPath = params['zipPath'] as String;
-    final extractPath = params['extractPath'] as String;
-
-    final bytes = File(zipPath).readAsBytesSync();
-    final archive = ZipDecoder().decodeBytes(bytes);
-
-    for (final file in archive) {
-      final filename = file.name;
-      final fullPath = '$extractPath/$filename';
-      if (file.isFile) {
-        final data = file.content as List<int>;
-        final outputFile = File(fullPath);
-        outputFile.parent.createSync(recursive: true);
-        outputFile.writeAsBytesSync(data);
-      } else {
-        Directory(fullPath).createSync(recursive: true);
-      }
-    }
-  }
-
-  /// Load course JSON from extracted directory
+  /// Load course JSON - prioritized from Hive, then disk
   Future<Map<String, dynamic>?> loadCourseJson(Directory extractedDir) async {
     try {
-      // Find the main course JSON file
-      final files = await extractedDir.list().toList();
+      // 1. Try disk search (legacy/import phase)
+      final key = await ZipSecurity.getEncryptionKey();
+      final diskCourse = await _loadCourseJsonLegacy(extractedDir, key: key);
+      if (diskCourse != null) return diskCourse;
 
-      File? courseJsonFile;
-      for (final file in files) {
-        if (file is File && file.path.endsWith('_Course.json')) {
-          courseJsonFile = file;
-          break;
-        }
-      }
-
-      if (courseJsonFile == null) {
-        // Try to find any JSON file with 'course' in the name (check filename only)
-        for (final file in files) {
-          if (file is File) {
-            final fileName = file.path.split('/').last.toLowerCase();
-            if (fileName.contains('course') && fileName.endsWith('.json')) {
-              courseJsonFile = file;
-              break;
-            }
+      // 2. Try Hive search
+      final box = await _openCourseBox();
+      for (var hiveKey in box.keys) {
+        if (hiveKey.toString().startsWith('course_')) {
+          final data = await _getFromHive(hiveKey.toString());
+          if (data != null) {
+            return data;
           }
         }
       }
 
-      if (courseJsonFile == null) {
-        debugPrint('No course JSON file found in ${extractedDir.path}');
-        return null;
-      }
-
-      final jsonString = await courseJsonFile.readAsString();
-      return json.decode(jsonString) as Map<String, dynamic>;
-    } catch (e) {
+      return null;
+    } catch (e, stack) {
       debugPrint('Error loading course JSON: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return null;
     }
   }
 
-  /// Load lesson JSON files from extracted directory
+  /// Legacy loader (for initial import or unencrypted/file-encrypted files)
+  Future<Map<String, dynamic>?> _loadCourseJsonLegacy(Directory extractedDir,
+      {encrypt_pkg.Key? key}) async {
+    try {
+      // Recursive search for course.json or metadata.json
+      File? courseJsonFile;
+      final entities = await extractedDir.list(recursive: true).toList();
+
+      for (final entity in entities) {
+        if (entity is File) {
+          final fileName = entity.path.split('/').last.toLowerCase();
+          if (fileName == 'course.json' ||
+              fileName == 'metadata.json' ||
+              fileName.endsWith('_course.json')) {
+            courseJsonFile = entity;
+            break;
+          }
+        }
+      }
+
+      if (courseJsonFile == null) return null;
+
+      final encryptionKey = key ?? await ZipSecurity.getEncryptionKey();
+      final iv = encrypt_pkg.IV(Uint8List(16));
+      final encrypter = encrypt_pkg.Encrypter(encrypt_pkg.AES(encryptionKey));
+
+      final encryptedBytes = await courseJsonFile.readAsBytes();
+      try {
+        final decrypted =
+            encrypter.decrypt(encrypt_pkg.Encrypted(encryptedBytes), iv: iv);
+        return json.decode(decrypted) as Map<String, dynamic>;
+      } catch (e) {
+        // Fallback for plain JSON (not yet encrypted by Loader)
+        final jsonString = await courseJsonFile.readAsString();
+        return json.decode(jsonString) as Map<String, dynamic>;
+      }
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
+      return null;
+    }
+  }
+
+  /// Load lesson JSONs - prioritized from Hive, then disk
   Future<List<Map<String, dynamic>>> loadLessonJsons(
     Directory extractedDir,
   ) async {
+    final lessons = <Map<String, dynamic>>[];
     try {
-      final files = await extractedDir.list().toList();
-      final lessons = <Map<String, dynamic>>[];
+      // 1. Try disk search (legacy/import phase)
+      final key = await ZipSecurity.getEncryptionKey();
+      final diskLessons = await _loadLessonJsonsLegacy(extractedDir, key: key);
+      if (diskLessons.isNotEmpty) return diskLessons;
 
-      for (final file in files) {
-        if (file is File) {
-          final fileName = file.path.split('/').last.toLowerCase();
-          if (fileName.contains('lesson') && fileName.endsWith('.json')) {
-            try {
-              final jsonString = await file.readAsString();
-              final lessonJson =
-                  json.decode(jsonString) as Map<String, dynamic>;
-              lessons.add(lessonJson);
-            } catch (e) {
-              debugPrint('Error loading lesson file ${file.path}: $e');
+      // 2. Try Hive search
+      final courseJson = await loadCourseJson(extractedDir);
+      if (courseJson != null && courseJson['id'] != null) {
+        final courseId = courseJson['id'] as String;
+        final box = await _openCourseBox();
+        for (var key in box.keys) {
+          if (key.toString().startsWith('lesson_')) {
+            final lesson = await _getFromHive(key.toString());
+            if (lesson != null && lesson['courseId'] == courseId) {
+              lessons.add(lesson);
             }
           }
         }
       }
-
-      // Sort by lesson number if available
-      lessons.sort((a, b) {
-        final aNum = a['lessonNumber'] as int? ?? 0;
-        final bNum = b['lessonNumber'] as int? ?? 0;
-        return aNum.compareTo(bNum);
-      });
-
-      return lessons;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading lesson JSONs: $e');
-      return [];
+      MonitoringService.captureError(e, stackTrace: stack);
     }
+
+    lessons.sort((a, b) {
+      final aNum = a['lessonNumber'] as int? ?? 0;
+      final bNum = b['lessonNumber'] as int? ?? 0;
+      return aNum.compareTo(bNum);
+    });
+    return lessons;
+  }
+
+  Future<List<Map<String, dynamic>>> _loadLessonJsonsLegacy(
+      Directory extractedDir,
+      {encrypt_pkg.Key? key}) async {
+    final lessons = <Map<String, dynamic>>[];
+    try {
+      final entities = await extractedDir.list(recursive: true).toList();
+      for (final entity in entities) {
+        if (entity is File) {
+          final pathParts = entity.path.split('/');
+          final fileName = pathParts.last.toLowerCase();
+
+          // Check for lesson<number>/lesson<number>.json structure
+          if (fileName.endsWith('.json') && fileName.contains('lesson')) {
+            final lessonFolder =
+                pathParts.length >= 2 ? pathParts[pathParts.length - 2] : '';
+
+            // Match lesson(\d+) folder containing lesson(\d+).json
+            final lessonFolderMatch =
+                RegExp(r'^lesson(\d+)$', caseSensitive: false)
+                    .firstMatch(lessonFolder);
+            final lessonFileMatch =
+                RegExp(r'^lesson(\d+)\.json$', caseSensitive: false)
+                    .firstMatch(fileName);
+
+            if (lessonFolderMatch != null &&
+                lessonFileMatch != null &&
+                lessonFolderMatch.group(1) == lessonFileMatch.group(1)) {
+              try {
+                final encryptionKey =
+                    key ?? await ZipSecurity.getEncryptionKey();
+                final iv = encrypt_pkg.IV(Uint8List(16));
+                final encrypter =
+                    encrypt_pkg.Encrypter(encrypt_pkg.AES(encryptionKey));
+
+                final encryptedBytes = await entity.readAsBytes();
+                String jsonString;
+                try {
+                  jsonString = encrypter
+                      .decrypt(encrypt_pkg.Encrypted(encryptedBytes), iv: iv);
+                } catch (e) {
+                  jsonString = await entity.readAsString();
+                }
+                lessons.add(json.decode(jsonString) as Map<String, dynamic>);
+              } catch (e, stack) {
+                MonitoringService.captureError(e, stackTrace: stack);
+              }
+            }
+          }
+        }
+      }
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
+    }
+    return lessons;
   }
 
   /// Get file path within extracted directory
@@ -305,8 +489,9 @@ class ZipCourseLoader {
       }
       _extractedCourses.clear();
       debugPrint('Course cache cleared');
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error clearing cache: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
     }
   }
 
@@ -325,8 +510,9 @@ class ZipCourseLoader {
         }
       }
       return totalSize;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error getting cache size: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return 0;
     }
   }
@@ -344,8 +530,9 @@ class ZipCourseLoader {
         }
       }
       return extractedFiles;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error extracting ZIP to memory: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return null;
     }
   }
@@ -357,7 +544,10 @@ class ZipCourseLoader {
       // Find course JSON
       String? courseJsonPath;
       for (final path in files.keys) {
-        if (path.endsWith('_Course.json')) {
+        final fileName = path.split('/').last.toLowerCase();
+        if (fileName == 'course.json' ||
+            fileName == 'metadata.json' ||
+            fileName.endsWith('_course.json')) {
           courseJsonPath = path;
           break;
         }
@@ -378,8 +568,9 @@ class ZipCourseLoader {
 
       final content = utf8.decode(files[courseJsonPath]!);
       return json.decode(content) as Map<String, dynamic>;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading course JSON from memory: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
       return null;
     }
   }
@@ -395,13 +586,15 @@ class ZipCourseLoader {
           try {
             final content = utf8.decode(files[path]!);
             lessons.add(json.decode(content) as Map<String, dynamic>);
-          } catch (e) {
+          } catch (e, stack) {
             debugPrint('Error loading lesson from memory $path: $e');
+            MonitoringService.captureError(e, stackTrace: stack);
           }
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading lessons from memory: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
     }
     return lessons;
   }

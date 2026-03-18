@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:flutter/foundation.dart';
 
 class CambridgeAutocompleteService {
@@ -66,7 +67,8 @@ class CambridgeAutocompleteService {
         }
         return suggestions;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Autocomplete error: $e');
     }
     return [];

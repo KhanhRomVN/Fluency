@@ -1,0 +1,12 @@
+{
+  "id": "master_vocabulary_p1",
+  "title": "Master Vocabulary by Topics Part 1",
+  "description": "Improve your vocabulary with topic-based flashcards.",
+  "imageUrl": "./Master_Vocabulary_by_Topics_Part_1_background.png",
+  "author": "KhanhRomVN",
+  "adapter": "KhanhRomVN",
+  "publisher": "KhanhRomVN",
+  "skills": ["Vocabulary", "Reading"],
+  "targetAudiences": ["vi"],
+  "version": 2
+}

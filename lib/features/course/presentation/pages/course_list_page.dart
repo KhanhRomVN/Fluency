@@ -9,6 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 
 class CourseListPage extends StatefulWidget {
   const CourseListPage({super.key});
@@ -66,7 +67,8 @@ class _CourseListPageState extends State<CourseListPage> {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -153,7 +155,8 @@ class _CourseListPageState extends State<CourseListPage> {
             ),
           );
         }
-      } catch (e) {
+      } catch (e, stack) {
+        MonitoringService.captureError(e, stackTrace: stack);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -164,6 +167,15 @@ class _CourseListPageState extends State<CourseListPage> {
         }
       }
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Background update check on every page entry (still respects 1-hour cache internally)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CourseProvider>().syncUpdates();
+    });
   }
 
   Future<void> _showImportChoice(BuildContext context) async {
@@ -256,6 +268,18 @@ class _CourseListPageState extends State<CourseListPage> {
               _buildModernOption(
                 context: modalContext,
                 colors: colors,
+                icon: Icons.language_rounded,
+                title: 'Fluency Hub',
+                subtitle: 'Browse and download courses from community',
+                onTap: () {
+                  Navigator.pop(modalContext);
+                  context.push('/hub');
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildModernOption(
+                context: modalContext,
+                colors: colors,
                 icon: Icons.file_present_rounded,
                 title: 'Local File',
                 subtitle: 'Select a .zip file from your device',
@@ -263,23 +287,6 @@ class _CourseListPageState extends State<CourseListPage> {
                   Navigator.pop(modalContext);
                   _importCourseFromFile(context);
                 },
-              ),
-              const SizedBox(height: 8),
-              Opacity(
-                opacity: 0.5,
-                child: AbsorbPointer(
-                  child: _buildModernOption(
-                    context: modalContext,
-                    colors: colors,
-                    icon: Icons.link_rounded,
-                    title: 'URL (Disabled)',
-                    subtitle: 'Temporary unavailable',
-                    onTap: () {
-                      Navigator.pop(modalContext);
-                      _importCourseFromUrl(context);
-                    },
-                  ),
-                ),
               ),
               const SizedBox(height: 20),
             ],

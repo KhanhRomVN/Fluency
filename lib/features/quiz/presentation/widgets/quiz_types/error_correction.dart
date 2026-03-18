@@ -127,11 +127,23 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     _saveProgress();
   }
 
+  void _handleNext(int totalItems) {
+    if (_currentIndex < totalItems - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      widget.onNext?.call();
+    }
+  }
+
   List<_Token> _parseTokens(ErrorCorrectionItem item) {
     // If the original text is likely not HTML-tagged (legacy), fallback to split?
     // But we assume updated content.
     final tokens = <_Token>[];
     int tokenCounter = 0;
+    int groupCounter = 0;
 
     // Regex to match <error> or <p> blocks
     // Captures: 1=attributes, 2=content
@@ -143,10 +155,9 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
 
     final brRegex = RegExp(r"<br\s*/?>", caseSensitive: false);
 
-    void addTextTokens(
-        String text, bool isError, String? errorId, bool isUnderline) {
+    void addTextTokens(String text, bool isError, String? errorId,
+        bool isUnderline, int? groupId) {
       // Split by <br> tags to handle newlines
-      // We use splitMapJoin logic but manually
       int lastIndex = 0;
       final brMatches = brRegex.allMatches(text);
 
@@ -154,15 +165,21 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         if (segment.isEmpty) return;
         // Strip other tags
         final clean = segment.replaceAll(RegExp(r'<[^>]*>'), '');
-        final words = clean.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
-        for (final w in words) {
+        final words =
+            clean.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+
+        for (int i = 0; i < words.length; i++) {
+          final w = words[i];
           tokens.add(_Token(
-            id: 'tok-${tokenCounter}',
+            id: 'tok-$tokenCounter',
             text: w,
             isError: isError,
             errorId: errorId,
             index: tokenCounter++,
             isUnderline: isUnderline,
+            groupId: groupId,
+            isFirstInGroup: i == 0,
+            isLastInGroup: i == words.length - 1,
           ));
         }
       }
@@ -178,6 +195,8 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
           isError: false,
           index: -1, // Newlines don't have index for corrections
           isNewline: true,
+          isFirstInGroup: false,
+          isLastInGroup: false,
         ));
         lastIndex = match.end;
       }
@@ -192,7 +211,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
       // Text before
       if (match.start > lastIndex) {
         final textBefore = item.original.substring(lastIndex, match.start);
-        addTextTokens(textBefore, false, null, false);
+        addTextTokens(textBefore, false, null, false, null);
       }
 
       final attrString = match.group(1) ?? '';
@@ -207,7 +226,8 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
       // Check underline
       final isUnderline = attrString.contains('underline');
 
-      addTextTokens(content, errorId != null, errorId, isUnderline);
+      addTextTokens(
+          content, errorId != null, errorId, isUnderline, groupCounter++);
 
       lastIndex = match.end;
     }
@@ -215,15 +235,12 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     // Text after
     if (lastIndex < item.original.length) {
       final textAfter = item.original.substring(lastIndex);
-      addTextTokens(textAfter, false, null, false);
+      addTextTokens(textAfter, false, null, false, null);
     }
 
-    // Fallback: If no tags found at all and text is not empty, assume plain text?
-    // Or assume it's just one text block.
-    // The previous implementation just split by space.
-    // If tokens is empty and original is not, do plain parse.
+    // Fallback: If no tags found at all and text is not empty, assume plain text split by words
     if (tokens.isEmpty && item.original.isNotEmpty) {
-      addTextTokens(item.original, false, null, false);
+      addTextTokens(item.original, false, null, false, null);
     }
 
     return tokens;
@@ -549,7 +566,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     AppColorsExtension appColors,
   ) {
     return Wrap(
-      spacing: 8,
+      spacing: 0,
       runSpacing: 14,
       children: tokens.map((token) {
         if (token.isNewline) {
@@ -560,19 +577,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
             token.errorId != null &&
             (state.solvedErrorIds.contains(token.errorId) || state.passed);
 
-        final isSelected = _selectedTokenIndex == token.index;
-
         if (isSolved) {
-          // Find correct word from metadata
-          // If we have multiple tokens for same error, how do we handle text?
-          // The logic assumes 1-1 mapping or we reconstruct.
-          // For simplicity, we just look up correction for this specific error ID and display it once?
-          // React implementation handles "First token of error" to display correction block involving multiple words.
-          // Here we simplify: If it's the FIRST match for this errorID in tokens that we've encountered?
-          // Since `_buildTokensWidget` iterates, we cannot peek easily without index.
-          // Let's just assume simple word-for-word or group.
-          // React: "if (isFirst && errorDef)".
-          // We can verify if this is the first token of this errorId.
           final isFirstOfError =
               tokens.firstWhere((t) => t.errorId == token.errorId).index ==
                   token.index;
@@ -586,6 +591,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
             final correctText = errorDef?.correct.first ?? '';
 
             return Container(
+              margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.green.withValues(alpha: 0.1),
@@ -623,43 +629,100 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
               ),
             );
           }
-          if (!isFirstOfError)
-            return const SizedBox
-                .shrink(); // Hide subsequent tokens of same error
+          if (!isFirstOfError) return const SizedBox.shrink();
         }
 
-        // Normal render
+        final isSelected = _selectedTokenIndex == token.index;
+
+        // Find selected group to highlight all member words
+        final selectedTokenInItem = _selectedTokenIndex != null
+            ? tokens.where((t) => t.index == _selectedTokenIndex).firstOrNull
+            : null;
+        final selectedGroupId = selectedTokenInItem?.groupId;
+
+        // Also highlight the whole error group if any token in it is selected
+        final isErrorGroupSelected = _selectedError != null &&
+            token.isError &&
+            token.errorId == _selectedError?.id;
+
+        final isTagGroupSelected =
+            token.groupId != null && token.groupId == selectedGroupId;
+
+        final showHighlight =
+            isSelected || isErrorGroupSelected || isTagGroupSelected;
+
+        final effectiveFirst = token.groupId == null || token.isFirstInGroup;
+        final effectiveLast = token.groupId == null || token.isLastInGroup;
+
+        final hasStyle = token.groupId != null || token.isError;
+
+        // Colors for background and border
+        final Color bgColor = hasStyle
+            ? (showHighlight
+                ? (state.isCorrectFeedback
+                    ? appColors.textSecondary.withValues(alpha: 0.15)
+                    : Colors.red.withValues(alpha: 0.15))
+                : appColors.textSecondary.withValues(alpha: 0.08))
+            : Colors.transparent;
+
+        final Color borderColor = hasStyle
+            ? (showHighlight
+                ? (state.isCorrectFeedback
+                    ? appColors.textSecondary
+                    : Colors.red)
+                : appColors.textSecondary.withValues(alpha: 0.15))
+            : Colors.transparent;
+
         final Widget wordWidget = GestureDetector(
           onTap: () => _onTokenTap(item, token),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? (state.isCorrectFeedback
-                      ? appColors.textSecondary.withValues(alpha: 0.1)
-                      : Colors.red.withValues(alpha: 0.1))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: isSelected
-                  ? Border.all(
-                      color: state.isCorrectFeedback
-                          ? appColors.textSecondary
-                          : Colors.red,
-                      width: 1.5,
-                    )
-                  : null,
-            ),
-            child: Text(
-              token.text,
-              style: TextStyle(
-                fontSize: 20,
-                height: 1.5,
-                color: appColors.textPrimary,
-                fontWeight: FontWeight.normal,
-                decoration: token.isUnderline
-                    ? TextDecoration.underline
-                    : TextDecoration.none,
-                decorationStyle: TextDecorationStyle.dotted,
+          child: CustomPaint(
+            foregroundPainter: hasStyle
+                ? _RibbonPainter(
+                    color: borderColor,
+                    isFirst: effectiveFirst,
+                    isLast: effectiveLast,
+                  )
+                : null,
+            child: Container(
+              margin:
+                  EdgeInsets.only(right: (effectiveLast && hasStyle) ? 8 : 0),
+              padding: EdgeInsets.only(
+                left: hasStyle ? (effectiveFirst ? 10 : 2) : 0,
+                right: hasStyle ? (effectiveLast ? 10 : 2) : 0,
+                top: 6,
+                bottom: 6,
+              ),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: hasStyle
+                    ? BorderRadius.only(
+                        topLeft: effectiveFirst
+                            ? const Radius.circular(8)
+                            : Radius.zero,
+                        bottomLeft: effectiveFirst
+                            ? const Radius.circular(8)
+                            : Radius.zero,
+                        topRight: effectiveLast
+                            ? const Radius.circular(8)
+                            : Radius.zero,
+                        bottomRight: effectiveLast
+                            ? const Radius.circular(8)
+                            : Radius.zero,
+                      )
+                    : null,
+              ),
+              child: Text(
+                token.text,
+                style: TextStyle(
+                  fontSize: 20,
+                  height: 1.5,
+                  color: appColors.textPrimary,
+                  fontWeight: FontWeight.normal,
+                  decoration: token.isUnderline
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                  decorationStyle: TextDecorationStyle.dotted,
+                ),
               ),
             ),
           ),
@@ -879,9 +942,11 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                   borderRadius: BorderRadius.circular(8)),
               elevation: 0,
             ),
-            onPressed: widget.onNext,
-            child: const Text('Next',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () => _handleNext(items.length),
+            child: Text(
+              _currentIndex < items.length - 1 ? 'Next' : 'Finish',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       );
@@ -1004,6 +1069,9 @@ class _Token {
   final int index;
   final bool isUnderline;
   final bool isNewline;
+  final int? groupId;
+  final bool isFirstInGroup;
+  final bool isLastInGroup;
 
   _Token({
     required this.id,
@@ -1013,5 +1081,78 @@ class _Token {
     required this.index,
     this.isUnderline = false,
     this.isNewline = false,
+    this.groupId,
+    this.isFirstInGroup = false,
+    this.isLastInGroup = false,
   });
+}
+
+class _RibbonPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final bool isFirst;
+  final bool isLast;
+  final Radius radius;
+
+  _RibbonPainter({
+    required this.color,
+    this.strokeWidth = 1.5,
+    required this.isFirst,
+    required this.isLast,
+    this.radius = const Radius.circular(8),
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+
+    // To prevent the border from being clipped by the container bounds,
+    // we should inset the drawing by half the strokeWidth.
+    final inset = strokeWidth / 2;
+    final w = size.width - strokeWidth;
+    final h = size.height - strokeWidth;
+
+    if (isFirst) {
+      path.moveTo(inset, h / 2);
+      path.lineTo(inset, radius.y);
+      path.arcToPoint(Offset(radius.x, inset), radius: radius);
+    } else {
+      path.moveTo(0, inset);
+    }
+
+    // Top
+    path.lineTo(size.width - (isLast ? radius.x : 0), inset);
+
+    if (isLast) {
+      path.arcToPoint(Offset(size.width - inset, radius.y), radius: radius);
+      path.lineTo(size.width - inset, size.height - radius.y);
+      path.arcToPoint(Offset(size.width - radius.x, size.height - inset),
+          radius: radius);
+    } else {
+      // Don't draw right edge, but move to bottom right to draw bottom edge
+      path.moveTo(size.width, size.height - inset);
+    }
+
+    // Bottom
+    path.lineTo(isFirst ? radius.x : 0, size.height - inset);
+
+    if (isFirst) {
+      path.arcToPoint(Offset(inset, size.height - radius.y), radius: radius);
+      path.lineTo(inset, h / 2);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RibbonPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.isFirst != isFirst ||
+        oldDelegate.isLast != isLast;
+  }
 }

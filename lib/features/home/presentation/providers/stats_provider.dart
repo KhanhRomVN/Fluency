@@ -1,3 +1,4 @@
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fluency/core/services/activity/activity.dart';
 import 'package:fluency/core/services/activity/activity_repository.dart';
@@ -43,9 +44,9 @@ class StatsProvider extends ChangeNotifier {
       // 4. Calculate Score (Achievements + Activities)
       final activityRepo = sl<ActivityRepository>();
       final activities = await activityRepo.getActivities();
-      _score = _calculateScore(activities, _badgesCount);
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading stats: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
     } finally {
       _isLoading = false;
       notifyListeners();

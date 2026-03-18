@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' as parser;
@@ -52,7 +53,8 @@ class ThesaurusClient {
       if (response.statusCode == 200 && response.data != null) {
         return parseHtml(response.data!, word);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Thesaurus API failed for $word: $e');
     }
     return null;
@@ -134,7 +136,8 @@ class ThesaurusClient {
           ),
         ],
       );
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error parsing Thesaurus.com for $word: $e');
       return null;
     }

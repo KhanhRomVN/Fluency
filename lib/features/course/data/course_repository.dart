@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 // import 'dart:io'; // Removed to support web
 import 'package:fluency/core/utils/web_helper.dart';
@@ -15,6 +16,9 @@ import 'package:path/path.dart' as path_utils;
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluency/core/constants/api_constants.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 
 enum CourseConflictType { older, same, newer }
 
@@ -41,7 +45,8 @@ class CourseRepository {
   // Web Only: specific cache for imported courses in current session
   final List<Course> _webImportedCourses = [];
 
-  Future<Course> importCourseFromUrl(String url, {bool force = false}) async {
+  Future<Course> importCourseFromUrl(String url,
+      {bool force = false, void Function(double)? onProgress}) async {
     if (kIsWeb) {
       final client = http.Client();
       try {
@@ -52,12 +57,14 @@ class CourseRepository {
             response.bodyBytes,
             fileName.isEmpty ? 'download.zip' : fileName,
             force: force,
+            onProgress: onProgress,
           );
         } else {
           throw Exception('Failed to download course: ${response.statusCode}');
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('Error downloading course on web: $e');
+        await MonitoringService.captureError(e, stackTrace: stack);
         rethrow;
       } finally {
         client.close();
@@ -92,7 +99,7 @@ class CourseRepository {
   }
 
   Future<Course> importCourseFromBytes(Uint8List bytes, String filename,
-      {bool force = false}) async {
+      {bool force = false, void Function(double)? onProgress}) async {
     if (kIsWeb) {
       try {
         final extractedFiles = await _zipLoader.extractZipToMemory(bytes);
@@ -103,7 +110,7 @@ class CourseRepository {
         final courseJson =
             await _zipLoader.loadCourseJsonFromMemory(extractedFiles);
         if (courseJson == null) {
-          throw Exception('Invalid course: Course.json not found in ZIP.');
+          throw Exception('Invalid course: course.json not found in ZIP.');
         }
 
         var course = Course.fromJson(courseJson);
@@ -177,9 +184,11 @@ class CourseRepository {
             'version': course.version,
           },
         ));
+        onProgress?.call(1.0);
         return course;
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('Error importing course from bytes: $e');
+        await MonitoringService.captureError(e, stackTrace: stack);
         rethrow;
       }
     } else {
@@ -187,11 +196,13 @@ class CourseRepository {
       final tempDir = await getTemporaryDirectory();
       final tempFile = File(path_utils.join(tempDir.path, filename));
       await tempFile.writeAsBytes(bytes);
-      return await importCourse(tempFile.path, force: force);
+      return await importCourse(tempFile.path,
+          force: force, onProgress: onProgress);
     }
   }
 
-  Future<Course> importCourse(String path, {bool force = false}) async {
+  Future<Course> importCourse(String path,
+      {bool force = false, void Function(double)? onProgress}) async {
     try {
       final file = File(path);
       if (!file.existsSync()) {
@@ -199,14 +210,18 @@ class CourseRepository {
       }
 
       // 1. Peek into ZIP to get course JSON
-      final extractedDir = await _zipLoader.extractZipFileFromFile(file);
+      final extractedDir =
+          await _zipLoader.extractZipFileFromFile(file, onProgress: (p) {
+        // Here we can split progress: 0-90% for extraction, 90-100% for Hive sync
+        onProgress?.call(p * 0.9);
+      });
       if (extractedDir == null) {
         throw Exception('Failed to extract ZIP file for validation.');
       }
 
       final newCourseJson = await _zipLoader.loadCourseJson(extractedDir);
       if (newCourseJson == null) {
-        throw Exception('Invalid course: Course.json not found in ZIP.');
+        throw Exception('Invalid course: course.json not found in ZIP.');
       }
 
       final newCourse = Course.fromJson(newCourseJson);
@@ -269,9 +284,11 @@ class CourseRepository {
         },
       ));
 
+      onProgress?.call(1.0);
       return newCourse;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error importing course: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
       rethrow;
     }
   }
@@ -299,18 +316,112 @@ class CourseRepository {
     // Here, we provide a "Sync" method.
 
     // Load courses from ZIP files first (mobile only)
-    await _loadCoursesFromZip(courses);
+    // await _loadCoursesFromZip(courses);
 
     // Load courses from imported ZIP files (mobile only)
-    await _loadCoursesFromLocalZips(courses);
+    // await _loadCoursesFromLocalZips(courses);
 
     // Then load from regular JSON files (for backward compatibility)
-    await _loadCoursesFromJson(courses);
+    // await _loadCoursesFromJson(courses);
 
-    // Save to Index Cache for next time
-    await _saveCoursesToIndexCache(courses);
+    // Optimized approach: Don't extract everything at startup.
+    // Let the provider/state management call sync if needed,
+    // or rely on the Index Cache for immediate UI.
+
+    // For now, if courses is empty after cache load, we do a minimal sync
+    if (courses.isEmpty) {
+      await _loadCoursesFromZip(courses);
+      await _loadCoursesFromLocalZips(courses);
+      await _loadCoursesFromJson(courses);
+      await _saveCoursesToIndexCache(courses);
+    } else {
+      // Periodic background sync instead of blocking
+      unawaited(_backgroundSync(courses));
+    }
 
     return courses;
+  }
+
+  Future<void> checkForUpdates(List<Course> courses) async {
+    if (courses.isEmpty) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastCheckStr = prefs.getString('last_course_update_check');
+      final now = DateTime.now();
+
+      if (lastCheckStr != null) {
+        final lastCheck = DateTime.parse(lastCheckStr);
+        if (now.difference(lastCheck).inHours < 1) {
+          debugPrint(
+              'Skipping update check: last check was less than 1 hour ago');
+          return;
+        }
+      }
+
+      debugPrint('Checking for course updates...');
+
+      // Prepare IDs for API
+      final courseIds = courses.map((c) => c.id).toList();
+
+      final apiUrl = '${ApiConstants.randomCourseBaseUrl}/api/version';
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'ids': courseIds}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final remoteCourses = data['courses'] as List<dynamic>;
+
+        bool hasChanges = false;
+        final updatedCourses = courses.map((localCourse) {
+          final remoteInfo = remoteCourses.firstWhere(
+            (r) => r['id'] == localCourse.id,
+            orElse: () => null,
+          );
+
+          if (remoteInfo != null && remoteInfo['version'] != null) {
+            final remoteVersion = remoteInfo['version'] as int;
+            if (remoteVersion > localCourse.version) {
+              debugPrint(
+                  'Update found for ${localCourse.title}: ${localCourse.version} -> $remoteVersion');
+              hasChanges = true;
+              return localCourse.copyWith(hasUpdate: true);
+            }
+          }
+          return localCourse;
+        }).toList();
+
+        if (hasChanges) {
+          // Save to cache so next load sees the update flag
+          await _saveCoursesToIndexCache(updatedCourses);
+          debugPrint('Courses with updates saved to Index Cache');
+        }
+
+        // Save last check time
+        await prefs.setString(
+            'last_course_update_check', now.toIso8601String());
+      } else {
+        debugPrint('Failed to check for updates: ${response.statusCode}');
+      }
+    } catch (e, stack) {
+      debugPrint('Error checking for updates: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
+    }
+  }
+
+  Future<void> _backgroundSync(List<Course> initialCourses) async {
+    try {
+      final syncedCourses = <Course>[];
+      await _loadCoursesFromZip(syncedCourses);
+      await _loadCoursesFromLocalZips(syncedCourses);
+      await _loadCoursesFromJson(syncedCourses);
+      await _saveCoursesToIndexCache(syncedCourses);
+    } catch (e) {
+      debugPrint('Background sync failed: $e');
+    }
   }
 
   /// Load courses strictly from index cache (Fast)
@@ -327,8 +438,9 @@ class CourseRepository {
             .map((json) => Course.fromJson(json as Map<String, dynamic>))
             .toList();
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading courses from Index Cache: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
     }
     return [];
   }
@@ -342,8 +454,9 @@ class CourseRepository {
       final jsonList = courses.map((c) => c.toJson()).toList();
       await indexFile.writeAsString(json.encode(jsonList));
       debugPrint('Saved ${courses.length} courses to Index Cache');
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error saving courses to Index Cache: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
     }
   }
 
@@ -399,12 +512,14 @@ class CourseRepository {
 
           courses.add(course);
           debugPrint('Successfully loaded course: ${course.title}');
-        } catch (e) {
+        } catch (e, stack) {
           debugPrint('Error loading course from ZIP $zipPath: $e');
+          await MonitoringService.captureError(e, stackTrace: stack);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading courses from ZIP: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
     }
   }
 
@@ -465,14 +580,16 @@ class CourseRepository {
 
           courses.insert(0, course); // Add imported courses to the top
           debugPrint('Successfully loaded imported course: ${course.title}');
-        } catch (e) {
+        } catch (e, stack) {
           debugPrint(
             'Error loading course from imported ZIP ${zipFile.path}: $e',
           );
+          await MonitoringService.captureError(e, stackTrace: stack);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading courses from imported ZIPs: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
     }
   }
 
@@ -496,18 +613,24 @@ class CourseRepository {
           ) // Exclude audio folder if scanning deeply
           .toList();
 
-      // 3. Group files by their parent directory
-      final folderToFiles = <String, List<String>>{};
+      // 3. Group files by their top-level course directory (one level below _coursesAssetPath)
+      final courseFolderToFiles = <String, List<String>>{};
       for (final filePath in courseFiles) {
-        // e.g. lib/features/course/assets/courses/Cambridge_IELTS_18/Cambridge_IELTS_18_Course.json
-        // Parent: lib/features/course/assets/courses/Cambridge_IELTS_18
-        final parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
+        // assets/courses/Course_Name/lesson1/lesson1.json -> Course_Name
+        final relativePath = filePath
+            .substring(_coursesAssetPath.length)
+            .replaceFirst(RegExp(r'^/'), '');
+        final firstSegment = relativePath.split('/').first;
+        if (firstSegment.isEmpty) continue;
 
-        folderToFiles.putIfAbsent(parentDir, () => []).add(filePath);
+        final courseFolderPath = '$_coursesAssetPath/$firstSegment';
+        courseFolderToFiles
+            .putIfAbsent(courseFolderPath, () => [])
+            .add(filePath);
       }
 
-      // 4. Process each folder
-      for (final folder in folderToFiles.keys) {
+      // 4. Process each course folder
+      for (final folder in courseFolderToFiles.keys) {
         // Check if this course was already loaded from ZIP
         final folderName = folder.split('/').last;
         if (courses.any((c) => c.id.contains(folderName))) {
@@ -515,29 +638,28 @@ class CourseRepository {
           continue;
         }
 
-        final files = folderToFiles[folder]!;
+        final files = courseFolderToFiles[folder]!;
 
-        // Find the "Main" course file.
-        // Convention: A file ending in '_Course.json' OR just matching the folder name.
-        // E.g. Cambridge_IELTS_18_Course.json
+        // Find the "Main" course file and all potential lesson files
         String? mainCourseFile;
         final lessonFiles = <String>[];
 
         for (final f in files) {
-          final filename = f.split('/').last;
-          if (filename.toLowerCase().contains('course') ||
-              filename == '${folder.split('/').last}.json') {
-            // If we have multiple candidates, prefer '_Course.json'
-            if (mainCourseFile == null || filename.endsWith('_Course.json')) {
+          final filename = f.split('/').last.toLowerCase();
+
+          if (filename == 'course.json' ||
+              filename == 'metadata.json' ||
+              filename.endsWith('_course.json')) {
+            if (mainCourseFile == null || filename == 'course.json') {
               mainCourseFile = f;
             }
-          } else if (filename.toLowerCase().contains('lesson')) {
+          } else if (filename.endsWith('.json') &&
+              filename.contains('lesson')) {
             lessonFiles.add(f);
           }
         }
 
         if (mainCourseFile == null) {
-          // If no explicit course file found, skip
           continue;
         }
 
@@ -551,27 +673,37 @@ class CourseRepository {
           final loadedLessons = <Lesson>[];
 
           // Sort lesson files to ensure order if they have numbering in filename
-          lessonFiles.sort();
+          lessonFiles.sort((a, b) {
+            final fileA = a.split('/').last.toLowerCase();
+            final fileB = b.split('/').last.toLowerCase();
+            return fileA.compareTo(fileB);
+          });
 
           for (final elf in lessonFiles) {
             try {
               final lStr = await rootBundle.loadString(elf);
               final lJson = json.decode(lStr) as Map<String, dynamic>;
               loadedLessons.add(Lesson.fromJson(lJson));
-            } catch (e) {
+            } catch (e, stack) {
               debugPrint('Error loading lesson $elf: $e');
+              await MonitoringService.captureError(e, stackTrace: stack);
             }
           }
 
-          // If we loaded separate lesson files, use them.
           if (loadedLessons.isNotEmpty) {
+            // Filter out lessons that might already be in the course.json (if any)
+            final existingLessonIds = course.lessons.map((l) => l.id).toSet();
+            final uniqueNewLessons = loadedLessons
+                .where((l) => !existingLessonIds.contains(l.id))
+                .toList();
+
             course = course.copyWith(
-              lessons: [...course.lessons, ...loadedLessons]
+              lessons: [...course.lessons, ...uniqueNewLessons]
                 ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
             );
           }
 
-          // Resolve paths
+          // Resolve paths relative to the course's main folder
           final basePath = '$folder/';
           course = _resolvePaths(course, basePath);
 
@@ -586,12 +718,14 @@ class CourseRepository {
           );
 
           courses.add(course);
-        } catch (e) {
+        } catch (e, stack) {
           debugPrint('Error loading course from $folder: $e');
+          await MonitoringService.captureError(e, stackTrace: stack);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error scanning asset manifest: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
     }
   }
 
@@ -766,6 +900,64 @@ class CourseRepository {
     );
   }
 
+  Future<List<Course>> getRemoteCourses({bool forceRefresh = false}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastCheckStr = prefs.getString('last_remote_courses_check');
+      final cacheStr = prefs.getString('remote_courses_cache');
+      final now = DateTime.now();
+
+      if (!forceRefresh && lastCheckStr != null && cacheStr != null) {
+        final lastCheck = DateTime.parse(lastCheckStr);
+        if (now.difference(lastCheck).inHours < 1) {
+          debugPrint('Loading remote courses from cache (warm)');
+          final List<dynamic> jsonList = json.decode(cacheStr) as List<dynamic>;
+          return jsonList
+              .map((j) => Course.fromJson(j as Map<String, dynamic>))
+              .toList();
+        }
+      }
+
+      debugPrint('Fetching remote courses from API...');
+      final apiUrl = '${ApiConstants.randomCourseBaseUrl}/courses.json';
+      final response = await http.get(Uri.parse(apiUrl));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonList =
+            json.decode(response.body) as List<dynamic>;
+        final courses = jsonList
+            .map((j) => Course.fromJson(j as Map<String, dynamic>))
+            .toList();
+
+        // Save to cache
+        await prefs.setString('remote_courses_cache', response.body);
+        await prefs.setString(
+            'last_remote_courses_check', now.toIso8601String());
+
+        return courses;
+      } else {
+        throw Exception(
+            'Failed to load remote courses: ${response.statusCode}');
+      }
+    } catch (e, stack) {
+      debugPrint('Error getting remote courses: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
+
+      // Fallback to cache if error occurs
+      final prefs = await SharedPreferences.getInstance();
+      final cacheStr = prefs.getString('remote_courses_cache');
+      if (cacheStr != null) {
+        debugPrint('Error fetching, falling back to stale cache');
+        final List<dynamic> jsonList = json.decode(cacheStr) as List<dynamic>;
+        return jsonList
+            .map((j) => Course.fromJson(j as Map<String, dynamic>))
+            .toList();
+      }
+
+      rethrow;
+    }
+  }
+
   Future<void> deleteCourse(Course course) async {
     if (kIsWeb) return;
 
@@ -794,8 +986,9 @@ class CourseRepository {
                 await entity.delete(recursive: true);
                 break;
               }
-            } catch (e) {
+            } catch (e, stack) {
               debugPrint('Error inspecting cache folder ${entity.path}: $e');
+              await MonitoringService.captureError(e, stackTrace: stack);
             }
           }
         }
@@ -861,8 +1054,9 @@ class CourseRepository {
           'courseTitle': course.title,
         },
       ));
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error in robust deleteCourse: $e');
+      await MonitoringService.captureError(e, stackTrace: stack);
       rethrow;
     }
   }

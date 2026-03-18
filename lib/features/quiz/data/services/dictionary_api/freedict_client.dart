@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -17,7 +18,8 @@ class FreeDictClient {
         final data = jsonDecode(response.body);
         return _parseEntry(data, word);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('FreeDict API failed for $word: $e');
     }
     return null;
@@ -134,7 +136,8 @@ class FreeDictClient {
         meanings: meanings,
         forms: forms,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error parsing $word from FreeDict: $e');
       return null;
     }

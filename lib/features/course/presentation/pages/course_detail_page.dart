@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui' as ui;
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 
@@ -59,7 +59,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           });
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
         setState(() {
           _errorMessage = 'Error loading course: $e';
@@ -252,6 +253,27 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                           ),
                         ),
                       ),
+                      if (displayCourse.hasUpdate)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.5),
+                                  blurRadius: 6,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -277,7 +299,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                 displayCourse.adapter.isNotEmpty ||
                 displayCourse.publisher.isNotEmpty ||
                 displayCourse.publicationYear > 0 ||
-                displayCourse.skill.isNotEmpty) ...[
+                displayCourse.skills.isNotEmpty) ...[
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
@@ -412,8 +434,9 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       ));
     }
 
-    if (course.skill.isNotEmpty) {
-      infoItems.add(_buildSkillRow(context, 'Skill', course.skill, appColors));
+    if (course.skills.isNotEmpty) {
+      infoItems
+          .add(_buildSkillRow(context, 'Skills', course.skills, appColors));
     }
 
     if (infoItems.isEmpty) return const SizedBox.shrink();
@@ -474,34 +497,40 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 6,
-            runSpacing: 6,
-            children: skills.map((skill) {
-              final color = _getSkillColor(skill);
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: color.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Text(
-                  skill,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: skills.map((skill) {
+                  final color = _getSkillColor(skill);
+                  return Container(
+                    margin: const EdgeInsets.only(left: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.2),
                       ),
-                ),
-              );
-            }).toList(),
+                    ),
+                    child: Text(
+                      skill,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ),
       ],
@@ -933,7 +962,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       if (mounted) {
         context.pop(); // Go back after deletion using go_router
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error deleting course: $e')),
@@ -942,114 +972,16 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     }
   }
 
-  void _showLoadingModal(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      useRootNavigator: true,
-      builder: (BuildContext context) {
-        return PopScope(
-          canPop: false,
-          child: Center(
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: appColors.cardBackground.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 60,
-                          height: 60,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              appColors.primary,
-                            ),
-                          ),
-                        ),
-                        SvgPicture.asset(
-                          'assets/icons/book_open.svg',
-                          width: 28,
-                          height: 28,
-                          colorFilter: ColorFilter.mode(
-                            appColors.primary,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Preparing lesson...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: appColors.textPrimary,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Initializing Piper voice engine',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: appColors.textPrimary.withValues(alpha: 0.5),
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _handleLessonTap(BuildContext context, Lesson lesson) async {
     final quizStateProvider = context.read<QuizStateProvider>();
     final ttsProvider = context.read<TtsProvider>();
 
-    // Show loading modal
-    _showLoadingModal(context);
-
-    // Give the UI a frame to actually render the modal before heavy work starts
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-
     try {
-      // Parallel initialization
-      await Future.wait([
-        quizStateProvider.init(),
-        ttsProvider.initService(),
-      ]);
-    } catch (e) {
+      await quizStateProvider.init();
+    } catch (e, stack) {
       debugPrint('Error during lesson preparation: $e');
-    } finally {
-      // Dismiss loading modal - MUST use rootNavigator to match showDialog
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+      MonitoringService.captureError(e, stackTrace: stack);
     }
-
-    // Small delay to ensure modal is fully dismissed before showing next UI
-    await Future<void>.delayed(const Duration(milliseconds: 100));
 
     // Check if lesson has any saved progress
     final hasProgress = quizStateProvider.hasLessonProgress(lesson.id);
@@ -1072,8 +1004,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           quizTotal = quiz.flashcards?.length ?? 0;
         } else if (type.contains('sentence-transformation')) {
           quizTotal = quiz.sentenceTransformations?.length ?? 0;
-        } else if (type.contains('speech-builder')) {
-          quizTotal = quiz.speechBuilders?.length ?? 0;
         } else if (type.contains('pronunciation')) {
           quizTotal = quiz.pronunciations?.length ?? 0;
         } else if (type.contains('error-correction')) {

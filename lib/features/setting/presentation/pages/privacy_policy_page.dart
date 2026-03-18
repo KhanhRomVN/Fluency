@@ -128,7 +128,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Fluency is designed from the ground up to protect your personal data. Everything runs locally on your device — we believe privacy is a right.',
+                        'Fluency is designed with privacy in mind. While most data stays locally on your device, we use industry-standard tools for stability and performance monitoring.',
                         style: TextStyle(
                           fontSize: 13,
                           color: colors?.textSecondary,
@@ -143,7 +143,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                               '100% Local', const Color(0xFF34D399), '📱'),
                           const SizedBox(width: 8),
                           _buildTrustBadge(
-                              'No Tracking', const Color(0xFF60A5FA), '🚫'),
+                              'Privacy First', const Color(0xFF60A5FA), '🛡️'),
                           const SizedBox(width: 8),
                           _buildTrustBadge(
                               'Open Source', const Color(0xFFA78BFA), '💻'),
@@ -162,9 +162,9 @@ class PrivacyPolicyPage extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   _buildPolicyCard(
                     context,
-                    title: 'Privacy First',
+                    title: 'Privacy & Transparency',
                     body:
-                        'Fluency respects your privacy. We do not collect, store, or transmit any personal information. All your learning data stays entirely on your device.',
+                        'We value your privacy. We only collect technical and performance data to improve stability. We never sell your data or use it for advertising.',
                     gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                     color: const Color(0xFF818CF8),
                     icon: Icons.shield_rounded,
@@ -182,12 +182,12 @@ class PrivacyPolicyPage extends StatelessWidget {
                   ),
                   _buildPolicyCard(
                     context,
-                    title: 'No Third-Party Tracking',
+                    title: 'Performance & Stability',
                     body:
-                        'Fluency does not integrate any analytics, advertising, or tracking SDKs. Your activity is completely private.',
+                        'We use Sentry, Clarity, and PostHog to monitor app health and user experience. This helps us fix bugs faster and improve the app for everyone.',
                     gradient: const [Color(0xFF10B981), Color(0xFF059669)],
                     color: const Color(0xFF34D399),
-                    icon: Icons.block_rounded,
+                    icon: Icons.analytics_rounded,
                     colors: colors,
                   ),
                   _buildPolicyCard(
@@ -278,7 +278,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                         children: [
                           const TextSpan(text: 'Last Updated: '),
                           TextSpan(
-                            text: 'February 2026',
+                            text: 'March 2026',
                             style: TextStyle(
                               foreground: Paint()
                                 ..shader = const LinearGradient(

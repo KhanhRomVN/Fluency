@@ -75,13 +75,15 @@ If you are developing on Linux and encounter hardware conflicts (e.g., camera/vi
 sudo chmod 000 /dev/video*
 ```
 
-### 🏗️ Build App Bundle (AAB)
-To generate a clean production build using the Android App Bundle format:
+### 🏗️ Build App Bundle (AAB) & Obfuscation
+To generate a clean production build with Dart code obfuscation (to prevent reverse engineering):
 ```bash
-flutter clean && flutter build appbundle
+flutter clean && flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbols
 ```
 
-*The generated bundle will be located at: `build/app/outputs/bundle/release/app-release.aab`*
+*   `--obfuscate`: Hides symbol names in your Dart code.
+*   `--split-debug-info`: Required when obfuscating. It saves the symbol map to the specified directory so you can still de-obfuscate crash logs later.
+*   *The generated bundle will be located at: `build/app/outputs/bundle/release/app-release.aab`*
 
 ---
 

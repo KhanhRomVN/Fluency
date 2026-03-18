@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 import 'package:fluency/features/collection/domain/entities/collection.dart';
@@ -65,7 +66,8 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         _collection = collection;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -79,8 +81,6 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
     List<Term> filtered;
     switch (type) {
       case 'sentence_builder':
-      case 'speech_builder':
-        // Only terms with samples/examples
         filtered = _collection!.terms.where((t) {
           try {
             if (t.definition.startsWith('{')) {
@@ -100,7 +100,9 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                 }
               }
             }
-          } catch (_) {}
+          } catch (e, stack) {
+            MonitoringService.captureError(e, stackTrace: stack);
+          }
           return false;
         }).toList();
         break;
@@ -417,14 +419,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
         'icon': Icons.format_align_left_rounded,
         'desc': 'Learn words in context',
         'color': const Color(0xFF14B8A6),
-      },
-      {
-        'id': 'speech_builder',
-        'name': 'Speech Builder',
-        'icon': Icons.record_voice_over_rounded,
-        'desc': 'Practice natural flow',
-        'color': const Color(0xFF6366F1),
-      },
+      }
     ];
 
     showModalBottomSheet<void>(
@@ -532,8 +527,7 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
                   if (type['id'] == 'multiple_choice') minCount = 4;
 
                   int availableCount = 0;
-                  if (type['id'] == 'sentence_builder' ||
-                      type['id'] == 'speech_builder') {
+                  if (type['id'] == 'sentence_builder') {
                     availableCount = _collection!.terms.where((t) {
                       try {
                         if (t.definition.startsWith('{')) {
@@ -782,7 +776,11 @@ class _CollectionDetailPageState extends State<CollectionDetailPage> {
       try {
         final regex = RegExp(query, caseSensitive: false);
         return regex.hasMatch(term.term);
-      } catch (e) {
+      } catch (e, stack) {
+        // Only report if it's not a common regex syntax error from user typing
+        if (e is! FormatException) {
+          MonitoringService.captureError(e, stackTrace: stack);
+        }
         return term.term.toLowerCase().contains(query.toLowerCase());
       }
     }).toList();

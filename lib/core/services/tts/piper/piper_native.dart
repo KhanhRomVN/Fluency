@@ -1,20 +1,26 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluency/core/services/tts/tts_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sherpa_onnx/sherpa_onnx.dart';
+import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 import 'package:path/path.dart' as path;
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 
 class PiperTtsService implements TtsService {
   final String? selectedModelPath; // Path to the .onnx file
   final String? espeakDataPath; // Path to espeak-ng-data directory
   bool _isInitialized = false;
+  bool _isDisposed = false;
 
-  OfflineTts? _offlineTts;
+  Isolate? _isolate;
+  SendPort? _sendPort;
+  final ReceivePort _receivePort = ReceivePort();
+
   final AudioPlayer _audioPlayer = AudioPlayer();
   final _stateController = StreamController<TtsState>.broadcast();
 
@@ -30,7 +36,7 @@ class PiperTtsService implements TtsService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // 1. Validate Model File
+    // 1. Validate Files
     if (selectedModelPath == null || !File(selectedModelPath!).existsSync()) {
       throw Exception('Piper model file not found at $selectedModelPath');
     }
@@ -42,78 +48,97 @@ class PiperTtsService implements TtsService {
         espeakDataPath != null && Directory(espeakDataPath!).existsSync();
     final hasLexicon = File(lexiconPath).existsSync();
 
-    // 2. Validate Tokens File (Vital for Sherpa-ONNX, otherwise it crashes native)
     if (!File(tokensPath).existsSync()) {
-      throw Exception(
-          'Piper tokens file not found at $tokensPath. Sherpa-ONNX requires tokens.txt.');
+      throw Exception('Piper tokens file not found at $tokensPath');
     }
 
-    // 3. Validate Phonemizer resources (espeak-ng-data or lexicon.txt)
     if (!hasEspeakData && !hasLexicon) {
-      // Piper models using phonemes MUST have either espeak-ng-data or a lexicon file.
-      // Without them, sherpa-onnx crashes the process with a Segmentation Fault/exit.
-      throw Exception(
-          'Missing phonemization resources. Piper requires either espeak-ng-data or lexicon.txt in $modelDir to prevent native crash.');
+      throw Exception('Missing phonemization resources in $modelDir');
     }
 
     try {
-      debugPrint('Initializing Piper with model: $selectedModelPath');
-      debugPrint('Espeak data: $espeakDataPath');
+      debugPrint('Spawning Piper Isolate...');
 
-      final config = OfflineTtsConfig(
-        model: OfflineTtsModelConfig(
-          vits: OfflineTtsVitsModelConfig(
-            model: selectedModelPath!,
-            tokens: tokensPath,
-            // lexicon: hasLexicon ? lexiconPath : '',
-            dataDir:
-                hasEspeakData ? espeakDataPath! : '', // Only pass if it exists
-          ),
-          numThreads: 1,
-          debug: true,
+      final completer = Completer<void>();
+
+      // Listen for messages from isolate
+      _receivePort.listen((message) {
+        if (message is SendPort) {
+          _sendPort = message;
+          completer.complete();
+        } else if (message is String) {
+          debugPrint('Isolate Message: $message');
+        }
+      });
+
+      _isolate = await Isolate.spawn(
+        _isolateEntryPoint,
+        _IsolateInitData(
+          sendPort: _receivePort.sendPort,
+          modelPath: selectedModelPath!,
+          tokensPath: tokensPath,
+          dataDir: hasEspeakData ? espeakDataPath! : '',
         ),
       );
 
-      _offlineTts = OfflineTts(config);
+      await completer.future;
       _isInitialized = true;
 
       _audioPlayer.onPlayerStateChanged.listen((state) {
         if (state == PlayerState.playing) {
-          _stateController.add(TtsState.playing);
+          _addToStateStream(TtsState.playing);
         } else if (state == PlayerState.completed ||
             state == PlayerState.stopped) {
-          _stateController.add(TtsState.stopped);
+          _addToStateStream(TtsState.stopped);
         } else if (state == PlayerState.paused) {
-          _stateController.add(TtsState.paused);
+          _addToStateStream(TtsState.paused);
         }
       });
 
-      debugPrint('Piper TTS initialized');
-    } catch (e) {
-      debugPrint('Failed to initialize Piper TTS: $e');
+      debugPrint('Piper Isolate initialized');
+    } catch (e, stack) {
+      debugPrint('Failed to spawn Piper Isolate: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
+    }
+  }
+
+  void _addToStateStream(TtsState state) {
+    if (!_isDisposed && !_stateController.isClosed) {
+      _stateController.add(state);
     }
   }
 
   @override
   Future<void> speak(String text) async {
-    if (!_isInitialized || _offlineTts == null) {
-      // Try init if model is available now
+    if (!_isInitialized || _sendPort == null) {
       await initialize();
       if (!_isInitialized) return;
     }
 
     try {
-      // 1. Generate Audio
-      final generated = _offlineTts!.generate(text: text, speed: 1.0);
-      if (generated.samples.isEmpty) {
+      // 1. Generate Audio via Isolate
+      final responsePort = ReceivePort();
+      _sendPort!.send(_IsolateGenerateRequest(
+        text: text,
+        replyTo: responsePort.sendPort,
+      ));
+
+      final response = await responsePort.first;
+      responsePort.close();
+
+      if (response is! _IsolateGenerateResponse) {
+        throw Exception('Invalid response from Piper isolate');
+      }
+
+      if (response.samples == null || response.samples!.isEmpty) {
         debugPrint('Piper generated empty audio');
         return;
       }
 
-      // 2. Save to WAV
-      final wavPath = await _saveToWav(generated.samples, generated.sampleRate);
+      // 2. Save to WAV (can stay here or move to isolate, isolate is safer but requires file system access)
+      final wavPath = await _saveToWav(response.samples!, response.sampleRate);
 
-      // 3. Play and wait for completion
+      // 3. Play
       final completer = Completer<void>();
       StreamSubscription<PlayerState>? subscription;
 
@@ -127,12 +152,11 @@ class PiperTtsService implements TtsService {
       });
 
       await _audioPlayer.play(DeviceFileSource(wavPath));
-
-      // Wait for playback to complete
       await completer.future;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error speaking with Piper: $e');
-      _stateController.add(TtsState.stopped);
+      MonitoringService.captureError(e, stackTrace: stack);
+      _addToStateStream(TtsState.stopped);
     }
   }
 
@@ -143,17 +167,65 @@ class PiperTtsService implements TtsService {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _audioPlayer.dispose();
-    _offlineTts?.free();
+    _isolate?.kill(priority: Isolate.immediate);
+    _receivePort.close();
     _stateController.close();
     _isInitialized = false;
+  }
+
+  static void _isolateEntryPoint(_IsolateInitData data) {
+    sherpa.initBindings();
+    sherpa.OfflineTts? offlineTts;
+
+    try {
+      final config = sherpa.OfflineTtsConfig(
+        model: sherpa.OfflineTtsModelConfig(
+          vits: sherpa.OfflineTtsVitsModelConfig(
+            model: data.modelPath,
+            tokens: data.tokensPath,
+            dataDir: data.dataDir,
+          ),
+          numThreads: 1,
+          debug: false,
+        ),
+      );
+      offlineTts = sherpa.OfflineTts(config);
+    } catch (e) {
+      data.sendPort.send('Isolate Init Error: $e');
+    }
+
+    final receivePort = ReceivePort();
+    data.sendPort.send(receivePort.sendPort);
+
+    receivePort.listen((message) {
+      if (message is _IsolateGenerateRequest) {
+        try {
+          if (offlineTts == null) {
+            message.replyTo
+                .send(_IsolateGenerateResponse(samples: null, sampleRate: 0));
+            return;
+          }
+
+          final generated =
+              offlineTts!.generate(text: message.text, speed: 1.0);
+          message.replyTo.send(_IsolateGenerateResponse(
+            samples: generated.samples,
+            sampleRate: generated.sampleRate,
+          ));
+        } catch (e) {
+          message.replyTo
+              .send(_IsolateGenerateResponse(samples: null, sampleRate: 0));
+        }
+      }
+    });
   }
 
   Future<String> _saveToWav(Float32List samples, int sampleRate) async {
     final tempDir = await getTemporaryDirectory();
     final file = File(path.join(tempDir.path, 'piper_output.wav'));
 
-    // Convert Float32 [-1.0, 1.0] to Int16
     final int16List = Int16List(samples.length);
     for (var i = 0; i < samples.length; i++) {
       var s = samples[i];
@@ -162,7 +234,6 @@ class PiperTtsService implements TtsService {
       int16List[i] = (s * 32767).toInt();
     }
 
-    // Write WAV header
     final header = _buildWavHeader(samples.length * 2, sampleRate);
     final bytes = Uint8List(header.length + int16List.lengthInBytes);
     bytes.setRange(0, header.length, header);
@@ -173,12 +244,9 @@ class PiperTtsService implements TtsService {
   }
 
   Uint8List _buildWavHeader(int dataLength, int sampleRate) {
-    final byteRate = sampleRate * 2; // 16-bit mono
+    final byteRate = sampleRate * 2;
     final totalDataLen = dataLength + 36;
-
     final header = ByteData(44);
-
-    // RIFF chunk
     header.setUint8(0, 0x52); // R
     header.setUint8(1, 0x49); // I
     header.setUint8(2, 0x46); // F
@@ -188,27 +256,50 @@ class PiperTtsService implements TtsService {
     header.setUint8(9, 0x41); // A
     header.setUint8(10, 0x56); // V
     header.setUint8(11, 0x45); // E
-
-    // fmt chunk
     header.setUint8(12, 0x66); // f
     header.setUint8(13, 0x6d); // m
     header.setUint8(14, 0x74); // t
     header.setUint8(15, 0x20); // space
-    header.setUint32(16, 16, Endian.little); // Chunk size
-    header.setUint16(20, 1, Endian.little); // Format (1 = PCM)
-    header.setUint16(22, 1, Endian.little); // Channels (1 = Mono)
+    header.setUint32(16, 16, Endian.little);
+    header.setUint16(20, 1, Endian.little);
+    header.setUint16(22, 1, Endian.little);
     header.setUint32(24, sampleRate, Endian.little);
     header.setUint32(28, byteRate, Endian.little);
-    header.setUint16(32, 2, Endian.little); // Block align
-    header.setUint16(34, 16, Endian.little); // Bits per sample
-
-    // data chunk
+    header.setUint16(32, 2, Endian.little);
+    header.setUint16(34, 16, Endian.little);
     header.setUint8(36, 0x64); // d
     header.setUint8(37, 0x61); // a
     header.setUint8(38, 0x74); // t
     header.setUint8(39, 0x61); // a
     header.setUint32(40, dataLength, Endian.little);
-
     return header.buffer.asUint8List();
   }
+}
+
+class _IsolateInitData {
+  final SendPort sendPort;
+  final String modelPath;
+  final String tokensPath;
+  final String dataDir;
+
+  _IsolateInitData({
+    required this.sendPort,
+    required this.modelPath,
+    required this.tokensPath,
+    required this.dataDir,
+  });
+}
+
+class _IsolateGenerateRequest {
+  final String text;
+  final SendPort replyTo;
+
+  _IsolateGenerateRequest({required this.text, required this.replyTo});
+}
+
+class _IsolateGenerateResponse {
+  final Float32List? samples;
+  final int sampleRate;
+
+  _IsolateGenerateResponse({required this.samples, required this.sampleRate});
 }

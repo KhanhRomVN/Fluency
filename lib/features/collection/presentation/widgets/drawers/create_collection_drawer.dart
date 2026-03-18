@@ -1,3 +1,4 @@
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 import 'package:flutter/material.dart';
@@ -83,7 +84,8 @@ class _CreateCollectionDrawerState extends State<CreateCollectionDrawer> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
         setState(() => _isCreating = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -108,7 +110,7 @@ class _CreateCollectionDrawerState extends State<CreateCollectionDrawer> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.8,
         decoration: BoxDecoration(
           color: appColors.drawerBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -134,29 +136,60 @@ class _CreateCollectionDrawerState extends State<CreateCollectionDrawer> {
             ),
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Create Collection',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Create Collection',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: appColors.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        Text(
+                          'Create a group to organize your vocabulary',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: appColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: appColors.inputBackground,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: appColors.border.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: appColors.textSecondary,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
+            const SizedBox(height: 4),
             // Form Content
             Expanded(
               child: Form(
@@ -241,37 +274,37 @@ class _CreateCollectionDrawerState extends State<CreateCollectionDrawer> {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 42,
                 child: ElevatedButton(
                   onPressed:
                       (_isCreating || !_isValid) ? null : _createCollection,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: appColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        appColors.primary.withValues(alpha: 0.3),
-                    disabledForegroundColor:
-                        Colors.white.withValues(alpha: 0.5),
+                    backgroundColor: (_isCreating || !_isValid)
+                        ? Colors.grey.withValues(alpha: 0.1)
+                        : appColors.primary.withValues(alpha: 0.1),
+                    foregroundColor: (_isCreating || !_isValid)
+                        ? appColors.textSecondary.withValues(alpha: 0.5)
+                        : appColors.primary,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isCreating
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
+                      ? SizedBox(
+                          height: 18,
+                          width: 18,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                appColors.textSecondary.withValues(alpha: 0.5)),
                           ),
                         )
                       : const Text(
-                          'Create New Collection',
+                          'Create',
                           style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                 ),

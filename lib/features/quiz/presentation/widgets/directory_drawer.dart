@@ -555,6 +555,7 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
             fontWeight: FontWeight.w600,
             fontSize: 15,
           ),
+          textAlignVertical: TextAlignVertical.center,
           decoration: InputDecoration(
             hintText: 'Search words...',
             hintStyle: TextStyle(
@@ -592,11 +593,9 @@ class _DirectoryDrawerState extends State<DirectoryDrawer> {
                         },
                       )
                     : null,
+            isDense: true,
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
+            contentPadding: const EdgeInsets.fromLTRB(0, 10, 12, 10),
           ),
           onSubmitted: (val) {
             if (val.trim().isNotEmpty) {

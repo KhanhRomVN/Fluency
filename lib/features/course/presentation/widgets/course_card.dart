@@ -17,116 +17,6 @@ class CourseCard extends StatelessWidget {
   final Course course;
   final VoidCallback onTap;
 
-  void _showActionDrawer(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    showModalBottomSheet<void>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: appColors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.5,
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: appColors.textSecondary.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Course Actions',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.textPrimary,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmDelete(context, appColors);
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 20),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete_outline, color: Colors.red),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Delete Course',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _confirmDelete(BuildContext context, AppColorsExtension appColors) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: appColors.background,
-        title: Text('Delete Course',
-            style: TextStyle(color: appColors.textPrimary)),
-        content: Text('Are you sure you want to delete "${course.title}"?',
-            style: TextStyle(color: appColors.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await context.read<CourseProvider>().deleteCourse(course);
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColorsExtension>()!;
@@ -142,86 +32,116 @@ class CourseCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: colors.border),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Course Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  height: 90,
-                  child: Stack(
-                    children: [
-                      CourseImage(
-                        imageUrl: course.imageUrl,
-                        height: 90,
-                        fit: BoxFit.fitHeight,
-                      ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Course Image
+                Expanded(
+                  flex: 3,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: CourseImage(
+                            imageUrl: course.imageUrl,
+                            fit: BoxFit.cover,
                           ),
-                          decoration: BoxDecoration(
-                            color: colors.primary,
-                            borderRadius: const BorderRadius.only(
-                              bottomRight: Radius.circular(8),
+                        ),
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
                             ),
-                          ),
-                          child: Text(
-                            'v${course.version}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
+                            decoration: BoxDecoration(
+                              color: colors.primary,
+                              borderRadius: const BorderRadius.only(
+                                bottomRight: Radius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'v${course.version}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
+                        if (course.hasUpdate)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withOpacity(0.5),
+                                    blurRadius: 4,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                // Course Info
+                Expanded(
+                  flex: 7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (course.skills.isNotEmpty) ...[
+                        _buildSkillBadges(context),
+                        const SizedBox(height: 8),
+                      ],
+                      Text(
+                        course.title,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: colors.textPrimary,
+                                ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      if (course.description.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          course.description,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: 10),
+                      // Progress Bar
+                      _buildProgressBar(context),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              // Course Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (course.skill.isNotEmpty) ...[
-                      _buildSkillBadges(context),
-                      const SizedBox(height: 8),
-                    ],
-                    Text(
-                      course.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: colors.textPrimary,
-                          ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      course.shortDescription,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colors.textSecondary,
-                            fontSize: 12,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 10),
-                    // Progress Bar
-                    _buildProgressBar(context),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -233,11 +153,11 @@ class CourseCard extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
       child: Row(
-        children: course.skill.map((skill) {
+        children: course.skills.map((skill) {
           final color = _getSkillColor(skill);
           return Container(
             margin: const EdgeInsets.only(right: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
               borderRadius: BorderRadius.circular(6),
@@ -247,7 +167,7 @@ class CourseCard extends StatelessWidget {
               skill,
               style: TextStyle(
                 color: color,
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
               ),

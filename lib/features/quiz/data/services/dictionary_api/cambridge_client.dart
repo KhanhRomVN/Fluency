@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:html/parser.dart' as parser;
@@ -60,7 +61,8 @@ class CambridgeClient {
         debugPrint(
             '[CambridgeClient] HTTP Error ${response.statusCode} for $word');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Cambridge API failed for $word: $e');
     }
     return null;
@@ -284,7 +286,8 @@ class CambridgeClient {
         phonetics: phonetics,
         meanings: meanings,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error parsing $word from Cambridge: $e');
       return null;
     }

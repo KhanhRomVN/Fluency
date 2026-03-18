@@ -9,6 +9,7 @@ import 'package:fluency/features/quiz/presentation/providers/sound_effect_provid
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:provider/provider.dart';
 
 class Flashcard extends StatefulWidget {
@@ -75,97 +76,107 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   }
 
   Future<void> _loadProgress() async {
-    debugPrint('Flashcard: _loadProgress called');
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final progress = await quizStateProvider.loadQuizProgress(
-      widget.lessonId,
-      widget.quizId,
-    );
+    try {
+      debugPrint('Flashcard: _loadProgress called');
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final progress = await quizStateProvider.loadQuizProgress(
+        widget.lessonId,
+        widget.quizId,
+      );
 
-    if (progress != null && mounted) {
-      debugPrint('Flashcard: Progress found, restoring');
-      setState(() {
-        // Find first uncompleted card index instead of just taking saved currentIndex
-        final flashcards = widget.quiz.flashcards ?? [];
-        int firstUncompleted = 0;
+      if (progress != null && mounted) {
+        debugPrint('Flashcard: Progress found, restoring');
+        setState(() {
+          // Find first uncompleted card index instead of just taking saved currentIndex
+          final flashcards = widget.quiz.flashcards ?? [];
+          int firstUncompleted = 0;
 
-        // Restore completed cards first
-        final completed =
-            progress.data?['completedCards'] as Map<String, dynamic>?;
-        if (completed != null) {
-          completed.forEach((key, value) {
-            _completedCards[key] = value as bool;
-          });
-        }
-
-        // Find the index
-        for (int i = 0; i < flashcards.length; i++) {
-          if (!(_completedCards[flashcards[i].id] ?? false)) {
-            firstUncompleted = i;
-            break;
+          // Restore completed cards first
+          final completed =
+              progress.data?['completedCards'] as Map<String, dynamic>?;
+          if (completed != null) {
+            completed.forEach((key, value) {
+              _completedCards[key] = value as bool;
+            });
           }
+
+          // Find the index
+          for (int i = 0; i < flashcards.length; i++) {
+            if (!(_completedCards[flashcards[i].id] ?? false)) {
+              firstUncompleted = i;
+              break;
+            }
+          }
+
+          _currentIndex = firstUncompleted;
+
+          // Restore card correctness
+          final correctness =
+              progress.data?['cardCorrectness'] as Map<String, dynamic>?;
+          if (correctness != null) {
+            correctness.forEach((key, value) {
+              _cardCorrectness[key] = value as bool;
+            });
+          }
+        });
+
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(_currentIndex);
         }
 
-        _currentIndex = firstUncompleted;
-
-        // Restore card correctness
-        final correctness =
-            progress.data?['cardCorrectness'] as Map<String, dynamic>?;
-        if (correctness != null) {
-          correctness.forEach((key, value) {
-            _cardCorrectness[key] = value as bool;
-          });
+        // If quiz is completed, notify parent
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
         }
-      });
-
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(_currentIndex);
       }
 
-      // If quiz is completed, notify parent
-      if (progress.isCompleted) {
-        widget.onCheck?.call();
-      }
-    }
+      // Auto-speak the current card after loading (whether progress exists or not)
+      debugPrint('Flashcard: About to speak, mounted=$mounted');
+      if (mounted) {
+        // Wait longer for TTS to initialize
+        // Wait for TTS to initialize (poll for up to 5 seconds)
+        final ttsProvider = context.read<TtsProvider>();
+        if (!ttsProvider.isInitialized) {
+          await ttsProvider.initService();
+        }
 
-    // Auto-speak the current card after loading (whether progress exists or not)
-    debugPrint('Flashcard: About to speak, mounted=$mounted');
-    if (mounted) {
-      // Wait longer for TTS to initialize
-      // Wait for TTS to initialize (poll for up to 5 seconds)
-      final ttsProvider = context.read<TtsProvider>();
-      if (!ttsProvider.isInitialized) {
-        await ttsProvider.initService();
+        // Check one last time
+        if (!ttsProvider.isInitialized) {
+          debugPrint('Flashcard: TTS not initialized after 5s, skipping speak');
+          return;
+        }
+        _speakCurrentCard();
       }
-
-      // Check one last time
-      if (!ttsProvider.isInitialized) {
-        debugPrint('Flashcard: TTS not initialized after 5s, skipping speak');
-        return;
-      }
-      _speakCurrentCard();
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('Flashcard: Error loading progress: $e');
     }
   }
 
   Future<void> _saveProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final totalItems = widget.quiz.flashcards?.length ?? 0;
-    final completedItems = _completedCards.length;
-    final correctItems = _cardCorrectness.values.where((v) => v).length;
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final totalItems = widget.quiz.flashcards?.length ?? 0;
+      final completedItems = _completedCards.length;
+      final correctItems = _cardCorrectness.values.where((v) => v).length;
 
-    await quizStateProvider.saveQuizProgress(
-      lessonId: widget.lessonId,
-      quizId: widget.quizId,
-      quizType: 'flashcard',
-      completedItems: completedItems,
-      totalItems: totalItems,
-      correctItems: correctItems,
-      data: {
-        'currentIndex': _currentIndex,
-        'completedCards': _completedCards,
-        'cardCorrectness': _cardCorrectness,
-      },
-    );
+      await quizStateProvider.saveQuizProgress(
+        lessonId: widget.lessonId,
+        quizId: widget.quizId,
+        quizType: 'flashcard',
+        completedItems: completedItems,
+        totalItems: totalItems,
+        correctItems: correctItems,
+        data: {
+          'currentIndex': _currentIndex,
+          'completedCards': _completedCards,
+          'cardCorrectness': _cardCorrectness,
+        },
+      );
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('Flashcard: Error saving progress: $e');
+    }
   }
 
   @override
@@ -514,7 +525,8 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
           debugPrint('Flashcard: speak completed');
         }
       }
-    } catch (e) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('TTS Error in flashcard: $e');
     }
   }
@@ -593,7 +605,8 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                                     alignment: Alignment.center,
                                     transform: Matrix4.identity()
                                       ..rotateY(math.pi),
-                                    child: _buildBack(context, card, appColors),
+                                    child: _buildBack(context, card, appColors,
+                                        index, cards.length),
                                   )
                                 : _buildFront(context, card, appColors),
                           );
@@ -807,7 +820,11 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     BuildContext context,
     FlashcardItem item,
     AppColorsExtension appColors,
+    int index,
+    int total,
   ) {
+    final isLast = index == total - 1;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -820,6 +837,41 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: _buildBackContent(context, item, appColors),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (isLast) {
+                      widget.onCheck?.call();
+                    } else {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: appColors.primary.withValues(alpha: 0.15),
+                    foregroundColor: appColors.primary,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    isLast ? 'Finish' : 'Next',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1031,10 +1083,12 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                form['value']?.toString() ?? '',
-                style:
-                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              Expanded(
+                child: Text(
+                  form['value']?.toString() ?? '',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 16),
+                ),
               ),
             ],
           ),
@@ -1068,29 +1122,22 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  pos.toUpperCase(),
-                  style: TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.bold, color: color),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  detail['trans']?.toString() ?? '',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w500, fontSize: 16),
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              pos.toUpperCase(),
+              style: TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.bold, color: color),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            detail['trans']?.toString() ?? '',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           if (detail['example'] != null)
             Padding(
@@ -1111,18 +1158,15 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
   Widget _buildCollocationItem(
       Map<dynamic, dynamic> col, AppColorsExtension appColors) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              col['phrase']?.toString() ?? '',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-            ),
+          Text(
+            col['phrase']?.toString() ?? '',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(height: 2),
           Text(
             col['meaning']?.toString() ?? '',
             style: TextStyle(color: appColors.textSecondary, fontSize: 14),
@@ -1136,18 +1180,27 @@ class _FlashcardState extends State<Flashcard> with TickerProviderStateMixin {
     if (data is String) return Text(data);
     if (data is List) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: data.map((item) {
           if (item is Map) {
             return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item['word']?.toString() ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text(item['meaning']?.toString() ?? '',
-                      style: TextStyle(
-                          color: appColors.textSecondary, fontSize: 14)),
+                  Text(
+                    item['word']?.toString() ?? '',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 16),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item['meaning']?.toString() ?? '',
+                    style: TextStyle(
+                      color: appColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
             );

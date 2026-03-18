@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:fluency/core/services/activity/activity.dart';
 import 'package:fluency/core/services/activity/activity_repository.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/di/injection_container.dart';
 import 'package:fluency/features/collection/domain/entities/collection.dart';
 import 'package:fluency/features/collection/domain/entities/term.dart';
@@ -25,18 +26,24 @@ class CollectionRepositoryImpl implements CollectionRepository {
       return [];
     }
 
-    final jsonList = jsonDecode(jsonString) as List<dynamic>;
-    return jsonList
-        .map((json) => Collection.fromJson(json as Map<String, dynamic>))
-        .toList();
+    try {
+      final jsonList = jsonDecode(jsonString) as List<dynamic>;
+      return jsonList
+          .map((json) => Collection.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
+      return [];
+    }
   }
 
   @override
   Future<Collection?> getCollection(String id) async {
-    final collections = await getCollections();
     try {
+      final collections = await getCollections();
       return collections.firstWhere((c) => c.id == id);
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       return null;
     }
   }
@@ -199,14 +206,19 @@ class CollectionRepositoryImpl implements CollectionRepository {
       throw Exception('Collection not found');
     }
 
-    final updatedTerms = collection.terms.map((t) {
-      if (t.id == termId) {
-        return t.copyWith(masteryLevel: progress);
-      }
-      return t;
-    }).toList();
+    try {
+      final updatedTerms = collection.terms.map((t) {
+        if (t.id == termId) {
+          return t.copyWith(masteryLevel: progress);
+        }
+        return t;
+      }).toList();
 
-    await updateCollection(collection.copyWith(terms: updatedTerms));
+      await updateCollection(collection.copyWith(terms: updatedTerms));
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
+      rethrow;
+    }
   }
 
   @override
@@ -305,11 +317,16 @@ class CollectionRepositoryImpl implements CollectionRepository {
   Future<bool> isTermInAnyCollection(String term) async {
     final collections = await getCollections();
     final lowerTerm = term.toLowerCase();
-    for (final collection in collections) {
-      if (collection.terms.any((t) => t.term.toLowerCase() == lowerTerm)) {
-        return true;
+    try {
+      for (final collection in collections) {
+        if (collection.terms.any((t) => t.term.toLowerCase() == lowerTerm)) {
+          return true;
+        }
       }
+      return false;
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
+      return false;
     }
-    return false;
   }
 }

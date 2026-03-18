@@ -1,3 +1,4 @@
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/domain/entities/collection.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
@@ -91,7 +92,8 @@ class _EditCollectionDrawerState extends State<EditCollectionDrawer> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
         setState(() => _isUpdating = false);
         ScaffoldMessenger.of(context).showSnackBar(

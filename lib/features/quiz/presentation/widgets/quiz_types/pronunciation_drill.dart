@@ -7,6 +7,7 @@ import 'package:fluency/features/setting/presentation/providers/tts_provider.dar
 import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/services/stt/stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
 
@@ -39,6 +40,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   bool _isRecording = false;
   SttService? _sttService;
   bool _speechEnabled = false;
+  String? _sttError;
 
   // Map<ItemID, State>
   final Map<String, _PronunciationDrillItemState> _itemStates = {};
@@ -57,110 +59,135 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   }
 
   Future<void> _initSpeech() async {
-    debugPrint('PronunciationDrill: Initializing STT (system)...');
+    try {
+      debugPrint('PronunciationDrill: Initializing STT (system)...');
 
-    _sttService = SystemSttService();
+      _sttService = SystemSttService();
 
-    final available = await _sttService!.initialize();
-    if (mounted) {
-      setState(() {
-        _speechEnabled = available;
-      });
+      final available = await _sttService!.initialize();
+      if (mounted) {
+        setState(() {
+          _speechEnabled = available;
+          if (!available) {
+            _sttError = 'Speech recognition not available on this device';
+          }
+        });
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('PronunciationDrill Error initializing speech: $e');
+      if (mounted) {
+        setState(() {
+          _speechEnabled = false;
+          _sttError = 'Speech recognition not available on this device';
+        });
+      }
     }
   }
 
   Future<void> _loadProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final progress = await quizStateProvider.loadQuizProgress(
-      widget.lessonId,
-      widget.quizId,
-    );
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final progress = await quizStateProvider.loadQuizProgress(
+        widget.lessonId,
+        widget.quizId,
+      );
 
-    if (progress != null && mounted) {
-      final savedStates = progress.data?['itemStates'] as Map<String, dynamic>?;
-      if (savedStates != null) {
-        savedStates.forEach((key, value) {
-          final data = value as Map<String, dynamic>;
-          _itemStates[key] = _PronunciationDrillItemState(
-            score: data['score'] as int? ?? 0,
-            bestScore: data['bestScore'] as int? ?? 0,
-            passed: data['passed'] as bool? ?? false,
-            attempts: data['attempts'] as int? ?? 0,
-            transcript: data['transcript'] as String?,
-          );
+      if (progress != null && mounted) {
+        final savedStates =
+            progress.data?['itemStates'] as Map<String, dynamic>?;
+        if (savedStates != null) {
+          savedStates.forEach((key, value) {
+            final data = value as Map<String, dynamic>;
+            _itemStates[key] = _PronunciationDrillItemState(
+              score: data['score'] as int? ?? 0,
+              bestScore: data['bestScore'] as int? ?? 0,
+              passed: data['passed'] as bool? ?? false,
+              attempts: data['attempts'] as int? ?? 0,
+              transcript: data['transcript'] as String?,
+            );
+          });
+        }
+
+        // Find first unpassed item index
+        final drills = widget.quiz.pronunciations ?? [];
+        int firstUnpassed = 0;
+        for (int i = 0; i < drills.length; i++) {
+          if (!(_itemStates[drills[i].id]?.passed ?? false)) {
+            firstUnpassed = i;
+            break;
+          }
+        }
+
+        setState(() {
+          _currentIndex = firstUnpassed;
         });
-      }
 
-      // Find first unpassed item index
-      final drills = widget.quiz.pronunciations ?? [];
-      int firstUnpassed = 0;
-      for (int i = 0; i < drills.length; i++) {
-        if (!(_itemStates[drills[i].id]?.passed ?? false)) {
-          firstUnpassed = i;
-          break;
+        // Sync PageView with restored index
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(_currentIndex);
+        }
+
+        // If quiz is completed, notify parent to show transcript/etc
+        if (progress.isCompleted) {
+          widget.onCheck?.call();
         }
       }
 
-      setState(() {
-        _currentIndex = firstUnpassed;
-      });
+      // Auto-speak like Flashcard
+      if (mounted) {
+        final ttsProvider = context.read<TtsProvider>();
+        if (!ttsProvider.isInitialized) {
+          await ttsProvider.initService();
+        }
 
-      // Sync PageView with restored index
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(_currentIndex);
+        if (ttsProvider.isInitialized) {
+          _speakCurrentWord();
+        }
       }
-
-      // If quiz is completed, notify parent to show transcript/etc
-      if (progress.isCompleted) {
-        widget.onCheck?.call();
-      }
-    }
-
-    // Auto-speak like Flashcard
-    if (mounted) {
-      final ttsProvider = context.read<TtsProvider>();
-      if (!ttsProvider.isInitialized) {
-        await ttsProvider.initService();
-      }
-
-      if (ttsProvider.isInitialized) {
-        _speakCurrentWord();
-      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('PronunciationDrill Error loading progress: $e');
     }
   }
 
   Future<void> _saveProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
 
-    // Serialize states
-    final statesMap = _itemStates.map((key, value) {
-      return MapEntry(key, {
-        'score': value.score,
-        'bestScore': value.bestScore,
-        'passed': value.passed,
-        'attempts': value.attempts,
-        'transcript': value.transcript,
+      // Serialize states
+      final statesMap = _itemStates.map((key, value) {
+        return MapEntry(key, {
+          'score': value.score,
+          'bestScore': value.bestScore,
+          'passed': value.passed,
+          'attempts': value.attempts,
+          'transcript': value.transcript,
+        });
       });
-    });
 
-    final totalItems = widget.quiz.pronunciations?.length ?? 0;
-    // Completed if passed (correct) OR attempts > 0 (tried)
-    final completedItems =
-        _itemStates.values.where((s) => s.attempts > 0 || s.passed).length;
-    final correctItems = _itemStates.values.where((s) => s.passed).length;
+      final totalItems = widget.quiz.pronunciations?.length ?? 0;
+      // Completed if passed (correct) OR attempts > 0 (tried)
+      final completedItems =
+          _itemStates.values.where((s) => s.attempts > 0 || s.passed).length;
+      final correctItems = _itemStates.values.where((s) => s.passed).length;
 
-    await quizStateProvider.saveQuizProgress(
-      lessonId: widget.lessonId,
-      quizId: widget.quizId,
-      quizType: 'pronunciation-drill',
-      completedItems: completedItems,
-      totalItems: totalItems,
-      correctItems: correctItems,
-      data: {
-        'currentIndex': _currentIndex,
-        'itemStates': statesMap,
-      },
-    );
+      await quizStateProvider.saveQuizProgress(
+        lessonId: widget.lessonId,
+        quizId: widget.quizId,
+        quizType: 'pronunciation-drill',
+        completedItems: completedItems,
+        totalItems: totalItems,
+        correctItems: correctItems,
+        data: {
+          'currentIndex': _currentIndex,
+          'itemStates': statesMap,
+        },
+      );
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('PronunciationDrill Error saving progress: $e');
+    }
   }
 
   @override
@@ -179,22 +206,38 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   }
 
   Future<void> _speakCurrentWord() async {
-    final ttsProvider = context.read<TtsProvider>();
-    if (!ttsProvider.isInitialized) {
-      await ttsProvider.initService();
-    }
+    try {
+      final ttsProvider = context.read<TtsProvider>();
+      if (!ttsProvider.isInitialized) {
+        await ttsProvider.initService();
+      }
 
-    final item = (widget.quiz.pronunciations ?? [])[_currentIndex];
-    final text = _getTextContent(item.text);
+      final item = (widget.quiz.pronunciations ?? [])[_currentIndex];
+      final text = _getTextContent(item.text);
 
-    if (text.isNotEmpty) {
-      await ttsProvider.ttsService?.speak(text);
+      if (text.isNotEmpty) {
+        await ttsProvider.ttsService?.speak(text);
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('PronunciationDrill Error speaking word: $e');
     }
   }
 
   String _getTextContent(String? html) {
     if (html == null) return '';
     return html.replaceAll(RegExp(r'<[^>]*>'), '');
+  }
+
+  void _handleNext(int totalItems) {
+    if (_currentIndex < totalItems - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      widget.onNext?.call();
+    }
   }
 
   void _startRecording(PronunciationItem item) async {
@@ -211,7 +254,8 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
       setState(() {
         _isRecording = true;
       });
-    } catch (e) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('Error starting STT: $e');
     }
   }
@@ -518,14 +562,52 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                             // Footer Actions
                             Padding(
                               padding: const EdgeInsets.all(16.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              child: Column(
                                 children: [
-                                  _buildFooterActions(
-                                    state,
-                                    item,
-                                    appColors,
-                                    drills,
+                                  if (_sttError != null)
+                                    Container(
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.red.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: Colors.red
+                                                .withValues(alpha: 0.3)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                              Icons.warning_amber_rounded,
+                                              color: Colors.red,
+                                              size: 20),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              'This device does not support speech-to-text service.',
+                                              style: TextStyle(
+                                                color: Colors.red[700],
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _buildFooterActions(
+                                        state,
+                                        item,
+                                        appColors,
+                                        drills,
+                                        index,
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -644,6 +726,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     PronunciationItem item,
     AppColorsExtension appColors,
     List<PronunciationItem> drills,
+    int index,
   ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -655,7 +738,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
         if (state.passed && widget.onNext != null) ...[
           const SizedBox(width: 16),
           ElevatedButton(
-            onPressed: widget.onNext,
+            onPressed: () => _handleNext(drills.length),
             style: ElevatedButton.styleFrom(
               backgroundColor: appColors.primary.withValues(alpha: 0.15),
               foregroundColor: appColors.primary,
@@ -666,8 +749,8 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                   borderRadius: BorderRadius.circular(8)),
               elevation: 0,
             ),
-            child: const Text('Next',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(index < drills.length - 1 ? 'Next' : 'Finish',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ],
@@ -679,10 +762,15 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     PronunciationItem item,
     AppColorsExtension appColors,
   ) {
+    if (_sttError != null) return const SizedBox.shrink();
+    final bool canRecord = _speechEnabled && _sttError == null;
+
     return InkWell(
-      onTap: _isRecording
-          ? () => _stopRecording(item)
-          : () => _startRecording(item),
+      onTap: canRecord
+          ? (_isRecording
+              ? () => _stopRecording(item)
+              : () => _startRecording(item))
+          : null,
       borderRadius: BorderRadius.circular(50),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -694,10 +782,13 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
               : Colors.grey.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          Icons.mic,
-          color: _isRecording ? appColors.primary : Colors.grey,
-          size: 24,
+        child: Opacity(
+          opacity: canRecord ? 1.0 : 0.4,
+          child: Icon(
+            Icons.mic,
+            color: _isRecording ? appColors.primary : Colors.grey,
+            size: 24,
+          ),
         ),
       ),
     );

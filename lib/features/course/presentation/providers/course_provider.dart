@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:fluency/features/course/data/course_repository.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:flutter/material.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 
 class CourseProvider extends ChangeNotifier {
   final CourseRepository _repository = CourseRepository();
@@ -24,8 +26,9 @@ class CourseProvider extends ChangeNotifier {
         notifyListeners();
         debugPrint('UI updated from Cache (${cachedCourses.length} courses)');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error loading from cache: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
     }
 
     // 2. Determine if we need to show loading spinner
@@ -44,8 +47,9 @@ class CourseProvider extends ChangeNotifier {
       // Update data
       _allCourses = freshCourses;
       _filterCourses();
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('Error syncing courses: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -73,65 +77,96 @@ class CourseProvider extends ChangeNotifier {
   }
 
   Future<Course?> importCourseFromBytes(Uint8List bytes, String filename,
-      {bool force = false}) async {
+      {bool force = false, void Function(double)? onProgress}) async {
     _isLoading = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final course = await _repository.importCourseFromBytes(bytes, filename,
-          force: force);
+          force: force, onProgress: onProgress);
       // Reload courses to reflect changes
       await loadCourses();
       return course;
-    } catch (e) {
+    } catch (e, stack) {
       _isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
+      MonitoringService.captureError(e, stackTrace: stack);
       rethrow;
     }
   }
 
-  Future<Course?> importCourse(String path, {bool force = false}) async {
+  Future<Course?> importCourse(String path,
+      {bool force = false, void Function(double)? onProgress}) async {
     _isLoading = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
-      final course = await _repository.importCourse(path, force: force);
+      final course = await _repository.importCourse(path,
+          force: force, onProgress: onProgress);
       // Reload courses to reflect changes
       await loadCourses();
       return course;
-    } catch (e) {
+    } catch (e, stack) {
       _isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
+      MonitoringService.captureError(e, stackTrace: stack);
       rethrow;
     }
   }
 
-  Future<Course?> importCourseFromUrl(String url, {bool force = false}) async {
+  Future<Course?> importCourseFromUrl(String url,
+      {bool force = false, void Function(double)? onProgress}) async {
     _isLoading = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
-      final course = await _repository.importCourseFromUrl(url, force: force);
+      final course = await _repository.importCourseFromUrl(url,
+          force: force, onProgress: onProgress);
       await loadCourses();
       return course;
-    } catch (e) {
+    } catch (e, stack) {
       _isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
+      MonitoringService.captureError(e, stackTrace: stack);
       rethrow;
     }
   }
 
   Future<void> deleteCourse(Course course) async {
     _isLoading = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       await _repository.deleteCourse(course);
       await loadCourses();
     } catch (e) {
       _isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
       rethrow;
+    }
+  }
+
+  void _safeNotifyListeners() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (hasListeners) {
+        notifyListeners();
+      }
+    });
+  }
+
+  Future<void> syncUpdates() async {
+    try {
+      await _repository.checkForUpdates(_allCourses);
+
+      // Reload courses from cache to reflect any "hasUpdate" flag changes
+      final updatedCourses = await _repository.getCoursesFromCache();
+      if (updatedCourses.isNotEmpty) {
+        _allCourses = updatedCourses;
+        _filterCourses();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Sync updates failed: $e');
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fluency/features/quiz/domain/entities/quiz_progress.dart';
 import 'package:path_provider/path_provider.dart';
@@ -35,7 +36,8 @@ class QuizProgressStorage {
           }
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error loading quiz progress: $e');
     }
     _initialized = true;
@@ -64,7 +66,8 @@ class QuizProgressStorage {
       }
 
       await file.writeAsString(jsonEncode(json));
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error saving quiz progress: $e');
     }
   }

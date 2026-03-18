@@ -8,6 +8,7 @@ import 'package:fluency/features/quiz/presentation/providers/quiz_state_provider
 import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:provider/provider.dart';
 import 'package:universal_io/io.dart';
 
@@ -153,66 +154,72 @@ class _ListeningChoiceState extends State<ListeningChoice> {
 
         _triggerSegmentChange();
       }
-    } catch (e) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('Error loading transcript in ListeningChoice: $e');
     }
   }
 
   Future<void> _loadProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final progress = await quizStateProvider.loadQuizProgress(
-      widget.lessonId,
-      widget.quiz.id,
-    );
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final progress = await quizStateProvider.loadQuizProgress(
+        widget.lessonId,
+        widget.quiz.id,
+      );
 
-    if (progress != null && mounted) {
-      // Restore submitted questions
-      final submittedIds =
-          progress.data?['submittedQuestions'] as List<dynamic>?;
-      if (submittedIds != null) {
-        _submittedQuestions.addAll(submittedIds.cast<String>());
-      }
+      if (progress != null && mounted) {
+        // Restore submitted questions
+        final submittedIds =
+            progress.data?['submittedQuestions'] as List<dynamic>?;
+        if (submittedIds != null) {
+          _submittedQuestions.addAll(submittedIds.cast<String>());
+        }
 
-      final correctness =
-          progress.data?['questionCorrectness'] as Map<String, dynamic>?;
-      if (correctness != null) {
-        correctness.forEach((key, value) {
-          _questionCorrectness[key] = value as bool;
+        final correctness =
+            progress.data?['questionCorrectness'] as Map<String, dynamic>?;
+        if (correctness != null) {
+          correctness.forEach((key, value) {
+            _questionCorrectness[key] = value as bool;
+          });
+        }
+
+        final selected =
+            progress.data?['selectedAnswers'] as Map<String, dynamic>?;
+        if (selected != null) {
+          selected.forEach((questionId, answer) {
+            _selectedAnswers[questionId] = answer.toString();
+          });
+        }
+
+        // Find first unsubmitted question index
+        final questions = widget.quiz.questions;
+        int firstUnsubmitted = 0;
+        for (int i = 0; i < questions.length; i++) {
+          if (!_submittedQuestions.contains(questions[i].id)) {
+            firstUnsubmitted = i;
+            break;
+          }
+        }
+
+        setState(() {
+          _currentQuestionIndex = firstUnsubmitted;
+
+          // Jump to saved page
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(_currentQuestionIndex);
+          }
+
+          // If quiz is completed, notify parent to show transcript/etc
+          if (progress.isCompleted) {
+            widget.onCheck?.call();
+          }
         });
+        _triggerSegmentChange();
       }
-
-      final selected =
-          progress.data?['selectedAnswers'] as Map<String, dynamic>?;
-      if (selected != null) {
-        selected.forEach((questionId, answer) {
-          _selectedAnswers[questionId] = answer.toString();
-        });
-      }
-
-      // Find first unsubmitted question index
-      final questions = widget.quiz.questions;
-      int firstUnsubmitted = 0;
-      for (int i = 0; i < questions.length; i++) {
-        if (!_submittedQuestions.contains(questions[i].id)) {
-          firstUnsubmitted = i;
-          break;
-        }
-      }
-
-      setState(() {
-        _currentQuestionIndex = firstUnsubmitted;
-
-        // Jump to saved page
-        if (_pageController.hasClients) {
-          _pageController.jumpToPage(_currentQuestionIndex);
-        }
-
-        // If quiz is completed, notify parent to show transcript/etc
-        if (progress.isCompleted) {
-          widget.onCheck?.call();
-        }
-      });
-      _triggerSegmentChange();
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('ListeningChoice: Error loading progress: $e');
     }
   }
 
@@ -256,6 +263,17 @@ class _ListeningChoiceState extends State<ListeningChoice> {
     widget.onSegmentChange?.call(null, null);
   }
 
+  void _handleNext(int totalItems) {
+    if (_currentQuestionIndex < totalItems - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      widget.onNext?.call();
+    }
+  }
+
   void _handleOptionSelect(String questionId, String optionValue) {
     if (_submittedQuestions.contains(questionId)) return;
     setState(() {
@@ -289,26 +307,31 @@ class _ListeningChoiceState extends State<ListeningChoice> {
   }
 
   Future<void> _saveProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final correctCount = _questionCorrectness.values.where((e) => e).length;
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final correctCount = _questionCorrectness.values.where((e) => e).length;
 
-    await quizStateProvider.saveQuizProgress(
-      lessonId: widget.lessonId,
-      quizId: widget.quiz.id,
-      quizType: 'listening-choice',
-      completedItems: _submittedQuestions.length,
-      totalItems: widget.quiz.questions.length,
-      correctItems: correctCount,
-      data: {
-        'currentQuestionIndex': _currentQuestionIndex,
-        'submittedQuestions': _submittedQuestions.toList(),
-        'questionCorrectness': _questionCorrectness,
-        'selectedAnswers': _selectedAnswers,
-      },
-    );
+      await quizStateProvider.saveQuizProgress(
+        lessonId: widget.lessonId,
+        quizId: widget.quiz.id,
+        quizType: 'listening-choice',
+        completedItems: _submittedQuestions.length,
+        totalItems: widget.quiz.questions.length,
+        correctItems: correctCount,
+        data: {
+          'currentQuestionIndex': _currentQuestionIndex,
+          'submittedQuestions': _submittedQuestions.toList(),
+          'questionCorrectness': _questionCorrectness,
+          'selectedAnswers': _selectedAnswers,
+        },
+      );
 
-    if (_submittedQuestions.length == widget.quiz.questions.length) {
-      widget.onCheck?.call();
+      if (_submittedQuestions.length == widget.quiz.questions.length) {
+        widget.onCheck?.call();
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('ListeningChoice: Error saving progress: $e');
     }
   }
 
@@ -673,9 +696,13 @@ class _ListeningChoiceState extends State<ListeningChoice> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        onPressed: widget.onNext,
-        child:
-            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () => _handleNext(widget.quiz.questions.length),
+        child: Text(
+          _currentQuestionIndex < widget.quiz.questions.length - 1
+              ? 'Next'
+              : 'Finish',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 

@@ -9,13 +9,14 @@ class Course {
     required this.pageCount,
     required this.publisher,
     required this.publicationYear,
-    required this.skill,
+    required this.skills,
     required this.shortDescription,
     required this.fullDescription,
     required this.targetAudience,
     required this.lessons,
     this.completedLessons = 0,
     this.version = 1,
+    this.hasUpdate = false,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
@@ -29,19 +30,27 @@ class Course {
       pageCount: json['pageCount'] as int? ?? 0,
       publisher: json['publisher']?.toString() ?? '',
       publicationYear: json['publicationYear'] as int? ?? 0,
-      skill: (json['skill'] as List?)?.map((e) => e.toString()).toList() ??
+      skills: (json['skills'] as List? ?? json['skill'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
           const [],
-      shortDescription: json['shortDescription']?.toString() ?? '',
+      shortDescription:
+          (json['description'] ?? json['shortDescription'])?.toString() ?? '',
       fullDescription: json['fullDescription']?.toString() ?? '',
-      targetAudience: json['targetAudience']?.toString() ?? '',
+      targetAudience:
+          (json['targetAudience'] ?? json['targetAudiences'])?.toString() ?? '',
       lessons: (json['lessons'] as List?)
               ?.map((e) => Lesson.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       completedLessons: json['completedLessons'] as int? ?? 0,
       version: json['version'] as int? ?? 1,
+      hasUpdate: json['hasUpdate'] as bool? ?? false,
     );
   }
+
+  String get description => shortDescription;
+
   final String id;
   final String title;
   final String imageUrl;
@@ -51,7 +60,7 @@ class Course {
   final int pageCount;
   final String publisher;
   final int publicationYear;
-  final List<String> skill; // e.g., ['Listening']
+  final List<String> skills; // e.g., ['Listening']
   final String shortDescription;
   final String fullDescription;
   final String
@@ -59,6 +68,7 @@ class Course {
   final List<Lesson> lessons;
   final int completedLessons;
   final int version;
+  final bool hasUpdate;
 
   Course copyWith({
     String? id,
@@ -70,13 +80,14 @@ class Course {
     int? pageCount,
     String? publisher,
     int? publicationYear,
-    List<String>? skill,
+    List<String>? skills,
     String? shortDescription,
     String? fullDescription,
     String? targetAudience,
     List<Lesson>? lessons,
     int? completedLessons,
     int? version,
+    bool? hasUpdate,
   }) {
     return Course(
       id: id ?? this.id,
@@ -88,13 +99,14 @@ class Course {
       pageCount: pageCount ?? this.pageCount,
       publisher: publisher ?? this.publisher,
       publicationYear: publicationYear ?? this.publicationYear,
-      skill: skill ?? this.skill,
+      skills: skills ?? this.skills,
       shortDescription: shortDescription ?? this.shortDescription,
       fullDescription: fullDescription ?? this.fullDescription,
       targetAudience: targetAudience ?? this.targetAudience,
       lessons: lessons ?? this.lessons,
       completedLessons: completedLessons ?? this.completedLessons,
       version: version ?? this.version,
+      hasUpdate: hasUpdate ?? this.hasUpdate,
     );
   }
 
@@ -109,13 +121,14 @@ class Course {
       'pageCount': pageCount,
       'publisher': publisher,
       'publicationYear': publicationYear,
-      'skill': skill,
+      'skills': skills,
       'shortDescription': shortDescription,
       'fullDescription': fullDescription,
       'targetAudience': targetAudience,
       'lessons': lessons.map((e) => e.toJson()).toList(),
       'completedLessons': completedLessons,
       'version': version,
+      'hasUpdate': hasUpdate,
     };
   }
 }
@@ -223,7 +236,6 @@ class Quiz {
     this.flashcards,
     this.dictations,
     this.pronunciations,
-    this.speechBuilders,
     this.errorCorrections,
     this.sentenceTransformations,
     this.prompt,
@@ -254,18 +266,6 @@ class Quiz {
     }
 
     final type = json['type']?.toString() ?? '';
-
-    // Specialized parsing for mismatch definitions
-    var speechBuildersList = (json['speechBuilders'] as List?)
-        ?.map((e) => SpeechBuilderItem.fromJson(e as Map<String, dynamic>))
-        .toList();
-    if (speechBuildersList == null &&
-        json['builders'] != null &&
-        type == 'speech-builder') {
-      speechBuildersList = (json['builders'] as List?)
-          ?.map((e) => SpeechBuilderItem.fromJson(e as Map<String, dynamic>))
-          .toList();
-    }
 
     var sentenceTransformationsList = (json['sentenceTransformations'] as List?)
         ?.map(
@@ -364,7 +364,6 @@ class Quiz {
           ?.map((e) => DictationItem.fromJson(e as Map<String, dynamic>))
           .toList(),
       pronunciations: pronunciationsList,
-      speechBuilders: speechBuildersList,
       errorCorrections: (json['errorCorrections'] as List?)
           ?.map((e) => ErrorCorrectionItem.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -398,7 +397,6 @@ class Quiz {
   final List<FlashcardItem>? flashcards; // For flashcard quizzes
   final List<DictationItem>? dictations; // For dictation quizzes
   final List<PronunciationItem>? pronunciations; // For pronunciation quizzes
-  final List<SpeechBuilderItem>? speechBuilders; // For speech builder quizzes
   final List<ErrorCorrectionItem>?
       errorCorrections; // For error correction quizzes
   final List<SentenceTransformationItem>? sentenceTransformations;
@@ -420,10 +418,6 @@ class Quiz {
     if (type == 'dictation') return dictations?.length ?? 0;
     if (type == 'pronunciation' || type == 'pronunciation-drill') {
       return pronunciations?.length ?? 0;
-    }
-    if (type == 'speech-builder' || type == 'builder') {
-      return speechBuilders?.length ??
-          (questions.isNotEmpty ? questions.length : 0);
     }
     if (type == 'error-correction') return errorCorrections?.length ?? 0;
     if (type == 'sentence-transformation') {
@@ -454,7 +448,6 @@ class Quiz {
     List<FlashcardItem>? flashcards,
     List<DictationItem>? dictations,
     List<PronunciationItem>? pronunciations,
-    List<SpeechBuilderItem>? speechBuilders,
     List<ErrorCorrectionItem>? errorCorrections,
     List<SentenceTransformationItem>? sentenceTransformations,
     String? prompt,
@@ -485,7 +478,6 @@ class Quiz {
       flashcards: flashcards ?? this.flashcards,
       dictations: dictations ?? this.dictations,
       pronunciations: pronunciations ?? this.pronunciations,
-      speechBuilders: speechBuilders ?? this.speechBuilders,
       errorCorrections: errorCorrections ?? this.errorCorrections,
       sentenceTransformations:
           sentenceTransformations ?? this.sentenceTransformations,
@@ -526,7 +518,6 @@ class Quiz {
       'flashcards': flashcards?.map((e) => e.toJson()).toList(),
       'dictations': dictations?.map((e) => e.toJson()).toList(),
       'pronunciations': pronunciations?.map((e) => e.toJson()).toList(),
-      'speechBuilders': speechBuilders?.map((e) => e.toJson()).toList(),
       'errorCorrections': errorCorrections?.map((e) => e.toJson()).toList(),
       'sentenceTransformations':
           sentenceTransformations?.map((e) => e.toJson()).toList(),
@@ -1057,50 +1048,6 @@ class PronunciationItem {
       'hiddenWord': hiddenWord,
     };
   }
-}
-
-class SpeechBuilderItem {
-  const SpeechBuilderItem({
-    required this.id,
-    this.question,
-    this.items,
-    this.hint,
-    this.translate,
-    this.answers,
-  });
-
-  factory SpeechBuilderItem.fromJson(Map<String, dynamic> json) {
-    return SpeechBuilderItem(
-      id: json['id']?.toString() ?? '',
-      question: json['question']?.toString(),
-      items: (json['items'] as List?)?.map((e) => e.toString()).toList(),
-      hint: json['hint']?.toString(),
-      translate: json['translate']?.toString(),
-      answers: (json['answers'] as List?)
-          ?.map((e) => QuizAnswer.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'question': question,
-      'items': items,
-      'hint': hint,
-      'translate': translate,
-      'answers': answers?.map((e) => e.toJson()).toList(),
-    };
-  }
-
-  final String id;
-  final String? question; // Scrambled sentence?
-  final List<String>? items; // For legacy scrambled words
-  final String? hint;
-  final String? translate;
-  // Answers usually defined in `quiz.answers` or `item.answers`?
-  // TSX: `item.answers?.find(...)`
-  final List<QuizAnswer>? answers;
 }
 
 class ErrorCorrectionItem {

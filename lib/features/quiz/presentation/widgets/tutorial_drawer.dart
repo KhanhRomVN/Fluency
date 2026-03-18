@@ -36,6 +36,8 @@ class TutorialDrawer extends StatelessWidget {
         'Find and correct the error in the sentence. Click the incorrect word and choose the corrected version.',
     'pronunciation-drill':
         'Practice pronunciation by reading out loud. Press the mic button to record and check.',
+    'dictation':
+        'Listen to the audio and write down what you hear. Press Submit when finished.',
     'dictation-audio':
         'Listen to the audio and write down what you hear. Press Submit when finished.',
     'speaking-essay':
@@ -47,8 +49,6 @@ class TutorialDrawer extends StatelessWidget {
     'free-chat': 'Chat freely with the AI. Speak or type your response.',
     'scripted-chat':
         'Practice conversation based on a script. Read and respond according to your assigned role.',
-    'speech-builder':
-        'Build sentences using your voice. Speak each part and the system will combine them.',
   };
 
   // Parse HTML-like content to TextSpans for inline rendering

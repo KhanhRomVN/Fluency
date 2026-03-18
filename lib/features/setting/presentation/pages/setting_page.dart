@@ -38,19 +38,24 @@ class SettingPage extends StatelessWidget {
         context: context,
         isDismissible: false,
         enableDrag: false,
+        useRootNavigator: true,
+        isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (context) => _ImportStatusDrawer(
-          importAction: ({bool force = false}) async {
+          importAction: (
+              {bool force = false, void Function(double)? onProgress}) async {
             if (kIsWeb) {
               final bytes = result.files.single.bytes;
               final name = result.files.single.name;
               if (bytes != null) {
                 return await Provider.of<CourseProvider>(context, listen: false)
-                    .importCourseFromBytes(bytes, name, force: force);
+                    .importCourseFromBytes(bytes, name,
+                        force: force, onProgress: onProgress);
               }
             } else if (result.files.single.path != null) {
               return await Provider.of<CourseProvider>(context, listen: false)
-                  .importCourse(result.files.single.path!, force: force);
+                  .importCourse(result.files.single.path!,
+                      force: force, onProgress: onProgress);
             }
             return null;
           },
@@ -127,11 +132,14 @@ class SettingPage extends StatelessWidget {
         context: context,
         isDismissible: false,
         enableDrag: false,
+        useRootNavigator: true,
+        isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (context) => _ImportStatusDrawer(
-          importAction: ({bool force = false}) async {
+          importAction: (
+              {bool force = false, void Function(double)? onProgress}) async {
             return await Provider.of<CourseProvider>(context, listen: false)
-                .importCourseFromUrl(url, force: force);
+                .importCourseFromUrl(url, force: force, onProgress: onProgress);
           },
           onRetry: () {
             Navigator.pop(context);
@@ -150,10 +158,11 @@ class SettingPage extends StatelessWidget {
       context: context,
       backgroundColor: colors.drawerBackground,
       isScrollControlled: true,
+      useRootNavigator: true,
+      useSafeArea: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      useSafeArea: true,
       builder: (modalContext) => Container(
         decoration: BoxDecoration(
           color: colors.drawerBackground,
@@ -351,6 +360,7 @@ class SettingPage extends StatelessWidget {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
+      useSafeArea: false,
       backgroundColor: colors.drawerBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -640,12 +650,9 @@ class SettingPage extends StatelessWidget {
                             ),
                           );
                         },
-                        showDivider: false,
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 24),
 
                   const SizedBox(height: 32),
                 ]),
@@ -729,7 +736,8 @@ class _ImportStatusDrawer extends StatefulWidget {
     required this.appColors,
   });
 
-  final Future<Course?> Function({bool force}) importAction;
+  final Future<Course?> Function(
+      {bool force, void Function(double)? onProgress}) importAction;
   final VoidCallback onRetry;
   final AppColorsExtension appColors;
 
@@ -739,6 +747,7 @@ class _ImportStatusDrawer extends StatefulWidget {
 
 class _ImportStatusDrawerState extends State<_ImportStatusDrawer> {
   bool _isLoading = true;
+  double _progress = 0;
   Course? _importedCourse;
   String? _error;
   CourseVersionConflictException? _conflict;
@@ -752,12 +761,22 @@ class _ImportStatusDrawerState extends State<_ImportStatusDrawer> {
   Future<void> _startImport({bool force = false}) async {
     setState(() {
       _isLoading = true;
+      _progress = 0;
       _error = null;
       _conflict = null;
     });
 
     try {
-      final course = await widget.importAction(force: force);
+      final course = await widget.importAction(
+        force: force,
+        onProgress: (p) {
+          if (mounted) {
+            setState(() {
+              _progress = p;
+            });
+          }
+        },
+      );
       if (mounted) {
         setState(() {
           _importedCourse = course;
@@ -885,10 +904,33 @@ class _ImportStatusDrawerState extends State<_ImportStatusDrawer> {
             const SizedBox(height: 24),
             // Content
             if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(
-                  child: CircularProgressIndicator(),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: _progress,
+                        backgroundColor:
+                            widget.appColors.primary.withValues(alpha: 0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            widget.appColors.primary),
+                        minHeight: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '${(_progress * 100).toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: widget.appColors.primary,
+                        fontFeatures: const [ui.FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
               )
             else if (_conflict != null)

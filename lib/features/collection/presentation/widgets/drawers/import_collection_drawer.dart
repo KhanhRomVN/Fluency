@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:flutter/material.dart';
 
 class ImportCollectionDrawer extends StatefulWidget {
@@ -44,7 +45,8 @@ class _ImportCollectionDrawerState extends State<ImportCollectionDrawer> {
           const SnackBar(content: Text('Collection imported successfully!')),
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
         setState(() => _isImporting = false);
         ScaffoldMessenger.of(context).showSnackBar(

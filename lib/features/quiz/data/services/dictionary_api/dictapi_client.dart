@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -24,7 +25,8 @@ class DictApiClient {
         debugPrint(
             '[DictApiClient] HTTP Error ${response.statusCode} for $word');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('DictAPI failed for $word: $e');
     }
     return null;
@@ -129,7 +131,8 @@ class DictApiClient {
         phonetics: phonetics,
         meanings: meanings,
       );
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error parsing $word from DictAPI: $e');
       return null;
     }

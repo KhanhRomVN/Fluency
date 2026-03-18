@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
@@ -22,7 +23,8 @@ class BookmarkStorage {
           ..clear()
           ..addAll(json.map((e) => e.toString()));
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error loading bookmarks: $e');
     }
     _initialized = true;
@@ -37,7 +39,8 @@ class BookmarkStorage {
     try {
       final file = await _getFile();
       await file.writeAsString(jsonEncode(_bookmarks));
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error saving bookmarks: $e');
     }
   }

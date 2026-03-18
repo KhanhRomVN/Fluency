@@ -1,0 +1,13 @@
+{
+  "id": "pronunciation-master",
+  "title": "Pronunciation Master: Speak with Confidence",
+  "imageUrl": "./Pronunciation_Master_Speak_with_Confidence_background.png",
+  "author": "KhanhRomVN",
+  "adapter": "KhanhRomVN",
+  "publisher": "KhanhRomVN",
+  "skills": ["Speaking", "Pronunciation", "Listening", "Conversation"],
+  "description": "Master English pronunciation through topic-based lessons. Improve your accent, intonation, and speaking confidence. This comprehensive speaking course is designed to help learners master English pronunciation through systematic practice. Each lesson focuses on a specific real-life topic, starting with vocabulary flashcards, moving through various pronunciation drills and exercises, and culminating in realistic conversations. You'll learn to produce sounds accurately, understand word stress and intonation patterns, and gain confidence in everyday speaking situations.",
+  "targetAudiences": ["vi"],
+  "bookUrl": "",
+  "version": 1
+}

@@ -1,7 +1,19 @@
 plugins {
     id "com.android.application"
+    // START: FlutterFire Configuration
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
+    id 'io.sentry.android.gradle'
+    // END: FlutterFire Configuration
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
+}
+
+sentry {
+    includeProguardMapping = true
+    autoUploadProguardMapping = true
+    uploadNativeSymbols = true
+    includeNativeSources = true
 }
 
 def localProperties = new Properties()
@@ -36,7 +48,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.zenoravn.fluency"
-    compileSdk 35
+    compileSdk 36
     ndkVersion "27.0.11902837"
 
     defaultConfig {
@@ -45,7 +57,7 @@ android {
 
     // Optimize build speed
     dexOptions {
-        javaMaxHeapSize "4g"
+        javaMaxHeapSize "2g"
         preDexLibraries true
         threadCount 8
     }
@@ -74,7 +86,7 @@ android {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.zenoravn.fluency"
         minSdkVersion 26
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
 
@@ -133,6 +145,22 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
     implementation 'androidx.window:window:1.0.0'
     implementation 'androidx.window:window-java:1.0.0'
+
+    // Force matching Sentry versions to resolve SDK conflict
+    def sentryVersion = "8.33.0"
+    implementation "io.sentry:sentry-android:$sentryVersion"
+    implementation "io.sentry:sentry-android-core:$sentryVersion"
+    implementation "io.sentry:sentry-android-ndk:$sentryVersion"
+    implementation "io.sentry:sentry-android-replay:$sentryVersion"
+    implementation "io.sentry:sentry-okhttp:7.18.0" // Keep at 7.18.0 or force higher if compatible
+}
+
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == 'io.sentry' && !details.requested.name.contains('sentry-native-ndk')) {
+            details.useVersion '8.33.0'
+        }
+    }
 }
 
 flutter {

@@ -146,10 +146,8 @@ class LessonCard extends StatelessWidget {
         skills.add('Read');
       }
 
-      // Speaking: Pronunciation or speech builder
-      if (type == 'pronunciation' ||
-          type == 'pronunciation-drill' ||
-          type == 'speech-builder') {
+      // Speaking: Pronunciation
+      if (type == 'pronunciation' || type == 'pronunciation-drill') {
         skills.add('Speak');
       }
 

@@ -1,0 +1,1312 @@
+{
+  "id": "2",
+  "title": "Lesson 2: Travel & Transportation",
+  "description": "Learn essential vocabulary and conversations for airports, train stations, and using public transportation.",
+  "quizzes": [
+    {
+      "id": "quiz_201_flashcard",
+      "type": "flashcard",
+      "title": "Travel Vocabulary Flashcard",
+      "instruction": "<p>Review these essential travel and transportation vocabulary words. Pay attention to the pronunciation and try to remember their meanings.</p>",
+      "flashcards": [
+        {
+          "id": "fc1_departure",
+          "front": {
+            "term": "Departure",
+            "ipa": "/dɪˈpɑːr.tʃər/",
+            "contextSentence": "Our departure is scheduled for 3 PM."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "The act of leaving a place, especially to start a journey.",
+            "mainDefinitionTrans": "Hành động rời khỏi một nơi, đặc biệt để bắt đầu một chuyến đi.",
+            "wordForms": [],
+            "example": "Please proceed to Gate 15 for departure.",
+            "synonyms": [
+              {
+                "word": "Leaving",
+                "meaning": "rời đi"
+              }
+            ],
+            "antonyms": [
+              {
+                "word": "Arrival",
+                "meaning": "đến nơi"
+              }
+            ],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Giờ khởi hành, sự khởi hành",
+                "example": "Check the departure board for flight updates."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Departure time",
+                "meaning": "Giờ khởi hành"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Đến nơi",
+              "isCorrect": false
+            },
+            {
+              "text": "Khởi hành",
+              "isCorrect": true
+            },
+            {
+              "text": "Trì hoãn",
+              "isCorrect": false
+            },
+            {
+              "text": "Chuyển tiếp",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc2_itinerary",
+          "front": {
+            "term": "Itinerary",
+            "ipa": "/aɪˈtɪn.ər.er.i/",
+            "contextSentence": "Can you send me your travel itinerary?"
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A planned route or journey; a travel schedule.",
+            "mainDefinitionTrans": "Lộ trình hoặc hành trình được lên kế hoạch; lịch trình du lịch.",
+            "wordForms": [],
+            "example": "Our itinerary includes two days in Paris and three in Rome.",
+            "synonyms": [
+              {
+                "word": "Schedule",
+                "meaning": "lịch trình"
+              },
+              {
+                "word": "Plan",
+                "meaning": "kế hoạch"
+              }
+            ],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Lịch trình",
+                "example": "Keep a copy of your itinerary with you at all times."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Travel itinerary",
+                "meaning": "Lịch trình du lịch"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Hộ chiếu",
+              "isCorrect": false
+            },
+            {
+              "text": "Lịch trình",
+              "isCorrect": true
+            },
+            {
+              "text": "Vé máy bay",
+              "isCorrect": false
+            },
+            {
+              "text": "Hành lý",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc3_boardingpass",
+          "front": {
+            "term": "Boarding Pass",
+            "ipa": "/ˈbɔːr.dɪŋ ˌpæs/",
+            "contextSentence": "Please have your boarding pass and passport ready."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A card that a passenger must have in order to board an airplane or ship.",
+            "mainDefinitionTrans": "Thẻ mà hành khách phải có để lên máy bay hoặc tàu thủy.",
+            "wordForms": [],
+            "example": "You can print your boarding pass at the kiosk.",
+            "synonyms": [
+              {
+                "word": "Boarding card",
+                "meaning": "thẻ lên máy bay"
+              }
+            ],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Thẻ lên máy bay/tàu",
+                "example": "The boarding pass shows your seat number and gate."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Electronic boarding pass",
+                "meaning": "Thẻ lên máy bay điện tử"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Thẻ lên máy bay",
+              "isCorrect": true
+            },
+            {
+              "text": "Vé vào cửa",
+              "isCorrect": false
+            },
+            {
+              "text": "Thẻ hành lý",
+              "isCorrect": false
+            },
+            {
+              "text": "Giấy phép lái xe",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc4_layover",
+          "front": {
+            "term": "Layover",
+            "ipa": "/ˈleɪ.oʊ.vər/",
+            "contextSentence": "We have a three-hour layover in Dubai."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A period of rest or waiting before a further stage in a journey.",
+            "mainDefinitionTrans": "Khoảng thời gian nghỉ hoặc chờ đợi trước chặng tiếp theo của hành trình.",
+            "wordForms": [],
+            "example": "The long layover allowed us to explore the airport.",
+            "synonyms": [
+              {
+                "word": "Stopover",
+                "meaning": "điểm dừng chân"
+              }
+            ],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Thời gian chờ giữa các chuyến",
+                "example": "Is there enough time during the layover to change terminals?"
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Short layover",
+                "meaning": "Thời gian chờ ngắn"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Chuyến bay thẳng",
+              "isCorrect": false
+            },
+            {
+              "text": "Thời gian chờ giữa chuyến",
+              "isCorrect": true
+            },
+            {
+              "text": "Khởi hành sớm",
+              "isCorrect": false
+            },
+            {
+              "text": "Hủy chuyến",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc5_conveyorbelt",
+          "front": {
+            "term": "Conveyor Belt",
+            "ipa": "/kənˈveɪ.ər ˌbelt/",
+            "contextSentence": "Our luggage is on the conveyor belt."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A continuous moving band used for transporting objects from one place to another.",
+            "mainDefinitionTrans": "Băng chuyền liên tục được dùng để vận chuyển đồ vật từ nơi này đến nơi khác.",
+            "wordForms": [],
+            "example": "Please wait at the conveyor belt for your bags.",
+            "synonyms": [
+              {
+                "word": "Carousel",
+                "meaning": "băng chuyền (hành lý)"
+              }
+            ],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Băng chuyền",
+                "example": "The conveyor belt in baggage claim is not moving."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Baggage conveyor belt",
+                "meaning": "Băng chuyền hành lý"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Cửa kiểm soát",
+              "isCorrect": false
+            },
+            {
+              "text": "Băng chuyền",
+              "isCorrect": true
+            },
+            {
+              "text": "Kệ hành lý",
+              "isCorrect": false
+            },
+            {
+              "text": "Thang cuốn",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc6_immigration",
+          "front": {
+            "term": "Immigration",
+            "ipa": "/ˌɪm.ɪˈɡreɪ.ʃən/",
+            "contextSentence": "The line at immigration was very long."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "The process of entering a country in order to live there permanently, or the place at an airport where officials check the documents of people entering a country.",
+            "mainDefinitionTrans": "Quá trình nhập cảnh vào một quốc gia để sinh sống vĩnh viễn, hoặc nơi ở sân bay nơi nhân viên kiểm tra giấy tờ của người nhập cảnh.",
+            "wordForms": [],
+            "example": "After collecting our bags, we went through immigration.",
+            "synonyms": [
+              {
+                "word": "Passport control",
+                "meaning": "kiểm soát hộ chiếu"
+              }
+            ],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Kiểm tra nhập cảnh",
+                "example": "Have your arrival card ready for immigration."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Go through immigration",
+                "meaning": "Đi qua kiểm tra nhập cảnh"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Hải quan",
+              "isCorrect": false
+            },
+            {
+              "text": "Kiểm tra nhập cảnh",
+              "isCorrect": true
+            },
+            {
+              "text": "An ninh",
+              "isCorrect": false
+            },
+            {
+              "text": "Check-in",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc7_platform",
+          "front": {
+            "term": "Platform",
+            "ipa": "/ˈplæt.fɔːrm/",
+            "contextSentence": "The train to Berlin leaves from platform 9."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A raised level surface on which people or things can stand, especially at a railway station.",
+            "mainDefinitionTrans": "Một bề mặt được nâng cao nơi người hoặc đồ vật có thể đứng, đặc biệt ở ga tàu hỏa.",
+            "wordForms": [],
+            "example": "Please mind the gap between the train and the platform.",
+            "synonyms": [],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Sân ga, nhà ga",
+                "example": "Which platform does the express train depart from?"
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Train platform",
+                "meaning": "Sân ga tàu hỏa"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Đường hầm",
+              "isCorrect": false
+            },
+            {
+              "text": "Sân ga",
+              "isCorrect": true
+            },
+            {
+              "text": "Đường ray",
+              "isCorrect": false
+            },
+            {
+              "text": "Nhà chờ",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc8_connection",
+          "front": {
+            "term": "Connection",
+            "ipa": "/kəˈnek.ʃən/",
+            "contextSentence": "We missed our connection due to the delay."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A flight, train, or other form of transportation that allows you to continue a journey after getting off another one.",
+            "mainDefinitionTrans": "Chuyến bay, tàu hỏa, hoặc phương tiện khác cho phép bạn tiếp tục hành trình sau khi rời khỏi phương tiện trước đó.",
+            "wordForms": [],
+            "example": "The airline booked us on the next available connection.",
+            "synonyms": [
+              {
+                "word": "Connecting flight/train",
+                "meaning": "chuyến bay/tàu kết nối"
+              }
+            ],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Chuyến kết nối",
+                "example": "Is one hour enough time to make my connection?"
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Miss a connection",
+                "meaning": "Lỡ chuyến kết nối"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Chuyến kết nối",
+              "isCorrect": true
+            },
+            {
+              "text": "Chuyến bay thẳng",
+              "isCorrect": false
+            },
+            {
+              "text": "Khởi hành",
+              "isCorrect": false
+            },
+            {
+              "text": "Đích đến",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc9_visa",
+          "front": {
+            "term": "Visa",
+            "ipa": "/ˈviː.zə/",
+            "contextSentence": "Do you need a visa to enter the country?"
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "An official mark or document put in a passport that allows the holder to enter, leave, or stay in a country for a specified period.",
+            "mainDefinitionTrans": "Dấu hoặc tài liệu chính thức trong hộ chiếu cho phép người sở hữu nhập cảnh, rời khỏi hoặc ở lại một quốc gia trong một khoảng thời gian xác định.",
+            "wordForms": [],
+            "example": "She applied for a tourist visa last month.",
+            "synonyms": [],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Thị thực, visa",
+                "example": "Your visa must be valid for at least six months."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Apply for a visa",
+                "meaning": "Xin thị thực"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Hộ chiếu",
+              "isCorrect": false
+            },
+            {
+              "text": "Thị thực (Visa)",
+              "isCorrect": true
+            },
+            {
+              "text": "Giấy phép lao động",
+              "isCorrect": false
+            },
+            {
+              "text": "Thẻ căn cước",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        },
+        {
+          "id": "fc10_carousel",
+          "front": {
+            "term": "Carousel",
+            "ipa": "/ˌker.əˈsel/",
+            "contextSentence": "Wait for your suitcase at the baggage carousel."
+          },
+          "back": {
+            "images": [],
+            "mainDefinition": "A rotating machine or device, in particular a conveyor system at an airport from which arriving passengers collect their luggage.",
+            "mainDefinitionTrans": "Một máy hoặc thiết bị quay, đặc biệt là hệ thống băng chuyền ở sân bay nơi hành khách đến nhận hành lý của họ.",
+            "wordForms": [],
+            "example": "The carousel started moving, and bags began to appear.",
+            "synonyms": [
+              {
+                "word": "Baggage claim",
+                "meaning": "khu nhận hành lý"
+              },
+              {
+                "word": "Conveyor belt",
+                "meaning": "băng chuyền"
+              }
+            ],
+            "antonyms": [],
+            "detailedDefinitions": [
+              {
+                "partOfSpeech": "noun",
+                "trans": "Băng chuyền hành lý (hình tròn)",
+                "example": "Carousel number 3 is for flight BA 205."
+              }
+            ],
+            "collocations": [
+              {
+                "phrase": "Baggage carousel",
+                "meaning": "Băng chuyền hành lý"
+              }
+            ]
+          },
+          "optionsTrans": [
+            {
+              "text": "Băng chuyền hành lý (hình tròn)",
+              "isCorrect": true
+            },
+            {
+              "text": "Quầy check-in",
+              "isCorrect": false
+            },
+            {
+              "text": "Cửa ra máy bay",
+              "isCorrect": false
+            },
+            {
+              "text": "Khu vực chờ",
+              "isCorrect": false
+            }
+          ],
+          "score": 10
+        }
+      ],
+      "created_at": "2024-01-02T10:00:00Z",
+      "updated_at": "2024-01-02T10:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_202_pronunciationdrill",
+      "type": "pronunciation-drill",
+      "title": "Pronunciation Drill: Travel Vocabulary",
+      "instruction": "<p>Practice pronouncing these common travel and transportation terms correctly. Focus on syllable stress and vowel sounds.</p>",
+      "drills": [
+        {
+          "id": "d1",
+          "text": "<p>Itinerary</p>",
+          "ipa": "/aɪˈtɪn.ər.er.i/",
+          "translate": "Lịch trình",
+          "hint": "Stress on second syllable: i-TIN-er-ar-y",
+          "score": 10
+        },
+        {
+          "id": "d2",
+          "text": "<p>Immigration</p>",
+          "ipa": "/ˌɪm.ɪˈɡreɪ.ʃən/",
+          "translate": "Kiểm tra nhập cảnh",
+          "hint": "Stress on third syllable: im-mi-GRA-tion",
+          "score": 10
+        },
+        {
+          "id": "d3",
+          "text": "<p>Boarding Pass</p>",
+          "ipa": "/ˈbɔːr.dɪŋ ˌpæs/",
+          "translate": "Thẻ lên máy bay",
+          "hint": "Stress on first word: BOARD-ing pass",
+          "score": 10
+        },
+        {
+          "id": "d4",
+          "text": "<p>Conveyor Belt</p>",
+          "ipa": "/kənˈveɪ.ər ˌbelt/",
+          "translate": "Băng chuyền",
+          "hint": "Stress on second syllable of 'conveyor': con-VEY-or belt",
+          "score": 10
+        },
+        {
+          "id": "d5",
+          "text": "<p>Departure</p>",
+          "ipa": "/dɪˈpɑːr.tʃər/",
+          "translate": "Khởi hành",
+          "hint": "Stress on second syllable: de-PAR-ture",
+          "score": 10
+        },
+        {
+          "id": "d6",
+          "text": "<p>Platform</p>",
+          "ipa": "/ˈplæt.fɔːrm/",
+          "translate": "Sân ga",
+          "hint": "Stress on first syllable: PLAT-form",
+          "score": 10
+        },
+        {
+          "id": "d7",
+          "text": "<p>Connection</p>",
+          "ipa": "/kəˈnek.ʃən/",
+          "translate": "Chuyến kết nối",
+          "hint": "Stress on second syllable: con-NEC-tion",
+          "score": 10
+        },
+        {
+          "id": "d8",
+          "text": "<p>Carousel</p>",
+          "ipa": "/ˌker.əˈsel/",
+          "translate": "Băng chuyền hành lý",
+          "hint": "Stress on last syllable: ca-rou-SEL",
+          "score": 10
+        },
+        {
+          "id": "d9",
+          "text": "<p>Layover</p>",
+          "ipa": "/ˈleɪ.oʊ.vər/",
+          "translate": "Thời gian chờ giữa chuyến",
+          "hint": "Stress on first syllable: LAY-over",
+          "score": 10
+        },
+        {
+          "id": "d10",
+          "text": "<p>Customs</p>",
+          "ipa": "/ˈkʌs.təmz/",
+          "translate": "Hải quan",
+          "hint": "Stress on first syllable: CUS-toms",
+          "score": 10
+        }
+      ],
+      "level": 2,
+      "created_at": "2024-01-02T11:00:00Z",
+      "updated_at": "2024-01-02T11:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_204_dictationaudio",
+      "type": "dictation",
+      "title": "Dictation: Airport Announcements",
+      "instruction": "<p>Listen to the audio and type exactly what you hear. These are common airport announcements and phrases.</p>",
+      "dictations": [
+        {
+          "id": "dic1",
+          "text": "Passengers for flight <gap id='g1'>322</gap> to <gap id='g2'>Tokyo</gap>, please <gap id='g3'>proceed</gap> to <gap id='g4'>gate</gap> 15.",
+          "translate": "Hành khách chuyến bay 322 đi Tokyo, vui lòng đi đến cửa 15.",
+          "ipa": "/ˈpæs.ɪn.dʒərz fɔːr flaɪt θriː tuː tuː ˈtəʊ.kjəʊ pliːz prəˈsiːd tuː ɡeɪt ˈfɪf.tiːn/",
+          "score": 10
+        },
+        {
+          "id": "dic2",
+          "text": "The <gap id='g1'>departure</gap> has been <gap id='g2'>delayed</gap> due to <gap id='g3'>weather</gap> conditions.",
+          "translate": "Chuyến bay khởi hành đã bị trì hoãn do điều kiện thời tiết.",
+          "ipa": "/ðə dɪˈpɑːr.tʃər hæz biːn dɪˈleɪd djuː tuː ˈweð.ər kənˈdɪʃ.ənz/",
+          "score": 10
+        },
+        {
+          "id": "dic3",
+          "text": "Please have your <gap id='g1'>boarding</gap> <gap id='g2'>pass</gap> and <gap id='g3'>identification</gap> ready.",
+          "translate": "Vui lòng chuẩn bị sẵn thẻ lên máy bay và giấy tờ tùy thân.",
+          "ipa": "/pliːz hæv jɔːr ˈbɔːr.dɪŋ pæs ænd aɪˌden.tɪ.fɪˈkeɪ.ʃən ˈred.i/",
+          "score": 10
+        },
+        {
+          "id": "dic4",
+          "text": "Baggage from <gap id='g1'>flight</gap> 789 is now <gap id='g2'>arriving</gap> on <gap id='g3'>carousel</gap> 4.",
+          "translate": "Hành lý từ chuyến bay 789 hiện đang được trả ở băng chuyền số 4.",
+          "ipa": "/ˈbæɡ.ɪdʒ frɒm flaɪt ˈsev.ən eɪt naɪn ɪz naʊ əˈraɪ.vɪŋ ɒn ˌker.əˈsel fɔːr/",
+          "score": 10
+        },
+        {
+          "id": "dic5",
+          "text": "Could the <gap id='g1'>owner</gap> of the red <gap id='g2'>suitcase</gap> please come to the <gap id='g3'>information</gap> desk?",
+          "translate": "Chủ nhân của vali màu đỏ vui lòng đến quầy thông tin.",
+          "ipa": "/kʊd ði ˈəʊ.nər əv ðə red ˈsuːt.keɪs pliːz kʌm tuː ði ˌɪn.fəˈmeɪ.ʃən desk/",
+          "score": 10
+        },
+        {
+          "id": "dic6",
+          "text": "We are now <gap id='g1'>boarding</gap> all <gap id='g2'>rows</gap> for flight 112 to <gap id='g3'>London</gap>.",
+          "translate": "Chúng tôi hiện đang cho tất cả các hàng ghế lên máy bay chuyến 112 đi London.",
+          "ipa": "/wiː ɑːr naʊ ˈbɔːr.dɪŋ ɔːl rəʊz fɔːr flaɪt wʌn wʌn tuː tuː ˈlʌn.dən/",
+          "score": 10
+        },
+        {
+          "id": "dic7",
+          "text": "Please <gap id='g1'>keep</gap> your <gap id='g2'>belongings</gap> with you at <gap id='g3'>all</gap> times.",
+          "translate": "Vui lòng luôn giữ tài sản cá nhân bên mình.",
+          "ipa": "/pliːz kiːp jɔːr bɪˈlɒŋ.ɪŋz wɪð juː ət ɔːl taɪmz/",
+          "score": 10
+        },
+        {
+          "id": "dic8",
+          "text": "This is the <gap id='g1'>final</gap> <gap id='g2'>call</gap> for passenger <gap id='g3'>Smith</gap> on flight 456.",
+          "translate": "Đây là lần gọi cuối cùng cho hành khách Smith trên chuyến bay 456.",
+          "ipa": "/ðɪs ɪz ðə ˈfaɪ.nəl kɔːl fɔːr ˈpæs.ɪn.dʒər smɪθ ɒn flaɪt fɔːr faɪv sɪks/",
+          "score": 10
+        },
+        {
+          "id": "dic9",
+          "text": "All passengers must <gap id='g1'>clear</gap> <gap id='g2'>security</gap> before proceeding to the <gap id='g3'>gates</gap>.",
+          "translate": "Tất cả hành khách phải qua an ninh trước khi đi đến cửa lên máy bay.",
+          "ipa": "/ɔːl ˈpæs.ɪn.dʒəz mʌst klɪər sɪˈkjʊə.rə.ti bɪˈfɔːr prəˈsiː.dɪŋ tuː ðə ɡeɪts/",
+          "score": 10
+        },
+        {
+          "id": "dic10",
+          "text": "The flight has been <gap id='g1'>canceled</gap>. Please see an <gap id='g2'>agent</gap> for <gap id='g3'>rebooking</gap>.",
+          "translate": "Chuyến bay đã bị hủy. Vui lòng gặp nhân viên để đặt lại.",
+          "ipa": "/ðə flaɪt hæz biːn ˈkæn.səld. pliːz siː ən ˈeɪ.dʒənt fɔːr ˌriːˈbʊk.ɪŋ/",
+          "score": 10
+        }
+      ],
+      "level": 3,
+      "created_at": "2024-01-02T13:00:00Z",
+      "updated_at": "2024-01-02T13:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_205_errorcorrection",
+      "type": "error-correction",
+      "title": "Error Correction: Travel English",
+      "instruction": "<p>Identify and correct the grammatical error in each travel-related sentence.</p>",
+      "errorCorrections": [
+        {
+          "id": "ec1",
+          "question": "<p>My flight </p> <p error='error_01' style='underline'>are</p> <p> at 9 AM tomorrow.</p>",
+          "errors": [
+            {
+              "id": "error_01",
+              "correct": ["is"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> My flight is at 9 AM tomorrow.<br/><strong>Dịch:</strong> Chuyến bay của tôi lúc 9 giờ sáng mai.<br/><strong>Giải thích:</strong> 'Flight' là danh từ số ít, động từ to be phải là 'is'.</p>",
+          "score": 10
+        },
+        {
+          "id": "ec2",
+          "question": "<p>I need to </p> <p error='error_02' style='underline'>buying</p> <p> a ticket.</p>",
+          "errors": [
+            {
+              "id": "error_02",
+              "correct": ["buy"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> I need to buy a ticket.<br/><strong>Dịch:</strong> Tôi cần mua một vé.<br/><strong>Giải thích:</strong> Sau 'need to' dùng động từ nguyên thể.</p>",
+          "score": 10
+        },
+        {
+          "id": "ec3",
+          "question": "<p>She has </p> <p error='error_03' style='underline'>three luggages</p> <p>.</p>",
+          "errors": [
+            {
+              "id": "error_03",
+              "correct": [
+                "three pieces of luggage",
+                "three bags",
+                "three suitcases"
+              ]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> She has three pieces of luggage.<br/><strong>Dịch:</strong> Cô ấy có ba kiện hành lý.<br/><strong>Giải thích:</strong> 'Luggage' là danh từ không đếm được. Cần dùng 'piece of' hoặc dùng 'bags'/'suitcases'.</p>",
+          "score": 10
+        },
+        {
+          "id": "ec4",
+          "question": "<p>They are waiting for </p> <p error='error_04' style='underline'>their flight since</p> <p> two hours.</p>",
+          "errors": [
+            {
+              "id": "error_04",
+              "correct": ["have been waiting for their flight for"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> They have been waiting for their flight for two hours.<br/><strong>Dịch:</strong> Họ đã đợi chuyến bay của họ được hai tiếng rồi.<br/><strong>Giải thích:</strong> Hành động bắt đầu trong quá khứ và vẫn tiếp diễn ở hiện tại cần thì hiện tại hoàn thành tiếp diễn. Dùng 'for' với khoảng thời gian.</p>",
+          "score": 10
+        },
+        {
+          "id": "ec5",
+          "question": "<p>Could you tell me where </p> <p error='error_05' style='underline'>is the gate</p> <p>?</p>",
+          "errors": [
+            {
+              "id": "error_05",
+              "correct": ["the gate is"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> Could you tell me where the gate is?<br/><strong>Dịch:</strong> Bạn có thể cho tôi biết cửa lên máy bay ở đâu không?<br/><strong>Giải thích:</strong> Trong mệnh đề gián tiếp (sau 'tell me'), trật tự từ là chủ ngữ + động từ.</p>",
+          "score": 10
+        },
+        {
+          "id": "ec6",
+          "question": "<p>I'm looking forward to </p> <p error='error_06' style='underline'>see</p> <p> you.</p>",
+          "errors": [
+            {
+              "id": "error_06",
+              "correct": ["seeing"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> I'm looking forward to seeing you.<br/><strong>Dịch:</strong> Tôi rất mong được gặp bạn.<br/><strong>Giải thích:</strong> Sau 'look forward to' dùng danh động từ (V-ing).</p>",
+          "score": 10
+        },
+        {
+          "id": "ec7",
+          "question": "<p>The train </p> <p error='error_07' style='underline'>depart</p> <p> at platform 2.</p>",
+          "errors": [
+            {
+              "id": "error_07",
+              "correct": ["departs"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> The train departs at platform 2.<br/><strong>Dịch:</strong> Tàu khởi hành ở sân ga số 2.<br/><strong>Giải thích:</strong> Diễn tả lịch trình cố định (thời khóa biểu) dùng thì hiện tại đơn với chủ ngữ số ít thêm 's'.</p>",
+          "score": 10
+        },
+        {
+          "id": "ec8",
+          "question": "<p>I lost </p> <p error='error_08' style='underline'>my passport yesterday at the airport</p> <p>.</p>",
+          "errors": [
+            {
+              "id": "error_08",
+              "correct": ["my passport at the airport yesterday"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> I lost my passport at the airport yesterday.<br/><strong>Dịch:</strong> Tôi đã làm mất hộ chiếu ở sân bay hôm qua.<br/><strong>Giải thích:</strong> Trật tự thông thường trong tiếng Anh: Địa điểm (where) trước thời gian (when).</p>",
+          "score": 10
+        },
+        {
+          "id": "ec9",
+          "question": "<p>This bag is too </p> <p error='error_09' style='underline'>heavily</p> <p>.</p>",
+          "errors": [
+            {
+              "id": "error_09",
+              "correct": ["heavy"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> This bag is too heavy.<br/><strong>Dịch:</strong> Cái túi này quá nặng.<br/><strong>Giải thích:</strong> Sau 'is' (linking verb) và 'too' cần tính từ 'heavy', không phải trạng từ 'heavily'.</p>",
+          "score": 10
+        },
+        {
+          "id": "ec10",
+          "question": "<p>They </p> <p error='error_10' style='underline'>will arrived</p> <p> by noon.</p>",
+          "errors": [
+            {
+              "id": "error_10",
+              "correct": ["will arrive"]
+            }
+          ],
+          "explain": "<p><strong>Correct:</strong> They will arrive by noon.<br/><strong>Dịch:</strong> Họ sẽ đến trước trưa.<br/><strong>Giải thích:</strong> Sau trợ động từ 'will' dùng động từ nguyên thể.</p>",
+          "score": 10
+        }
+      ],
+      "created_at": "2024-01-02T14:00:00Z",
+      "updated_at": "2024-01-02T14:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_206_multiplechoice",
+      "type": "multiple-choice",
+      "title": "Multiple Choice: Travel Situations",
+      "instruction": "<p>Choose the most appropriate response for each travel situation.</p>",
+      "questions": [
+        {
+          "id": "q1",
+          "question": "You want to know if your flight is on time. You ask:",
+          "options": [
+            "Is the flight punctual?",
+            "Is this flight on schedule?",
+            "Is this flight on time?",
+            "Will the flight be late?"
+          ],
+          "answer": "Is this flight on time?",
+          "explain": "<p>This is the most common and natural way to ask about punctuality.</p>",
+          "score": 10
+        },
+        {
+          "id": "q2",
+          "question": "You are at the check-in counter and want an aisle seat. You say:",
+          "options": [
+            "Give me an aisle seat.",
+            "I'd prefer an aisle seat, please.",
+            "I want to sit on the aisle.",
+            "Aisle seat, now!"
+          ],
+          "answer": "I'd prefer an aisle seat, please.",
+          "explain": "<p>This is a polite and clear way to state your seating preference.</p>",
+          "score": 10
+        },
+        {
+          "id": "q3",
+          "question": "You can't find your gate at the airport. You ask an employee:",
+          "options": [
+            "Where's gate 45?",
+            "Could you direct me to gate 45?",
+            "I'm lost. Help!",
+            "Gate 45, where are you?"
+          ],
+          "answer": "Could you direct me to gate 45?",
+          "explain": "<p>This is a polite and standard way to ask for directions.</p>",
+          "score": 10
+        },
+        {
+          "id": "q4",
+          "question": "Your luggage didn't arrive. You go to the baggage service office and say:",
+          "options": [
+            "My bag is gone!",
+            "I can't find my suitcase.",
+            "My luggage seems to be missing.",
+            "Where is my bag?"
+          ],
+          "answer": "My luggage seems to be missing.",
+          "explain": "<p>This is a formal and appropriate way to report missing luggage to an airline representative.</p>",
+          "score": 10
+        },
+        {
+          "id": "q5",
+          "question": "You need to change some money. You ask at the bank:",
+          "options": [
+            "I want dollars.",
+            "Can you change this to euros?",
+            "Give me euros for this.",
+            "Exchange money, please."
+          ],
+          "answer": "Can you change this to euros?",
+          "explain": "<p>This is a polite and clear request for currency exchange.</p>",
+          "score": 10
+        },
+        {
+          "id": "q6",
+          "question": "You want to know if there's a bus to the city center. You ask:",
+          "options": [
+            "Bus to city?",
+            "Is there a bus that goes downtown?",
+            "Where's the bus?",
+            "City bus, please."
+          ],
+          "answer": "Is there a bus that goes downtown?",
+          "explain": "<p>This is a complete and polite question to ask about public transportation.</p>",
+          "score": 10
+        },
+        {
+          "id": "q7",
+          "question": "You're on a train and the conductor asks for your ticket. You say:",
+          "options": [
+            "Here.",
+            "Here you go.",
+            "Take it.",
+            "It's here somewhere."
+          ],
+          "answer": "Here you go.",
+          "explain": "<p>This is a friendly and common phrase when handing something to someone.</p>",
+          "score": 10
+        },
+        {
+          "id": "q8",
+          "question": "You want to rent a car. You say to the agent:",
+          "options": [
+            "I need a car.",
+            "I'd like to rent a car, please.",
+            "Car rental, please.",
+            "Give me a car."
+          ],
+          "answer": "I'd like to rent a car, please.",
+          "explain": "<p>This is the standard polite way to request a car rental.</p>",
+          "score": 10
+        },
+        {
+          "id": "q9",
+          "question": "You're checking into a hotel. The receptionist says, 'Welcome.' You respond:",
+          "options": [
+            "Thanks. I have a reservation.",
+            "Hi.",
+            "Room, please.",
+            "I'm here."
+          ],
+          "answer": "Thanks. I have a reservation.",
+          "explain": "<p>This is a friendly and efficient response that moves the check-in process forward.</p>",
+          "score": 10
+        },
+        {
+          "id": "q10",
+          "question": "You're going through airport security. The officer says, 'Please remove your shoes.' You say:",
+          "options": ["Why?", "Sure, no problem.", "Do I have to?", "Okay."],
+          "answer": "Sure, no problem.",
+          "explain": "<p>This is a cooperative and polite response to a security instruction.</p>",
+          "score": 10
+        }
+      ],
+      "level": 3,
+      "created_at": "2024-01-02T15:00:00Z",
+      "updated_at": "2024-01-02T15:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_207_gapfill",
+      "type": "gap-fill-typing",
+      "title": "Gap Fill: At the Train Station",
+      "instruction": "<p>Fill in the blanks with the correct words to complete the conversation at a train station.</p>",
+      "question": "<p>Traveler: Excuse me, I'd like to </gap id='gap1'> a ticket to Manchester, please.<br/>Clerk: Single or </gap id='gap2'>?<br/>Traveler: Return, please. For tomorrow morning.<br/>Clerk: There's an express train at 8:15. It's </gap id='gap3'> but faster.<br/>Traveler: That's fine. Which </gap id='gap4'> does it depart from?<br/>Clerk: Platform 7. Do you have any </gap id='gap5'> to check in?<br/>Traveler: No, just this </gap id='gap6'> bag.<br/>Clerk: Okay. Here's your ticket and </gap id='gap7'>. The train number is on it.<br/>Traveler: Thank you. Is there a food </gap id='gap8'> on the train?<br/>Clerk: Yes, there's a buffet car. You can also pre-order a meal.<br/>Traveler: Great. One more thing – will there be any </gap id='gap9'> along the way?<br/>Clerk: Yes, there's one stop in Birmingham, but it's very short. Please don't </gap id='gap10'> the train there.<br/>Traveler: I understand. Thank you for your help.</p>",
+      "answers": [
+        {
+          "id": "gap1",
+          "answer": ["buy", "purchase", "get"],
+          "explain": "<p>You buy or purchase a ticket.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap2",
+          "answer": ["return"],
+          "explain": "<p>'Return' is a ticket for a round trip. 'Single' is one way.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap3",
+          "answer": ["more expensive", "pricier", "costlier"],
+          "explain": "<p>Express trains are often more expensive.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap4",
+          "answer": ["platform"],
+          "explain": "<p>Trains depart from numbered platforms.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap5",
+          "answer": ["luggage", "bags"],
+          "explain": "<p>'Check in' luggage means to leave it with the railway staff.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap6",
+          "answer": ["carry-on", "small", "hand"],
+          "explain": "<p>A 'carry-on' bag stays with you on the train.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap7",
+          "answer": ["reservation", "receipt"],
+          "explain": "<p>You often get a ticket and a reservation slip.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap8",
+          "answer": ["service", "car", "cart"],
+          "explain": "<p>'Food service' or 'buffet car' is where you can buy food.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap9",
+          "answer": ["stops", "station stops"],
+          "explain": "<p>Trains may make stops along the route.</p>",
+          "score": 10
+        },
+        {
+          "id": "gap10",
+          "answer": ["leave", "get off", "alight from"],
+          "explain": "<p>You 'get off' or 'leave' the train at your destination.</p>",
+          "score": 10
+        }
+      ],
+      "level": 3,
+      "created_at": "2024-01-02T16:00:00Z",
+      "updated_at": "2024-01-02T16:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_208_sentencebuilder",
+      "type": "builder",
+      "title": "Sentence Builder: Travel Phrases",
+      "instruction": "<p>Arrange the words in the correct order to form grammatically correct travel sentences.</p>",
+      "builders": [
+        {
+          "id": "s1",
+          "items": ["check-in", "Where", "the", "counter", "is", "?"],
+          "correctOrder": [1, 4, 2, 0, 3, 5],
+          "hint": "Câu hỏi với 'Where is...'",
+          "explain": "<p>Where is the check-in counter? (Quầy làm thủ tục ở đâu?)</p>",
+          "score": 10
+        },
+        {
+          "id": "s2",
+          "items": [
+            "this",
+            "goes",
+            "train",
+            "city",
+            "Does",
+            "the",
+            "to",
+            "center",
+            "?"
+          ],
+          "correctOrder": [4, 0, 2, 1, 6, 3, 7, 8, 5],
+          "hint": "Câu hỏi Yes/No với trợ động từ 'Does'",
+          "explain": "<p>Does this train go to the city center? (Tàu này có đi đến trung tâm thành phố không?)</p>",
+          "score": 10
+        },
+        {
+          "id": "s3",
+          "items": ["I'd", "a", "like", "seat", "window", "to", "request"],
+          "correctOrder": [0, 2, 6, 1, 4, 3, 5],
+          "hint": "Cấu trúc 'I'd like to request...'",
+          "explain": "<p>I'd like to request a window seat. (Tôi muốn xin một chỗ ngồi cạnh cửa sổ.)</p>",
+          "score": 10
+        },
+        {
+          "id": "s4",
+          "items": ["my", "is", "This", "first", "trip", "abroad"],
+          "correctOrder": [2, 0, 3, 4, 1, 5],
+          "hint": "This + is + my...",
+          "explain": "<p>This is my first trip abroad. (Đây là chuyến đi nước ngoài đầu tiên của tôi.)</p>",
+          "score": 10
+        },
+        {
+          "id": "s5",
+          "items": ["arrival", "time", "What's", "the", "?"],
+          "correctOrder": [2, 3, 0, 1, 4],
+          "hint": "What's the...?",
+          "explain": "<p>What's the arrival time? (Mấy giờ thì đến nơi?)</p>",
+          "score": 10
+        },
+        {
+          "id": "s6",
+          "items": ["a", "have", "I", "in", "Singapore", "layover"],
+          "correctOrder": [2, 1, 0, 5, 3, 4],
+          "hint": "I have a layover in + địa điểm",
+          "explain": "<p>I have a layover in Singapore. (Tôi có điểm dừng chân ở Singapore.)</p>",
+          "score": 10
+        },
+        {
+          "id": "s7",
+          "items": ["customs", "go", "to", "through", "need", "I"],
+          "correctOrder": [5, 4, 1, 3, 0, 2],
+          "hint": "I need to go through...",
+          "explain": "<p>I need to go through customs. (Tôi cần phải qua hải quan.)</p>",
+          "score": 10
+        },
+        {
+          "id": "s8",
+          "items": ["boarding", "begun", "Has", "yet", "?"],
+          "correctOrder": [2, 0, 1, 3, 4],
+          "hint": "Câu hỏi hiện tại hoàn thành: Has + chủ ngữ + past participle?",
+          "explain": "<p>Has boarding begun yet? (Việc lên máy bay đã bắt đầu chưa?)</p>",
+          "score": 10
+        },
+        {
+          "id": "s9",
+          "items": ["recommend", "you", "hotel", "do", "Which", "?"],
+          "correctOrder": [5, 3, 1, 0, 2, 4],
+          "hint": "Which + do you recommend?",
+          "explain": "<p>Which hotel do you recommend? (Bạn đề xuất khách sạn nào?)</p>",
+          "score": 10
+        },
+        {
+          "id": "s10",
+          "items": ["to", "take", "long", "it", "How", "does", "?"],
+          "correctOrder": [4, 5, 2, 3, 1, 0, 6],
+          "hint": "How long does it take to...?",
+          "explain": "<p>How long does it take to get there? (Mất bao lâu để đến đó?)</p>",
+          "score": 10
+        }
+      ],
+      "level": 3,
+      "created_at": "2024-01-02T17:00:00Z",
+      "updated_at": "2024-01-02T17:00:00Z",
+      "status": "active"
+    },
+    {
+      "id": "quiz_209_scriptedchat",
+      "type": "scripted-chat",
+      "title": "Scripted Chat: At the Airport Check-in",
+      "instruction": "<p translate='Đọc cuộc hội thoại mẫu tại quầy check-in sân bay.'>Read this sample conversation at an airport check-in counter.</p>",
+      "chats": [
+        {
+          "id": "c1",
+          "role": "Passenger",
+          "name": "Alex",
+          "gender": "male",
+          "content": "<p>Good morning. I'm here to check in for my flight to Bangkok.</p>",
+          "translate": "Xin chào. Tôi ở đây để làm thủ tục cho chuyến bay đi Bangkok.",
+          "ipa": "/ɡʊd ˈmɔː.nɪŋ. aɪm hɪər tuː tʃek ɪn fɔːr maɪ flaɪt tuː ˈbæŋ.kɒk/",
+          "tips": ["<p>Start by stating your destination.</p>"]
+        },
+        {
+          "id": "c2",
+          "role": "Agent",
+          "name": "Sophie",
+          "gender": "female",
+          "content": "<p>Good morning. May I have your passport and booking reference, please?</p>",
+          "translate": "Xin chào. Tôi có thể xem hộ chiếu và mã đặt chỗ của anh được không?",
+          "ipa": "/ɡʊd ˈmɔː.nɪŋ. meɪ aɪ hæv jɔːr ˈpɑːs.pɔːt ænd ˈbʊk.ɪŋ ˈref.ər.əns pliːz/",
+          "tips": ["<p>The agent will ask for your travel documents.</p>"]
+        },
+        {
+          "id": "c3",
+          "role": "Passenger",
+          "name": "Alex",
+          "gender": "male",
+          "content": "<p>Here you are. I also have one bag to check in.</p>",
+          "translate": "Của anh đây. Tôi cũng có một vali để ký gửi.",
+          "ipa": "/hɪər juː ɑːr. aɪ ˈɔːl.səʊ hæv wʌn bæɡ tuː tʃek ɪn/",
+          "tips": [
+            "<p>'Here you are' is polite when handing something over.</p>"
+          ]
+        },
+        {
+          "id": "c4",
+          "role": "Agent",
+          "name": "Sophie",
+          "gender": "female",
+          "content": "<p>Thank you. Please place your bag on the scale. Do you have any carry-on luggage?</p>",
+          "translate": "Cảm ơn anh. Vui lòng đặt vali lên cân. Anh có hành lý xách tay nào không?",
+          "ipa": "/θæŋk juː. pliːz pleɪs jɔːr bæɡ ɒn ðə skeɪl. duː juː hæv ˈeni ˈkær.i.ɒn ˈlʌɡ.ɪdʒ/",
+          "tips": ["<p>They will weigh your checked baggage.</p>"]
+        },
+        {
+          "id": "c5",
+          "role": "Passenger",
+          "name": "Alex",
+          "gender": "male",
+          "content": "<p>Just this backpack. Is that okay?</p>",
+          "translate": "Chỉ có cái ba lô này thôi. Như vậy được chứ?",
+          "ipa": "/dʒʌst ðɪs ˈbæk.pæk. ɪz ðæt əˈkeɪ/",
+          "tips": ["<p>Confirming the size/allowance for carry-on items.</p>"]
+        },
+        {
+          "id": "c6",
+          "role": "Agent",
+          "name": "Sophie",
+          "gender": "female",
+          "content": "<p>Yes, that's fine. Your checked bag is 22 kilos, which is within the allowance. Would you prefer a window or aisle seat?</p>",
+          "translate": "Vâng, được ạ. Vali ký gửi của anh nặng 22 ký, trong phạm vi cho phép. Anh thích ghế cửa sổ hay ghế gần lối đi?",
+          "ipa": "/jes, ðæts faɪn. jɔːr tʃekt bæɡ ɪz ˈtwen.ti tuː ˈkiː.ləʊz, wɪtʃ ɪz wɪˈðɪn ði əˈlaʊ.əns. wʊd juː prɪˈfɜːr ə ˈwɪn.dəʊ ɔːr aɪl siːt/",
+          "tips": [
+            "<p>The agent confirms weight and asks for seating preference.</p>"
+          ]
+        },
+        {
+          "id": "c7",
+          "role": "Passenger",
+          "name": "Alex",
+          "gender": "male",
+          "content": "<p>Aisle, please. Also, could I have a seat closer to the front if possible?</p>",
+          "translate": "Ghế gần lối đi, làm ơn. Ngoài ra, tôi có thể có ghế gần phía trước hơn được không nếu có?",
+          "ipa": "/aɪl, pliːz. ˈɔːl.səʊ, kʊd aɪ hæv ə siːt ˈkləʊ.sər tuː ðə frʌnt ɪf ˈpɒs.ə.bəl/",
+          "tips": ["<p>Making a specific, polite request.</p>"]
+        },
+        {
+          "id": "c8",
+          "role": "Agent",
+          "name": "Sophie",
+          "gender": "female",
+          "content": "<p>Let me see... Yes, I can put you in row 12. Here are your boarding pass and baggage tag. Your gate is B35, and boarding begins at 10:40.</p>",
+          "translate": "Để tôi xem... Vâng, tôi có thể xếp anh vào hàng ghế 12. Đây là thẻ lên máy bay và thẻ hành lý của anh. Cửa lên máy bay là B35, và việc lên máy bay bắt đầu lúc 10:40.",
+          "ipa": "/let miː siː. jes, aɪ kæn pʊt juː ɪn rəʊ twelv. hɪər ɑːr jɔːr ˈbɔːr.dɪŋ pæs ænd ˈbæɡ.ɪdʒ tæɡ. jɔːr ɡeɪt ɪz biː θɜːti faɪv, ænd ˈbɔːr.dɪŋ bɪˈɡɪnz ət ten fɔːti/",
+          "tips": [
+            "<p>The agent provides key information: seat, gate, and boarding time.</p>"
+          ]
+        },
+        {
+          "id": "c9",
+          "role": "Passenger",
+          "name": "Alex",
+          "gender": "male",
+          "content": "<p>Thank you. Which terminal is gate B35 in?</p>",
+          "translate": "Cảm ơn bạn. Cửa B35 ở nhà ga nào?",
+          "ipa": "/θæŋk juː. wɪtʃ ˈtɜː.mɪ.nəl ɪz ɡeɪt biː θɜːti faɪv ɪn/",
+          "tips": ["<p>Asking for clarification on terminal location.</p>"]
+        },
+        {
+          "id": "c10",
+          "role": "Agent",
+          "name": "Sophie",
+          "gender": "female",
+          "content": "<p>It's in Terminal 2. You'll need to go through security on the right. Have a pleasant flight!</p>",
+          "translate": "Nó ở Nhà ga số 2. Anh sẽ cần đi qua an ninh ở bên phải. Chúc anh có một chuyến bay dễ chịu!",
+          "ipa": "/ɪts ɪn ˈtɜː.mɪ.nəl tuː. juːl niːd tuː ɡəʊ θruː sɪˈkjʊə.rə.ti ɒn ðə raɪt. hæv ə ˈplez.ənt flaɪt/",
+          "tips": [
+            "<p>The agent gives final directions and a closing pleasantry.</p>"
+          ]
+        },
+        {
+          "id": "c11",
+          "role": "Passenger",
+          "name": "Alex",
+          "gender": "male",
+          "content": "<p>Thank you for your help.</p>",
+          "translate": "Cảm ơn bạn đã giúp đỡ.",
+          "ipa": "/θæŋk juː fɔːr jɔːr help/",
+          "tips": ["<p>Politely ending the conversation.</p>"]
+        }
+      ],
+      "level": 4,
+      "created_at": "2024-01-02T18:00:00Z",
+      "updated_at": "2024-01-02T18:00:00Z",
+      "status": "active"
+    }
+  ]
+}

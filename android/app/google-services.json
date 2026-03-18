@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1040128121464",
+    "project_id": "fluency-e78d8",
+    "storage_bucket": "fluency-e78d8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1040128121464:android:450615ccd75b518924eb8d",
+        "android_client_info": {
+          "package_name": "com.zenoravn.fluency"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxT1dGUZJa6Phq-4Z99gkFBnyBjbs9WjM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

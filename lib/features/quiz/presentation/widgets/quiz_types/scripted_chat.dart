@@ -13,6 +13,7 @@ import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:provider/provider.dart';
 
 class ScriptedChat extends StatefulWidget {
@@ -44,6 +45,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
 
   SttService? _sttService;
   bool _isListening = false;
+  String? _sttError;
   StreamSubscription<TtsState>? _ttsSubscription;
 
   // Sequence playback
@@ -104,183 +106,212 @@ class _ScriptedChatState extends State<ScriptedChat> {
   }
 
   Future<void> _initializeStt() async {
-    debugPrint('ScriptedChat: Initializing STT (system)...');
+    try {
+      debugPrint('ScriptedChat: Initializing STT (system)...');
 
-    _sttService = SystemSttService();
+      _sttService = SystemSttService();
 
-    final available = await _sttService!.initialize();
-    if (available) {
-      debugPrint('ScriptedChat: STT Initialized successfully');
-    } else {
-      debugPrint('ScriptedChat: STT Initialization failed or unavailable');
+      final available = await _sttService!.initialize();
+      if (mounted) {
+        setState(() {
+          if (!available) {
+            _sttError = 'Speech recognition not available on this device';
+          }
+        });
+      }
+      if (available) {
+        debugPrint('ScriptedChat: STT Initialized successfully');
+      } else {
+        debugPrint('ScriptedChat: STT Initialization failed or unavailable');
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('ScriptedChat: STT Initialization error: $e');
+      if (mounted) {
+        setState(() {
+          _sttError = 'Speech recognition not available on this device';
+        });
+      }
     }
   }
 
   Future<void> _loadProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final progress = await quizStateProvider.loadQuizProgress(
-      widget.lessonId,
-      widget.quizId,
-    );
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final progress = await quizStateProvider.loadQuizProgress(
+        widget.lessonId,
+        widget.quizId,
+      );
 
-    if (progress != null && mounted) {
-      setState(() {
-        _userRole = progress.data?['userRole'] as String?;
-        final savedVisibleCount = progress.data?['visibleCount'] as int? ?? 0;
+      if (progress != null && mounted) {
+        setState(() {
+          _userRole = progress.data?['userRole'] as String?;
+          final savedVisibleCount = progress.data?['visibleCount'] as int? ?? 0;
 
-        // Restore message scores
-        final scoresMap =
-            progress.data?['messageScores'] as Map<String, dynamic>?;
-        if (scoresMap != null) {
-          scoresMap.forEach((key, value) {
-            final data = value as Map<String, dynamic>;
-            final feedbackData = data['feedback'] as List<dynamic>?;
-            final feedbackList = feedbackData?.map((f) {
-                  final fMap = f as Map<String, dynamic>;
-                  return _WordFeedback(
-                    fMap['word'] as String,
-                    _FeedbackStatus.values[fMap['status'] as int],
-                  );
-                }).toList() ??
-                [];
+          // Restore message scores
+          final scoresMap =
+              progress.data?['messageScores'] as Map<String, dynamic>?;
+          if (scoresMap != null) {
+            scoresMap.forEach((key, value) {
+              final data = value as Map<String, dynamic>;
+              final feedbackData = data['feedback'] as List<dynamic>?;
+              final feedbackList = feedbackData?.map((f) {
+                    final fMap = f as Map<String, dynamic>;
+                    return _WordFeedback(
+                      fMap['word'] as String,
+                      _FeedbackStatus.values[fMap['status'] as int],
+                    );
+                  }).toList() ??
+                  [];
 
-            _messageScores[key] = _MessageScore(
-              score: data['score'] as int,
-              transcript: data['transcript'] as String,
-              feedback: feedbackList,
-            );
-          });
-        }
+              _messageScores[key] = _MessageScore(
+                score: data['score'] as int,
+                transcript: data['transcript'] as String,
+                feedback: feedbackList,
+              );
+            });
+          }
 
-        if (_userRole != null) {
-          _visibleCount = savedVisibleCount;
-          debugPrint(
-              'ScriptedChat: Restored progress. Visible=$_visibleCount, Role=$_userRole');
+          if (_userRole != null) {
+            _visibleCount = savedVisibleCount;
+            debugPrint(
+                'ScriptedChat: Restored progress. Visible=$_visibleCount, Role=$_userRole');
 
-          // Resume sequence logic
-          int restartIndex = _visibleCount;
-          bool shouldResume = false;
+            // Resume sequence logic
+            int restartIndex = _visibleCount;
+            bool shouldResume = false;
 
-          if (_visibleCount > 0) {
-            final chats = widget.quiz.chats ?? [];
-            if (_visibleCount <= chats.length) {
-              final lastIndex = _visibleCount - 1;
-              final lastChat = chats[lastIndex];
+            if (_visibleCount > 0) {
+              final chats = widget.quiz.chats ?? [];
+              if (_visibleCount <= chats.length) {
+                final lastIndex = _visibleCount - 1;
+                final lastChat = chats[lastIndex];
 
-              if (lastChat.role != _userRole) {
-                restartIndex = lastIndex;
-                shouldResume = true;
-                debugPrint(
-                    'ScriptedChat: Resuming at assistant message $restartIndex for context.');
-              } else {
-                final scoreData = _messageScores[lastChat.id];
-                if (scoreData != null && scoreData.score >= 50) {
-                  restartIndex = _visibleCount;
+                if (lastChat.role != _userRole) {
+                  restartIndex = lastIndex;
                   shouldResume = true;
                   debugPrint(
-                      'ScriptedChat: User passed previous, resuming at next sequence $restartIndex');
+                      'ScriptedChat: Resuming at assistant message $restartIndex for context.');
                 } else {
-                  if (lastIndex > 0) {
-                    restartIndex = lastIndex - 1;
+                  final scoreData = _messageScores[lastChat.id];
+                  if (scoreData != null && scoreData.score >= 50) {
+                    restartIndex = _visibleCount;
                     shouldResume = true;
                     debugPrint(
-                        'ScriptedChat: User pending/failed. Replaying previous assistant prompt at $restartIndex');
+                        'ScriptedChat: User passed previous, resuming at next sequence $restartIndex');
                   } else {
-                    shouldResume = false;
+                    if (lastIndex > 0) {
+                      restartIndex = lastIndex - 1;
+                      shouldResume = true;
+                      debugPrint(
+                          'ScriptedChat: User pending/failed. Replaying previous assistant prompt at $restartIndex');
+                    } else {
+                      shouldResume = false;
+                    }
                   }
                 }
               }
+            } else {
+              restartIndex = 0;
+              shouldResume = true;
             }
-          } else {
-            restartIndex = 0;
-            shouldResume = true;
-          }
 
-          _currentSequenceIndex = restartIndex;
-          _isPlayingSequence = shouldResume;
+            _currentSequenceIndex = restartIndex;
+            _isPlayingSequence = shouldResume;
 
-          if (shouldResume) {
-            // Wait for TTS to be ready before starting sequence
-            _waitForTtsAndStartSequence();
-          }
+            if (shouldResume) {
+              // Wait for TTS to be ready before starting sequence
+              _waitForTtsAndStartSequence();
+            }
 
-          // If quiz is already completed (all chats visible and user passed last turn)
-          final chats = widget.quiz.chats ?? [];
-          if (_visibleCount >= chats.length) {
-            final lastChat = chats.last;
-            if (lastChat.role != _userRole ||
-                (_messageScores[lastChat.id]?.score ?? 0) >= 50) {
-              widget.onCheck?.call();
+            // If quiz is already completed (all chats visible and user passed last turn)
+            final chats = widget.quiz.chats ?? [];
+            if (_visibleCount >= chats.length) {
+              final lastChat = chats.last;
+              if (lastChat.role != _userRole ||
+                  (_messageScores[lastChat.id]?.score ?? 0) >= 50) {
+                widget.onCheck?.call();
+              }
             }
           }
-        }
-      });
+        });
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('ScriptedChat: Error loading progress: $e');
     }
   }
 
   Future<void> _waitForTtsAndStartSequence() async {
-    debugPrint('ScriptedChat: Waiting for TTS initialization...');
-    final ttsProvider = context.read<TtsProvider>();
+    try {
+      debugPrint('ScriptedChat: Waiting for TTS initialization...');
+      final ttsProvider = context.read<TtsProvider>();
 
-    if (!ttsProvider.isInitialized) {
-      if (mounted) {
-        setState(() {
-          _isTtsLoading = true;
-          _loadingStatus = 'Đang khởi tạo âm thanh offline...';
-        });
-      }
-    }
-
-    // Wait for TTS initialization
-    int retries = 0;
-    while (!ttsProvider.isInitialized && retries < 30 && mounted) {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      retries++;
-      if (retries % 5 == 0) {
-        debugPrint(
-            'ScriptedChat: Still waiting for TTS... (${retries * 200}ms)');
+      if (!ttsProvider.isInitialized) {
         if (mounted) {
           setState(() {
-            _loadingStatus = 'Đang nạp dữ liệu giọng nói... (${retries ~/ 5}s)';
+            _isTtsLoading = true;
+            _loadingStatus = 'Đang khởi tạo âm thanh offline...';
           });
         }
       }
-    }
 
-    // If still not initialized, force init
-    if (!ttsProvider.isInitialized && mounted) {
-      debugPrint('ScriptedChat: Forcing TTS init before sequence');
+      // Wait for TTS initialization
+      int retries = 0;
+      while (!ttsProvider.isInitialized && retries < 30 && mounted) {
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        retries++;
+        if (retries % 5 == 0) {
+          debugPrint(
+              'ScriptedChat: Still waiting for TTS... (${retries * 200}ms)');
+          if (mounted) {
+            setState(() {
+              _loadingStatus =
+                  'Đang nạp dữ liệu giọng nói... (${retries ~/ 5}s)';
+            });
+          }
+        }
+      }
+
+      // If still not initialized, force init
+      if (!ttsProvider.isInitialized && mounted) {
+        debugPrint('ScriptedChat: Forcing TTS init before sequence');
+        if (mounted) {
+          setState(() {
+            _loadingStatus = 'Đang đồng bộ cấu hình...';
+          });
+        }
+        await ttsProvider.initService();
+      }
+
       if (mounted) {
         setState(() {
-          _loadingStatus = 'Đang đồng bộ cấu hình...';
+          _isTtsLoading = false;
+          _loadingStatus = null;
         });
       }
-      await ttsProvider.initService();
-    }
 
-    if (mounted) {
-      setState(() {
-        _isTtsLoading = false;
-        _loadingStatus = null;
-      });
-    }
+      // Verify TTS service is available
+      if (ttsProvider.ttsService == null) {
+        debugPrint(
+            'ScriptedChat: ERROR - TTS service is still null after init!');
+        return;
+      }
 
-    // Verify TTS service is available
-    if (ttsProvider.ttsService == null) {
-      debugPrint('ScriptedChat: ERROR - TTS service is still null after init!');
-      return;
-    }
+      debugPrint(
+          'ScriptedChat: TTS is ready (service: ${ttsProvider.ttsService.runtimeType})');
 
-    debugPrint(
-        'ScriptedChat: TTS is ready (service: ${ttsProvider.ttsService.runtimeType})');
+      // Setup listener
+      _setupTtsListener();
 
-    // Setup listener
-    _setupTtsListener();
-
-    // Start sequence playback
-    if (mounted && _isPlayingSequence) {
-      debugPrint('ScriptedChat: Starting sequence playback');
-      _playNextInSequence();
+      // Start sequence playback
+      if (mounted && _isPlayingSequence) {
+        debugPrint('ScriptedChat: Starting sequence playback');
+        _playNextInSequence();
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('ScriptedChat: Error in _waitForTtsAndStartSequence: $e');
     }
   }
 
@@ -335,7 +366,8 @@ class _ScriptedChatState extends State<ScriptedChat> {
       }
 
       _setupTtsListener();
-    } catch (e) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('TTS/STT Init Error: $e');
     }
   }
@@ -478,7 +510,8 @@ class _ScriptedChatState extends State<ScriptedChat> {
           });
         }
       }
-    } catch (e) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('TTS Speak Error: $e');
       // Fallback: manually advance if TTS fails
       if (_isPlayingSequence) {
@@ -621,7 +654,9 @@ class _ScriptedChatState extends State<ScriptedChat> {
       await _initializeStt();
     }
 
-    if (_sttService == null || !await _sttService!.isAvailable()) {
+    if (_sttService == null ||
+        _sttError != null ||
+        !await _sttService!.isAvailable()) {
       debugPrint('ScriptedChat: STT Service unavailable');
       return;
     }
@@ -684,53 +719,58 @@ class _ScriptedChatState extends State<ScriptedChat> {
   }
 
   Future<void> _saveProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
 
-    final scoresData = <String, dynamic>{};
-    _messageScores.forEach((key, value) {
-      scoresData[key] = {
-        'score': value.score,
-        'transcript': value.transcript,
-        'feedback': value.feedback
-            .map((f) => {
-                  'word': f.word,
-                  'status': f.status.index,
-                })
-            .toList(),
-      };
-    });
+      final scoresData = <String, dynamic>{};
+      _messageScores.forEach((key, value) {
+        scoresData[key] = {
+          'score': value.score,
+          'transcript': value.transcript,
+          'feedback': value.feedback
+              .map((f) => {
+                    'word': f.word,
+                    'status': f.status.index,
+                  })
+              .toList(),
+        };
+      });
 
-    final chats = widget.quiz.chats ?? [];
-    final totalItems = chats.length;
-    final completedItems = _visibleCount;
+      final chats = widget.quiz.chats ?? [];
+      final totalItems = chats.length;
+      final completedItems = _visibleCount;
 
-    var correctItems = 0;
-    for (var i = 0; i < _visibleCount; i++) {
-      if (i >= chats.length) break;
-      final chat = chats[i];
-      if (chat.role != _userRole) {
-        correctItems++;
-      } else {
-        final scoreData = _messageScores[chat.id];
-        if (scoreData != null && scoreData.score >= 50) {
+      var correctItems = 0;
+      for (var i = 0; i < _visibleCount; i++) {
+        if (i >= chats.length) break;
+        final chat = chats[i];
+        if (chat.role != _userRole) {
           correctItems++;
+        } else {
+          final scoreData = _messageScores[chat.id];
+          if (scoreData != null && scoreData.score >= 50) {
+            correctItems++;
+          }
         }
       }
-    }
 
-    await quizStateProvider.saveQuizProgress(
-      lessonId: widget.lessonId,
-      quizId: widget.quizId,
-      quizType: 'scripted-chat',
-      completedItems: completedItems,
-      totalItems: totalItems,
-      correctItems: correctItems,
-      data: {
-        'userRole': _userRole,
-        'visibleCount': _visibleCount,
-        'messageScores': scoresData,
-      },
-    );
+      await quizStateProvider.saveQuizProgress(
+        lessonId: widget.lessonId,
+        quizId: widget.quizId,
+        quizType: 'scripted-chat',
+        completedItems: completedItems,
+        totalItems: totalItems,
+        correctItems: correctItems,
+        data: {
+          'userRole': _userRole,
+          'visibleCount': _visibleCount,
+          'messageScores': scoresData,
+        },
+      );
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('ScriptedChat: Error saving progress: $e');
+    }
   }
 
   void _handleSimulateTest(String chatId, String targetText, int messageIndex) {
@@ -840,29 +880,67 @@ class _ScriptedChatState extends State<ScriptedChat> {
             bottom: 32,
             left: 0,
             right: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: () => _handleSimulateTest(
-                    activeUserChat!.id,
-                    _getTextContent(
-                        activeUserChat.question ?? activeUserChat.content),
-                    _visibleCount - 1),
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: _isListening
-                        ? appColors.primary.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_sttError != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 48),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              color: Colors.red, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'This device does not support speech-to-text service.',
+                              style: TextStyle(
+                                color: Colors.red[700],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.mic,
-                    color: _isListening ? appColors.primary : Colors.grey,
-                    size: 32,
+                if (_sttError == null)
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => _handleSimulateTest(
+                          activeUserChat!.id,
+                          _getTextContent(activeUserChat.question ??
+                              activeUserChat.content),
+                          _visibleCount - 1),
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: _isListening
+                              ? appColors.primary.withValues(alpha: 0.15)
+                              : Colors.grey.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.mic,
+                          color: _isListening ? appColors.primary : Colors.grey,
+                          size: 32,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+              ],
             ),
           ),
         if (_isTtsLoading) _buildLoadingOverlay(appColors),

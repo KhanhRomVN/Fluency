@@ -1,3 +1,4 @@
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 import 'package:fluency/features/collection/domain/entities/collection.dart';
@@ -36,7 +37,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
       if (mounted) {
         Navigator.pop(context);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error sharing: $e')),
@@ -66,7 +68,8 @@ class _CollectionMenuDrawerState extends State<CollectionMenuDrawer> {
           SnackBar(content: Text('Exported to: ${file.path}')),
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error exporting: $e')),

@@ -635,8 +635,12 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
           elevation: 0,
         ),
         onPressed: _goToNext,
-        child:
-            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(
+          _currentIndex < (widget.quiz.sentenceTransformations?.length ?? 0) - 1
+              ? 'Next'
+              : 'Finish',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 

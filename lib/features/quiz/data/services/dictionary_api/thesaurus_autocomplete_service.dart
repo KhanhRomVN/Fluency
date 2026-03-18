@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:flutter/foundation.dart';
 
 class ThesaurusAutocompleteService {
@@ -51,7 +52,8 @@ class ThesaurusAutocompleteService {
         }
         return suggestions;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Thesaurus Autocomplete error: $e');
     }
     return [];

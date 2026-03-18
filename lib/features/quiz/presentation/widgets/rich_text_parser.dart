@@ -18,7 +18,7 @@ class RichTextParser {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     final combinedRegex = RegExp(
-      r"(</gap id='.*?'>)|(</n\s*?>)|(<br\s*/?>)|(<p.*?>)|(</p>)|(<b>)|(</b>)",
+      r"(<gap id='.*?'>.*?</gap>)|(</?gap id='.*?'\s*/?>)|(</n\s*?>)|(<br\s*/?>)|(<p.*?>)|(</p>)|(<b>)|(</b>)",
       caseSensitive: false,
     );
 
@@ -51,7 +51,7 @@ class RichTextParser {
 
       final tag = match.group(0)!;
 
-      if (tag.toLowerCase().startsWith('</gap')) {
+      if (tag.toLowerCase().contains('<gap')) {
         if (isQuestion && onGapFound != null) {
           final idMatch = RegExp("id='(.*?)'").firstMatch(tag);
           final id = idMatch?.group(1);
@@ -220,7 +220,7 @@ class RichTextParser {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     final combinedRegex = RegExp(
-      r"(</gap id='.*?'>)|(</n\s*?>)|(<br\s*/?>)|(<p.*?>)|(</p>)|(<b>)|(</b>)",
+      r"(<gap id='.*?'>.*?</gap>)|(</?gap id='.*?'\s*/?>)|(</n\s*?>)|(<br\s*/?>)|(<p.*?>)|(</p>)|(<b>)|(</b>)",
       caseSensitive: false,
     );
 
@@ -280,7 +280,7 @@ class RichTextParser {
 
       final tag = match.group(0)!;
 
-      if (tag.toLowerCase().startsWith('</gap')) {
+      if (tag.toLowerCase().contains('<gap')) {
         if (isQuestion && onGapFound != null) {
           final idMatch = RegExp("id='(.*?)'").firstMatch(tag);
           final id = idMatch?.group(1);

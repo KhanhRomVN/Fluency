@@ -149,6 +149,17 @@ class _MultipleChoiceState extends State<MultipleChoice> {
     _saveProgress();
   }
 
+  void _handleNext(int totalItems) {
+    if (_currentQuestionIndex < totalItems - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      widget.onNext?.call();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // If no questions, show empty
@@ -431,9 +442,13 @@ class _MultipleChoiceState extends State<MultipleChoice> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        onPressed: widget.onNext,
-        child:
-            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () => _handleNext(widget.quiz.questions.length),
+        child: Text(
+          _currentQuestionIndex < widget.quiz.questions.length - 1
+              ? 'Next'
+              : 'Finish',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 

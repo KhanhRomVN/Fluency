@@ -352,6 +352,7 @@ class QuizResumeDrawer extends StatelessWidget {
       case 'pronunciation-drill':
         typeLabel = 'PRONUNCIATION';
         typeColor = Colors.teal;
+      case 'dictation':
       case 'dictation-audio':
         typeLabel = 'DICTATION';
         typeColor = Colors.pink;
@@ -367,9 +368,6 @@ class QuizResumeDrawer extends StatelessWidget {
       case 'flashcard':
         typeLabel = 'FLASHCARD';
         typeColor = Colors.indigo;
-      case 'speech-builder':
-        typeLabel = 'SPEECH BUILDER';
-        typeColor = Colors.blueGrey;
       default:
         typeLabel = 'QUIZ';
         typeColor = Colors.grey;

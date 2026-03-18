@@ -5,7 +5,6 @@ import 'package:fluency/features/collection/presentation/widgets/quiz/collection
 import 'package:fluency/features/collection/presentation/widgets/quiz/collection_multiple_choice.dart';
 import 'package:fluency/features/collection/presentation/widgets/quiz/collection_pronunciation_drill.dart';
 import 'package:fluency/features/collection/presentation/widgets/quiz/collection_sentence_builder.dart';
-import 'package:fluency/features/collection/presentation/widgets/quiz/collection_speech_builder.dart';
 import 'package:fluency/features/quiz/presentation/providers/sound_effect_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/tutorial_drawer.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
@@ -75,8 +74,6 @@ class _CollectionQuizPageState extends State<CollectionQuizPage>
         return 'Pronunciation';
       case 'sentence_builder':
         return 'Sentence Builder';
-      case 'speech_builder':
-        return 'Speech Builder';
       default:
         return 'Quiz';
     }
@@ -496,14 +493,6 @@ class _CollectionQuizPageState extends State<CollectionQuizPage>
         break;
       case 'sentence_builder':
         quizContent = CollectionSentenceBuilder(
-          collectionId: widget.collectionId,
-          terms: widget.terms,
-          initialIndex: widget.initialIndex,
-          onPageChanged: (idx) => setState(() => _currentIndex = idx),
-        );
-        break;
-      case 'speech_builder':
-        quizContent = CollectionSpeechBuilder(
           collectionId: widget.collectionId,
           terms: widget.terms,
           initialIndex: widget.initialIndex,

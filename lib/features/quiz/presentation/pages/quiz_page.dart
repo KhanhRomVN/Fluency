@@ -10,7 +10,7 @@ import 'package:fluency/features/quiz/presentation/widgets/media_player.dart';
 import 'package:fluency/features/quiz/presentation/widgets/passage_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_drawer.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/builder.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation_audio.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/dictation.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/error_correction.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/flashcard.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/free_chat.dart';
@@ -23,7 +23,6 @@ import 'package:fluency/features/quiz/presentation/widgets/quiz_types/pronunciat
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/scripted_chat.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/sentence_transformation.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speaking_essay.dart';
-import 'package:fluency/features/quiz/presentation/widgets/quiz_types/speech_builder.dart';
 import 'package:fluency/features/quiz/presentation/widgets/quiz_types/writing_essay.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
 import 'package:fluency/features/quiz/presentation/widgets/transcript_drawer.dart';
@@ -487,6 +486,36 @@ class _QuizPageState extends State<QuizPage>
                             ),
                             child: InkWell(
                               onTap: () {
+                                setState(() {
+                                  _selectedWord = null;
+                                  _showDirectoryDrawer = true;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: SvgPicture.asset(
+                                  'assets/icons/languages.svg',
+                                  width: 16,
+                                  height: 16,
+                                  colorFilter: ColorFilter.mode(
+                                    appColors.textPrimary
+                                        .withValues(alpha: 0.6),
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            decoration: BoxDecoration(
+                              color:
+                                  appColors.textPrimary.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: InkWell(
+                              onTap: () {
                                 _showQuizDrawer(context);
                               },
                               borderRadius: BorderRadius.circular(8),
@@ -697,7 +726,7 @@ class _QuizPageState extends State<QuizPage>
         );
       case 'dictation':
       case 'dictation-audio':
-        return DictationAudio(
+        return Dictation(
           quiz: quiz,
           lessonId: widget.lesson.id,
           quizId: quiz.id,
@@ -777,16 +806,6 @@ class _QuizPageState extends State<QuizPage>
           onWordLongPress: _onWordLongPress,
           onSegmentChange: _handleSegmentChange,
           targetQuestionIndex: _targetQuestionIndices[quiz.id],
-        );
-      case 'speech-builder':
-        return SpeechBuilder(
-          quiz: quiz,
-          lessonId: widget.lesson.id,
-          quizId: quiz.id,
-          onCheck: _onQuizChecked,
-          onNext: _onNextQuiz,
-          onPrev: _onPrevQuiz,
-          onWordLongPress: _onWordLongPress,
         );
       case 'writing-essay':
         return WritingEssay(

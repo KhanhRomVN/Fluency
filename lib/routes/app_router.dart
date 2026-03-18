@@ -7,9 +7,14 @@ import 'package:fluency/features/error/presentation/pages/not_found_page.dart';
 import 'package:fluency/features/home/presentation/pages/home_page.dart';
 import 'package:fluency/features/main/presentation/pages/main_page.dart';
 import 'package:fluency/features/quiz/presentation/pages/quiz_page.dart';
+import 'package:fluency/features/setting/presentation/pages/achievement_page.dart';
 import 'package:fluency/features/setting/presentation/pages/setting_page.dart';
+import 'package:fluency/features/note/presentation/pages/note_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:posthog_flutter/posthog_flutter.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorDashboardKey =
@@ -26,6 +31,11 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: RouteConstants.dashboard,
     errorBuilder: (context, state) => const NotFoundPage(),
+    observers: [
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      SentryNavigatorObserver(),
+      PosthogObserver(),
+    ],
     routes: [
       GoRoute(
         path: RouteConstants.home,
@@ -39,6 +49,11 @@ class AppRouter {
           final lesson = state.extra! as Lesson;
           return QuizPage(lesson: lesson);
         },
+      ),
+      GoRoute(
+        path: RouteConstants.note,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const NotePage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -93,6 +108,12 @@ class AppRouter {
               GoRoute(
                 path: RouteConstants.setting,
                 builder: (context, state) => const SettingPage(),
+                routes: [
+                  GoRoute(
+                    path: 'achievement',
+                    builder: (context, state) => const AchievementPage(),
+                  ),
+                ],
               ),
             ],
           ),

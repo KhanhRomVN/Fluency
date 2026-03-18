@@ -10,6 +10,7 @@ import 'package:fluency/core/services/stt/stt_service.dart';
 import 'package:fluency/core/services/stt/system_stt_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:provider/provider.dart';
 
 class FreeChat extends StatefulWidget {
@@ -46,6 +47,7 @@ class _FreeChatState extends State<FreeChat> {
   bool _isListening = false;
   bool _isSttAvailable = false;
   bool _isSttLoading = false;
+  String? _sttError;
   String? _loadingStatus;
   int _thinkingSeconds = 0;
   Timer? _thinkingTimer;
@@ -65,49 +67,54 @@ class _FreeChatState extends State<FreeChat> {
   }
 
   Future<void> _loadProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final progress = await quizStateProvider.loadQuizProgress(
-      widget.lessonId,
-      widget.quizId,
-    );
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final progress = await quizStateProvider.loadQuizProgress(
+        widget.lessonId,
+        widget.quizId,
+      );
 
-    if (progress != null && mounted) {
-      setState(() {
-        _conversationId = progress.data?['conversationId'] as String?;
-        _isQuizEnded = progress.data?['isQuizEnded'] as bool? ?? false;
+      if (progress != null && mounted) {
+        setState(() {
+          _conversationId = progress.data?['conversationId'] as String?;
+          _isQuizEnded = progress.data?['isQuizEnded'] as bool? ?? false;
 
-        final savedMessages = progress.data?['messages'] as List<dynamic>?;
-        if (savedMessages != null) {
-          _messages.clear();
-          _messages.addAll(savedMessages.map((m) {
-            final map = m as Map<String, dynamic>;
-            return ChatBubble(
-              id: map['id'] as String? ?? UniqueKey().toString(),
-              role: map['role'] as String,
-              content: map['content'] as String,
-              isUser: map['isUser'] as bool,
-              translate: map['translate'] as String?,
-            );
-          }));
+          final savedMessages = progress.data?['messages'] as List<dynamic>?;
+          if (savedMessages != null) {
+            _messages.clear();
+            _messages.addAll(savedMessages.map((m) {
+              final map = m as Map<String, dynamic>;
+              return ChatBubble(
+                id: map['id'] as String? ?? UniqueKey().toString(),
+                role: map['role'] as String,
+                content: map['content'] as String,
+                isUser: map['isUser'] as bool,
+                translate: map['translate'] as String?,
+              );
+            }));
+          }
+
+          // If quiz is completed, notify parent
+          if (_isQuizEnded) {
+            widget.onCheck?.call();
+            widget.onQuizComplete?.call();
+          }
+        });
+
+        // Scroll to bottom after restore
+        _scrollToBottom();
+
+        // Check if we should initialize chat (empty messages)
+        if (_messages.isEmpty) {
+          _initializeChat();
         }
-
-        // If quiz is completed, notify parent
-        if (_isQuizEnded) {
-          widget.onCheck?.call();
-          widget.onQuizComplete?.call();
-        }
-      });
-
-      // Scroll to bottom after restore
-      _scrollToBottom();
-
-      // Check if we should initialize chat (empty messages)
-      if (_messages.isEmpty) {
+      } else {
+        // No progress, start fresh
         _initializeChat();
       }
-    } else {
-      // No progress, start fresh
-      _initializeChat();
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('FreeChat: Error loading progress: $e');
     }
   }
 
@@ -123,30 +130,43 @@ class _FreeChatState extends State<FreeChat> {
   // ... (stt methods remain same)
 
   Future<void> _initializeStt() async {
-    if (mounted) {
-      setState(() {
-        _isSttLoading = true;
-        _loadingStatus = 'Đang chuẩn bị nhận diện giọng nói...';
-      });
-    }
+    try {
+      if (mounted) {
+        setState(() {
+          _isSttLoading = true;
+          _loadingStatus = 'Đang chuẩn bị nhận diện giọng nói...';
+        });
+      }
 
-    debugPrint('FreeChat: Initializing STT (system)...');
+      debugPrint('FreeChat: Initializing STT (system)...');
 
-    _sttService = SystemSttService();
+      _sttService = SystemSttService();
 
-    _isSttAvailable = await _sttService!.initialize();
+      _isSttAvailable = await _sttService!.initialize();
 
-    if (mounted) {
-      setState(() {
-        _isSttLoading = false;
-        _loadingStatus = null;
-      });
-    }
+      if (mounted) {
+        setState(() {
+          _isSttLoading = false;
+          _loadingStatus = null;
+        });
+      }
 
-    if (_isSttAvailable) {
-      debugPrint('FreeChat: STT Initialized successfully');
-    } else {
-      debugPrint('FreeChat: STT Initialization failed or unavailable');
+      if (_isSttAvailable) {
+        debugPrint('FreeChat: STT Initialized successfully');
+      } else {
+        debugPrint('FreeChat: STT Initialization failed or unavailable');
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('FreeChat: STT Initialization error: $e');
+      if (mounted) {
+        setState(() {
+          _isSttLoading = false;
+          _loadingStatus = null;
+          _isSttAvailable = false;
+          _sttError = 'Speech recognition not available on this device';
+        });
+      }
     }
   }
 
@@ -303,9 +323,10 @@ class _FreeChatState extends State<FreeChat> {
       _stopThinkingTimer();
 
       _saveProgress();
-    } catch (e, stackTrace) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('Error initializing chat: $e');
-      debugPrint('Stack trace: $stackTrace');
+      debugPrint('Stack trace: $s');
       setState(() {
         _isLoading = false;
       });
@@ -397,9 +418,10 @@ class _FreeChatState extends State<FreeChat> {
       _stopThinkingTimer();
 
       _handleApiResponse(response.message.content);
-    } catch (e, stackTrace) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('Error sending user message: $e');
-      debugPrint('Stack trace: $stackTrace');
+      debugPrint('Stack trace: $s');
       setState(() {
         _isLoading = false;
       });
@@ -523,35 +545,40 @@ class _FreeChatState extends State<FreeChat> {
   }
 
   Future<void> _saveProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
 
-    // Serialize messages (exclude hints)
-    final messagesData = _messages
-        .where((m) => !m.isHint)
-        .map((m) => {
-              'id': m.id,
-              'role': m.role,
-              'content': m.content,
-              'isUser': m.isUser,
-              'translate': m.translate,
-            })
-        .toList();
+      // Serialize messages (exclude hints)
+      final messagesData = _messages
+          .where((m) => !m.isHint)
+          .map((m) => {
+                'id': m.id,
+                'role': m.role,
+                'content': m.content,
+                'isUser': m.isUser,
+                'translate': m.translate,
+              })
+          .toList();
 
-    // Determine completion
-    final completedItems = _isQuizEnded ? 1 : (_messages.length > 0 ? 1 : 0);
+      // Determine completion
+      final completedItems = _isQuizEnded ? 1 : (_messages.length > 0 ? 1 : 0);
 
-    await quizStateProvider.saveQuizProgress(
-      lessonId: widget.lessonId,
-      quizId: widget.quizId,
-      quizType: 'free-chat',
-      completedItems: completedItems,
-      totalItems: 1,
-      data: {
-        'conversationId': _conversationId,
-        'isQuizEnded': _isQuizEnded,
-        'messages': messagesData,
-      },
-    );
+      await quizStateProvider.saveQuizProgress(
+        lessonId: widget.lessonId,
+        quizId: widget.quizId,
+        quizType: 'free-chat',
+        completedItems: completedItems,
+        totalItems: 1,
+        data: {
+          'conversationId': _conversationId,
+          'isQuizEnded': _isQuizEnded,
+          'messages': messagesData,
+        },
+      );
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('FreeChat: Error saving progress: $e');
+    }
   }
 
   void _scrollToBottom() {
@@ -683,25 +710,71 @@ class _FreeChatState extends State<FreeChat> {
             bottom: 48,
             left: 0,
             right: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: _isListening ? _stopListening : _startListening,
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: _isListening
-                        ? appColors.primary.withValues(alpha: 0.15)
-                        : Colors.grey.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_sttError != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              color: Colors.red, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'This device does not support speech-to-text service.',
+                              style: TextStyle(
+                                color: Colors.red[700],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.mic,
-                    color: _isListening ? appColors.primary : Colors.grey,
-                    size: 36,
+                if (_sttError == null)
+                  GestureDetector(
+                    onTap: _isSttAvailable && !_isLoading
+                        ? () {
+                            if (_isListening) {
+                              _stopListening();
+                            } else {
+                              _startListening();
+                            }
+                          }
+                        : null,
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: _isListening
+                            ? appColors.primary.withValues(alpha: 0.15)
+                            : Colors.grey.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: _isListening ? appColors.primary : Colors.grey,
+                          size: 32,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+              ],
             ),
           ),
         if (_isSttLoading) _buildLoadingOverlay(appColors),

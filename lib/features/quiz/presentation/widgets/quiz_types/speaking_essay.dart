@@ -1,3 +1,4 @@
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:fluency/features/quiz/presentation/widgets/rich_text_parser.dart';
@@ -37,9 +38,10 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   final Map<int, String> _answers = {};
   final Map<int, bool> _stepSubmitted = {};
 
-  bool _isRecording = false;
+  bool _isListening = false;
   SttService? _sttService;
   bool _speechEnabled = false;
+  String? _sttError;
   // bool _speechEnabled = false; // Removed unused variable
   String _currentTranscript = '';
   late PageController _pageController;
@@ -62,74 +64,98 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   }
 
   Future<void> _initSpeech() async {
-    _sttService = SystemSttService();
+    try {
+      _sttService = SystemSttService();
 
-    final available = await _sttService!.initialize();
-    if (mounted) {
-      setState(() {
-        _speechEnabled = available;
-      });
+      final available = await _sttService!.initialize();
+      if (mounted) {
+        setState(() {
+          _speechEnabled = available;
+          if (!available) {
+            _sttError = 'Speech recognition not available on this device';
+          }
+        });
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('SpeakingEssay Error initializing speech: $e');
+      if (mounted) {
+        setState(() {
+          _speechEnabled = false;
+          _sttError = 'Speech recognition not available on this device';
+        });
+      }
     }
   }
 
   Future<void> _loadProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
-    final progress = await quizStateProvider.loadQuizProgress(
-      widget.lessonId,
-      widget.quizId,
-    );
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
+      final progress = await quizStateProvider.loadQuizProgress(
+        widget.lessonId,
+        widget.quizId,
+      );
 
-    if (progress != null && mounted) {
-      setState(() {
-        _activeIndex = progress.data?['activeIndex'] as int? ?? 0;
-        final answers = progress.data?['answers'] as Map<String, dynamic>?;
-        if (answers != null) {
-          answers.forEach((key, value) {
-            _answers[int.parse(key)] = value as String;
-          });
-        }
-        final submittedData =
-            progress.data?['stepSubmitted'] as Map<String, dynamic>?;
-        if (submittedData != null) {
-          submittedData.forEach((key, value) {
-            _stepSubmitted[int.parse(key)] = value as bool;
-          });
-        }
-        _pageController.jumpToPage(_activeIndex);
+      if (progress != null && mounted) {
+        setState(() {
+          _activeIndex = progress.data?['activeIndex'] as int? ?? 0;
+          final answers = progress.data?['answers'] as Map<String, dynamic>?;
+          if (answers != null) {
+            answers.forEach((key, value) {
+              _answers[int.parse(key)] = value as String;
+            });
+          }
+          final submittedData =
+              progress.data?['stepSubmitted'] as Map<String, dynamic>?;
+          if (submittedData != null) {
+            submittedData.forEach((key, value) {
+              _stepSubmitted[int.parse(key)] = value as bool;
+            });
+          }
+          _pageController.jumpToPage(_activeIndex);
 
-        // If quiz is completed, notify parent to show transcript/etc
-        if (progress.isCompleted) {
-          widget.onCheck?.call();
-        }
-      });
+          // If quiz is completed, notify parent to show transcript/etc
+          if (progress.isCompleted) {
+            widget.onCheck?.call();
+          }
+        });
+      }
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('SpeakingEssay Error loading progress: $e');
     }
   }
 
   Future<void> _saveProgress() async {
-    final quizStateProvider = context.read<QuizStateProvider>();
+    try {
+      final quizStateProvider = context.read<QuizStateProvider>();
 
-    final answersMap = _answers.map((k, v) => MapEntry(k.toString(), v));
-    final submittedMap =
-        _stepSubmitted.map((k, v) => MapEntry(k.toString(), v));
+      final answersMap = _answers.map((k, v) => MapEntry(k.toString(), v));
+      final submittedMap =
+          _stepSubmitted.map((k, v) => MapEntry(k.toString(), v));
 
-    final totalItems = _questions.length;
-    final completedItems = _stepSubmitted.length;
-    // For essay, we count completion as correctness/progress
-    final correctItems = completedItems;
+      final totalItems = _questions.length;
+      final completedItems = _stepSubmitted.length;
+      // For essay, we count completion as correctness/progress
+      final correctItems = completedItems;
 
-    await quizStateProvider.saveQuizProgress(
-      lessonId: widget.lessonId,
-      quizId: widget.quizId,
-      quizType: 'speaking-essay',
-      completedItems: completedItems,
-      totalItems: totalItems,
-      correctItems: correctItems,
-      data: {
-        'activeIndex': _activeIndex,
-        'answers': answersMap,
-        'stepSubmitted': submittedMap,
-      },
-    );
+      await quizStateProvider.saveQuizProgress(
+        lessonId: widget.lessonId,
+        quizId: widget.quizId,
+        quizType: 'speaking-essay',
+        completedItems: completedItems,
+        totalItems: totalItems,
+        correctItems: correctItems,
+        data: {
+          'activeIndex': _activeIndex,
+          'answers': answersMap,
+          'stepSubmitted': submittedMap,
+        },
+      );
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
+      debugPrint('SpeakingEssay Error saving progress: $e');
+    }
   }
 
   // For sample answer "hint" clicks similar to TSX HintDrawer
@@ -159,7 +185,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   }
 
   void _toggleRecording() {
-    if (_isRecording) {
+    if (_isListening) {
       _stopListening();
     } else {
       _startListening();
@@ -167,7 +193,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   }
 
   void _startListening() async {
-    if (_sttService == null || !_speechEnabled) return;
+    if (_sttService == null || !_speechEnabled || _sttError != null) return;
 
     // Get STT settings from provider
     String localeId = 'en_US'; // default
@@ -178,10 +204,11 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
         localeId: localeId,
       );
       setState(() {
-        _isRecording = true;
+        _isListening = true;
         _currentTranscript = '';
       });
-    } catch (e) {
+    } catch (e, s) {
+      MonitoringService.captureError(e, stackTrace: s);
       debugPrint('Error starting STT: $e');
     }
   }
@@ -190,7 +217,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
     if (_sttService == null) return;
     await _sttService!.stopListening();
     setState(() {
-      _isRecording = false;
+      _isListening = false;
     });
   }
 
@@ -204,7 +231,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
         final separator = existingText.isEmpty ? '' : ' ';
         _answers[_activeIndex] = '$existingText$separator$_currentTranscript';
         _currentTranscript = '';
-        _isRecording = false;
+        _isListening = false;
         _saveProgress();
       }
     });
@@ -213,7 +240,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   void _handleSubmitStep() {
     setState(() {
       _stepSubmitted[_activeIndex] = true;
-      _isRecording = false;
+      _isListening = false;
 
       // Play sound effect
       if (mounted) {
@@ -303,7 +330,7 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
         onPageChanged: (index) {
           setState(() {
             _activeIndex = index;
-            _isRecording = false;
+            _isListening = false;
             _saveProgress();
           });
         },
@@ -422,13 +449,13 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                                 )
                               : TextField(
                                   controller: TextEditingController(
-                                    text: _isRecording && index == _activeIndex
+                                    text: _isListening && index == _activeIndex
                                         ? (currentAnswer.isEmpty
                                             ? _currentTranscript
                                             : '$currentAnswer $_currentTranscript')
                                         : currentAnswer,
                                   )..selection = TextSelection.collapsed(
-                                      offset: _isRecording &&
+                                      offset: _isListening &&
                                               index == _activeIndex
                                           ? (currentAnswer.isEmpty
                                               ? _currentTranscript.length
@@ -470,73 +497,112 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                 bottom: 28,
                 left: 0,
                 right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      onTap: _toggleRecording,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: _isRecording
-                              ? appColors.primary.withValues(alpha: 0.15)
-                              : Colors.grey.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.mic,
-                          color: _isRecording ? appColors.primary : Colors.grey,
-                          size: 24,
+                    if (_sttError != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 48),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.red.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded,
+                                  color: Colors.red, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'This device does not support speech-to-text service.',
+                                  style: TextStyle(
+                                    color: Colors.red[700],
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_sttError == null)
+                          GestureDetector(
+                            onTap: _speechEnabled ? _toggleRecording : null,
+                            child: Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: _isListening
+                                    ? appColors.primary.withValues(alpha: 0.15)
+                                    : Colors.grey.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _isListening ? Icons.mic : Icons.mic_none,
+                                color: _isListening
+                                    ? appColors.primary
+                                    : Colors.grey,
+                                size: 32,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 16),
+                        if (!_isCurrentSubmitted &&
+                            _currentAnswer.trim().isNotEmpty)
+                          ElevatedButton.icon(
+                            onPressed: _handleSubmitStep,
+                            icon: const Icon(Icons.check_circle, size: 20),
+                            label: const Text('Submit'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  appColors.primary.withValues(alpha: 0.15),
+                              foregroundColor: appColors.primary,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              elevation: 0,
+                            ),
+                          ),
+                        if (_isCurrentSubmitted)
+                          ElevatedButton.icon(
+                            onPressed: _hasNext
+                                ? _handleNext
+                                : () {
+                                    widget.onCheck?.call();
+                                    widget.onNext?.call();
+                                  },
+                            icon: Icon(_hasNext
+                                ? Icons.arrow_forward
+                                : Icons.check_circle),
+                            label: Text(_hasNext ? 'Next' : 'Next question'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  appColors.primary.withValues(alpha: 0.15),
+                              foregroundColor: appColors.primary,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              elevation: 0,
+                            ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    if (!_isCurrentSubmitted &&
-                        _currentAnswer.trim().isNotEmpty)
-                      ElevatedButton.icon(
-                        onPressed: _handleSubmitStep,
-                        icon: const Icon(Icons.check_circle, size: 20),
-                        label: const Text('Submit'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              appColors.primary.withValues(alpha: 0.15),
-                          foregroundColor: appColors.primary,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          elevation: 0,
-                        ),
-                      ),
-                    if (_isCurrentSubmitted)
-                      ElevatedButton.icon(
-                        onPressed: _hasNext
-                            ? _handleNext
-                            : () {
-                                widget.onCheck?.call();
-                                widget.onNext?.call();
-                              },
-                        icon: Icon(_hasNext
-                            ? Icons.arrow_forward
-                            : Icons.check_circle),
-                        label: Text(_hasNext ? 'Next' : 'Next question'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              appColors.primary.withValues(alpha: 0.15),
-                          foregroundColor: appColors.primary,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                          elevation: 0,
-                        ),
-                      ),
                   ],
                 ),
               ),

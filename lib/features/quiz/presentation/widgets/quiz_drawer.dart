@@ -194,6 +194,7 @@ class _QuizDrawerState extends State<QuizDrawer> {
                   case 'pronunciation-drill':
                     typeLabel = 'PRONUNCIATION';
                     typeColor = Colors.teal;
+                  case 'dictation':
                   case 'dictation-audio':
                     typeLabel = 'DICTATION';
                     typeColor = Colors.pink;
@@ -209,9 +210,6 @@ class _QuizDrawerState extends State<QuizDrawer> {
                   case 'flashcard':
                     typeLabel = 'FLASHCARD';
                     typeColor = Colors.indigo;
-                  case 'speech-builder':
-                    typeLabel = 'SPEECH BUILDER';
-                    typeColor = Colors.blueGrey;
                   case 'listening-choice':
                     typeLabel = 'LISTENING CHOICE';
                     typeColor = Colors.indigo;
@@ -249,7 +247,9 @@ class _QuizDrawerState extends State<QuizDrawer> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // Type badge row
-                                  Row(
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 4,
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(
@@ -277,7 +277,6 @@ class _QuizDrawerState extends State<QuizDrawer> {
                                         ),
                                       ),
                                       if (quiz.questions.isNotEmpty) ...[
-                                        const SizedBox(width: 6),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 6,
@@ -303,7 +302,6 @@ class _QuizDrawerState extends State<QuizDrawer> {
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 6),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 6,

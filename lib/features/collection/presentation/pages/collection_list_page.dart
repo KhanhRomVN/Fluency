@@ -1,3 +1,4 @@
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
 import 'package:fluency/features/collection/data/repositories/collection_repository_impl.dart';
 import 'package:fluency/features/collection/domain/entities/collection.dart';
@@ -57,7 +58,8 @@ class _CollectionListPageState extends State<CollectionListPage> {
         _collections = collections;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       setState(() {
         _error = e.toString();
         _isLoading = false;

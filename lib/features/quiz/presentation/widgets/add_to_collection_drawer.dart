@@ -246,31 +246,71 @@ class _AddToCollectionDrawerState extends State<AddToCollectionDrawer> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              'No collections found',
-                              style: TextStyle(
-                                color: appColors.textSecondary,
-                                fontSize: 16,
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color:
+                                    appColors.primary.withValues(alpha: 0.05),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.library_add_rounded,
+                                size: 48,
+                                color: appColors.primary.withValues(alpha: 0.4),
                               ),
                             ),
                             const SizedBox(height: 16),
+                            Text(
+                              'No Collections Found',
+                              style: TextStyle(
+                                color: appColors.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 48),
+                              child: Text(
+                                'Create a collection to start organizing your vocabulary',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: appColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
                             ElevatedButton.icon(
                               onPressed: _showCreateDrawer,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: appColors.primary,
-                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    appColors.primary.withValues(alpha: 0.1),
+                                foregroundColor: appColors.primary,
+                                elevation: 0,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 20,
-                                  vertical: 12,
+                                  vertical: 10,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: appColors.primary
+                                        .withValues(alpha: 0.2),
+                                    width: 1,
+                                  ),
                                 ),
                               ),
-                              icon: const Icon(Icons.add_rounded),
+                              icon: const Icon(Icons.add_rounded, size: 18),
                               label: const Text(
                                 'Create Collection',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
                           ],

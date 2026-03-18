@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/cambridge_client.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictapi_client.dart';
 import 'package:fluency/features/quiz/data/services/dictionary_api/dictionary_model.dart';
@@ -42,7 +43,8 @@ class DirectoryStorage {
         debugPrint(
             '[DirectoryStorage] Loaded ${_storage.length} entries from cache');
       }
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('[DirectoryStorage] Init failed: $e');
     }
     _isInitialized = true;
@@ -58,7 +60,8 @@ class DirectoryStorage {
       final file = await _getCacheFile();
       final json = _storage.map((key, value) => MapEntry(key, value.toJson()));
       await file.writeAsString(jsonEncode(json));
-    } catch (e) {
+    } catch (e, stack) {
+      MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('[DirectoryStorage] Persistence failed: $e');
     }
   }
