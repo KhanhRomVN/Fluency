@@ -15,6 +15,7 @@ class MatchingDropdown extends StatefulWidget {
     this.onPrev,
     this.onShowExplain,
     this.onWordLongPress,
+    this.finalActionText,
     super.key,
   });
 
@@ -25,6 +26,7 @@ class MatchingDropdown extends StatefulWidget {
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<MatchingDropdown> createState() => _MatchingDropdownState();
@@ -94,6 +96,13 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
     _isChecked = false;
   }
 
+  void _onClearSelected(String id) {
+    setState(() {
+      _selectedAnswers[id] = '';
+    });
+    _saveProgress();
+  }
+
   List<MapEntry<String, String>> get _options {
     if (widget.quiz.options == null) return [];
 
@@ -142,8 +151,10 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final matchings = widget.quiz.matchings ?? [];
     final borderColor = _isChecked
-        ? (_allMatch() ? Colors.green : Colors.red)
-        : Colors.grey.withValues(alpha: 0.5);
+        ? (_allMatch()
+            ? Colors.green.withValues(alpha: 0.5)
+            : Colors.red.withValues(alpha: 0.5))
+        : Colors.grey.withValues(alpha: 0.3);
 
     return Stack(
       children: [
@@ -155,52 +166,40 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
             // Dashed Border Card
             Expanded(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Container(
+                padding: const EdgeInsets.only(
+                    left: 8, top: 8, right: 16, bottom: 16),
+                child: SizedBox(
                   width: double.infinity,
                   height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: appColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: ListView(
-                            padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            ...matchings.map((matching) {
+                              return _buildMatchingRow(
+                                context,
+                                matching,
+                                appColors,
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      if (_isChecked || _areAllAnswered) ...[
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              ...matchings.map((matching) {
-                                return _buildMatchingRow(
-                                  context,
-                                  matching,
-                                  appColors,
-                                );
-                              }),
+                              _buildActionButtons(appColors),
                             ],
                           ),
                         ),
-                        if (_isChecked || _areAllAnswered) ...[
-                          const Divider(height: 1),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                _buildActionButtons(appColors),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -224,8 +223,8 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
           elevation: 0,
         ),
         onPressed: widget.onNext,
-        child:
-            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(widget.finalActionText ?? 'Next',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
       );
     }
 
@@ -297,20 +296,20 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
 
     if (_isChecked) {
       if (isCorrect) {
-        borderColor = Colors.green;
+        borderColor = Colors.green.withValues(alpha: 0.5);
         backgroundColor = Colors.green.withValues(alpha: 0.1);
         textColor = Colors.green.shade700;
         iconColor = Colors.green;
       } else {
-        borderColor = Colors.red;
+        borderColor = Colors.red.withValues(alpha: 0.5);
         backgroundColor = Colors.red.withValues(alpha: 0.1);
         textColor = Colors.red.shade700;
         iconColor = Colors.red;
       }
     } else {
       borderColor = selectedKey.isNotEmpty
-          ? appColors.primary
-          : appColors.border.withValues(alpha: 0.8);
+          ? appColors.primary.withValues(alpha: 0.5)
+          : appColors.border.withValues(alpha: 0.3);
       backgroundColor = appColors.background;
       textColor = selectedKey.isNotEmpty
           ? appColors.textPrimary
@@ -410,14 +409,14 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                                 setState(() {
                                   _selectedAnswers[matching.id] = value;
                                 });
+                                _saveProgress();
                               }
                             },
-                      dropdownMenuEntries:
-                          _options.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final opt = entry.value;
-                        final isLast = index == _options.length - 1;
-
+                      dropdownMenuEntries: _options.where((o) {
+                        final isAlreadySelected =
+                            _selectedAnswers.values.contains(o.key);
+                        return !isAlreadySelected || o.key == selectedKey;
+                      }).map((opt) {
                         return DropdownMenuEntry<String>(
                           value: opt.key,
                           label: opt.value,
@@ -438,7 +437,7 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                                   ),
                                 ),
                               ),
-                              if (!isLast)
+                              if (opt.key != _options.last.key)
                                 Divider(
                                   height: 1,
                                   thickness: 1,
@@ -456,6 +455,21 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
                   },
                 ),
               ),
+              if (selectedKey.isNotEmpty && !_isChecked) ...[
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => _onClearSelected(matching.id),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 20,
+                      color: Colors.red.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
 
@@ -544,13 +558,16 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
 
     // Calculate correct count
     var correctCount = 0;
+    final Map<String, bool> correctness = {};
     _selectedAnswers.forEach((id, selectedKey) {
       final matching = widget.quiz.matchings?.firstWhere((m) => m.id == id);
       if (matching != null) {
         final correctKey = _getCorrectOptionKey(matching.answer);
-        if (selectedKey == correctKey) {
+        final isCorrect = selectedKey == correctKey;
+        if (isCorrect) {
           correctCount++;
         }
+        correctness[id] = isCorrect;
       }
     });
 
@@ -566,61 +583,8 @@ class _MatchingDropdownState extends State<MatchingDropdown> {
         'selectedAnswers': _selectedAnswers,
         'correctCount': correctCount,
         'totalMatchings': widget.quiz.matchings?.length ?? 0,
+        'correctness': correctness,
       },
     );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
   }
 }

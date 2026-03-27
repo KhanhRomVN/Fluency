@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/setting/presentation/providers/tts_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class CourseDetailPage extends StatefulWidget {
   const CourseDetailPage({super.key, this.course});
@@ -322,7 +323,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
               ),
             ],
             // 6. About this course (Reduced size)
-            if (displayCourse.fullDescription.isNotEmpty)
+            if (displayCourse.fullDescription.isNotEmpty ||
+                displayCourse.shortDescription.isNotEmpty)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -342,7 +344,9 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        displayCourse.fullDescription,
+                        displayCourse.fullDescription.isNotEmpty
+                            ? displayCourse.fullDescription
+                            : displayCourse.shortDescription,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               height: 1.6,
                               color: appColors.textSecondary,
@@ -805,6 +809,95 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     );
   }
 
+  void _showLoadingDrawer(BuildContext context, AppColorsExtension appColors,
+      String message, ValueListenable<double> progress) {
+    showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return PopScope(
+          canPop: false,
+          child: ValueListenableBuilder<double>(
+            valueListenable: progress,
+            builder: (context, value, child) {
+              return Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: appColors.drawerBackground,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(24)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -1),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: CircularProgressIndicator(
+                              value: value,
+                              strokeWidth: 4,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  appColors.primary),
+                              backgroundColor: appColors.primary.withAlpha(30),
+                            ),
+                          ),
+                          Text(
+                            '${(value * 100).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: appColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        message,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: appColors.textPrimary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'This may take a moment while we clean up all files',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: appColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   void _confirmDelete(BuildContext context, AppColorsExtension appColors) {
     showModalBottomSheet<void>(
       context: context,
@@ -956,19 +1049,39 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
 
   Future<void> _deleteCourse() async {
     if (_course == null) return;
+    final appColors = Theme.of(context).extension<AppColorsExtension>()!;
+    final progress = ValueNotifier<double>(0.0);
+
     try {
+      // Show loading drawer
+      _showLoadingDrawer(context, appColors, 'Deleting course...', progress);
+
       final provider = context.read<CourseProvider>();
-      await provider.deleteCourse(_course!);
+      await provider.deleteCourse(
+        _course!,
+        onProgress: (p) => progress.value = p,
+      );
+
       if (mounted) {
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true)
+              .pop(); // Close loading drawer
+        }
         context.pop(); // Go back after deletion using go_router
       }
     } catch (e, stack) {
       MonitoringService.captureError(e, stackTrace: stack);
       if (mounted) {
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true)
+              .pop(); // Close loading drawer
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error deleting course: $e')),
         );
       }
+    } finally {
+      progress.dispose();
     }
   }
 

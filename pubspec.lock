@@ -214,14 +214,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.4"
-  clarity_flutter:
-    dependency: "direct main"
-    description:
-      name: clarity_flutter
-      sha256: "5de3d4158c7eaaaa39e92737bfb45996a88fcb2f3c2db56cbae9ba35992bec32"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.7.1"
   cli_util:
     dependency: transitive
     description:
@@ -254,22 +246,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
-  connectivity_plus:
-    dependency: transitive
-    description:
-      name: connectivity_plus
-      sha256: "33bae12a398f841c6cda09d1064212957265869104c478e5ad51e2fb26c3973c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.0.0"
-  connectivity_plus_platform_interface:
-    dependency: transitive
-    description:
-      name: connectivity_plus_platform_interface
-      sha256: "42657c1715d48b167930d5f34d00222ac100475f73d10162ddf43e714932f204"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.1"
   convert:
     dependency: transitive
     description:
@@ -794,22 +770,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.11.1"
-  memory_info:
-    dependency: transitive
-    description:
-      name: memory_info
-      sha256: "2d2150e070e1ceeb44d9ac3edad3d03d19022c4e0a4ddb08a3f8a494fc41d1c4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.4"
-  memory_info_platform_interface:
-    dependency: transitive
-    description:
-      name: memory_info_platform_interface
-      sha256: "07c5ad0625f9810fb378fabd69a38c19a800865e11433e767804ff9bd84796db"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.2"
   meta:
     dependency: transitive
     description:
@@ -834,14 +794,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
-  nm:
-    dependency: transitive
-    description:
-      name: nm
-      sha256: "2c9aae4127bdc8993206464fcc063611e0e36e72018696cd9631023a31b24254"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.0"
   package_config:
     dependency: transitive
     description:
@@ -1034,22 +986,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.3"
-  posthog_flutter:
-    dependency: "direct main"
-    description:
-      name: posthog_flutter
-      sha256: "470eb55c5265e61bdcac7d720fa9de1306746a6086fe59dc06d2254d794705ed"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.20.0"
-  protobuf:
-    dependency: transitive
-    description:
-      name: protobuf
-      sha256: "75ec242d22e950bdcc79ee38dd520ce4ee0bc491d7fadc4ea47694604d22bf06"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.0"
   provider:
     dependency: "direct main"
     description:

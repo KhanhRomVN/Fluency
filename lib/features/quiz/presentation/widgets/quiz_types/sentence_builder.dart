@@ -140,7 +140,16 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: appColors.border, width: 2),
+                      border: Border.all(
+                        color: widget.isChecked
+                            ? (true) // This quiz type logic for correctness is handled differently, keeping it simple for now or checking if there's a state
+                                ? appColors.border.withValues(alpha: 0.3)
+                                : appColors.border.withValues(alpha: 0.3)
+                            : _selectedWords.isEmpty
+                                ? appColors.border.withValues(alpha: 0.3)
+                                : appColors.primary.withValues(alpha: 0.5),
+                        width: 2,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       color: appColors.cardBackground,
                     ),
@@ -163,10 +172,51 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                                 _selectedWords.asMap().entries.map((entry) {
                               return GestureDetector(
                                 onTap: () => _removeWord(entry.key),
-                                child: Chip(
-                                  label: Text(entry.value),
-                                  deleteIcon: const Icon(Icons.close, size: 16),
-                                  onDeleted: () => _removeWord(entry.key),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: widget.isChecked
+                                        ? appColors.background
+                                        : appColors.cardBackground,
+                                    border: Border.all(
+                                      color: appColors.border,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: widget.isChecked
+                                        ? null
+                                        : [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.05),
+                                              blurRadius: 2,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        entry.value,
+                                        style: TextStyle(
+                                          color: appColors.textPrimary,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      if (!widget.isChecked) ...[
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: appColors.textSecondary,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
                               );
                             }).toList(),
@@ -203,12 +253,38 @@ class _SentenceBuilderState extends State<SentenceBuilder> {
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
-                    runSpacing: 8,
+                    runSpacing: 12,
                     children: _availableWords.map((word) {
-                      return ActionChip(
-                        label: Text(word),
-                        onPressed: () => _addWord(word),
-                        backgroundColor: appColors.cardBackground,
+                      return GestureDetector(
+                        onTap: () => _addWord(word),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: appColors.cardBackground,
+                            border: Border.all(
+                              color: appColors.border,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 2,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            word,
+                            style: TextStyle(
+                              color: appColors.textPrimary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
                       );
                     }).toList(),
                   ),

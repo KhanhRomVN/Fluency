@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:provider/provider.dart';
+import 'package:fluency/features/quiz/presentation/widgets/quiz_types/pronunciation_drill.dart';
 
 class ScriptedChat extends StatefulWidget {
   const ScriptedChat({
@@ -235,6 +236,13 @@ class _ScriptedChatState extends State<ScriptedChat> {
             }
           }
         });
+
+        // Check if we need to migrate/update the progress with the new correctness map
+        if (progress.data?['correctness'] == null) {
+          debugPrint(
+              'ScriptedChat: No correctness map in saved progress, force-saving to migrate');
+          _saveProgress();
+        }
       }
     } catch (e, s) {
       MonitoringService.captureError(e, stackTrace: s);
@@ -741,9 +749,11 @@ class _ScriptedChatState extends State<ScriptedChat> {
       final completedItems = _visibleCount;
 
       var correctItems = 0;
+      final Map<String, bool> correctness = {};
       for (var i = 0; i < _visibleCount; i++) {
         if (i >= chats.length) break;
         final chat = chats[i];
+        correctness[chat.id] = true;
         if (chat.role != _userRole) {
           correctItems++;
         } else {
@@ -753,6 +763,11 @@ class _ScriptedChatState extends State<ScriptedChat> {
           }
         }
       }
+
+      debugPrint(
+          'ScriptedChat: Saving progress. Visible=$_visibleCount, Total=$totalItems, Correct=$correctItems');
+      debugPrint(
+          'ScriptedChat: Correctness Map: ${correctness.keys.length} items');
 
       await quizStateProvider.saveQuizProgress(
         lessonId: widget.lessonId,
@@ -765,6 +780,7 @@ class _ScriptedChatState extends State<ScriptedChat> {
           'userRole': _userRole,
           'visibleCount': _visibleCount,
           'messageScores': scoresData,
+          'correctness': correctness,
         },
       );
     } catch (e, s) {
@@ -1283,7 +1299,28 @@ class _ScriptedChatState extends State<ScriptedChat> {
           Row(
             mainAxisAlignment:
                 isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              if (isUserMessage)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0, bottom: 4.0),
+                  child: InkWell(
+                    onTap: () => _openPronunciationDrawer(chat),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: SvgPicture.asset(
+                        'assets/icons/rotate-ccw.svg',
+                        width: 18,
+                        height: 18,
+                        colorFilter: ColorFilter.mode(
+                          appColors.textSecondary.withValues(alpha: 0.7),
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Flexible(
                 child: Listener(
                   onPointerDown: _handlePointerDown,
@@ -1301,7 +1338,9 @@ class _ScriptedChatState extends State<ScriptedChat> {
                     decoration: BoxDecoration(
                       color: appColors.cardBackground,
                       border: Border.all(
-                        color: roleColor.withOpacity(0.5),
+                        color: isUserMessage
+                            ? appColors.primary
+                            : appColors.border,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.only(
@@ -1623,6 +1662,42 @@ class _ScriptedChatState extends State<ScriptedChat> {
       ),
     );
   }
+
+  void _openPronunciationDrawer(ChatMessage chat) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: _PronunciationPracticeDrawer(
+                  targetText: _getTextContent(chat.content),
+                  appColors: Theme.of(context).extension<AppColorsExtension>()!,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 enum _FeedbackStatus {
@@ -1667,5 +1742,368 @@ extension StringExtension on String {
   String capitalize() {
     if (isEmpty) return this;
     return '${this[0].toUpperCase()}${substring(1).toLowerCase()}';
+  }
+}
+
+class _PronunciationPracticeDrawer extends StatefulWidget {
+  const _PronunciationPracticeDrawer({
+    required this.targetText,
+    required this.appColors,
+  });
+
+  final String targetText;
+  final AppColorsExtension appColors;
+
+  @override
+  State<_PronunciationPracticeDrawer> createState() =>
+      _PronunciationPracticeDrawerState();
+}
+
+class _PronunciationPracticeDrawerState
+    extends State<_PronunciationPracticeDrawer> {
+  SttService? _sttService;
+  bool _speechEnabled = false;
+  bool _isRecording = false;
+  String? _sttError;
+  StreamSubscription<String>? _sttStatusSub;
+
+  int _bestScore = 0;
+  int _attempts = 0;
+  String? _transcript;
+  List<_WordFeedback> _feedback = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    _sttService = SystemSttService();
+    try {
+      _speechEnabled = await _sttService!.initialize();
+      if (_speechEnabled) {
+        _sttStatusSub = _sttService!.statusStream.listen((String status) {
+          if (status == 'notListening' || status == 'done') {
+            _stopListening();
+          }
+        });
+      } else {
+        setState(() {
+          _sttError = 'Speech recognition not available on this device';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _sttError = e.toString());
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _sttStatusSub?.cancel();
+    _sttService?.dispose();
+    super.dispose();
+  }
+
+  void _startListening() {
+    if (!_speechEnabled || _sttService == null) return;
+    setState(() {
+      _isRecording = true;
+      _sttError = null;
+      _transcript = null;
+      _feedback = [];
+    });
+    _sttService!.startListening(
+      onResult: _onSpeechResult,
+      localeId: 'en-US',
+    );
+  }
+
+  void _stopListening() {
+    if (!_isRecording) return;
+    _sttService?.stopListening();
+    if (mounted) {
+      setState(() => _isRecording = false);
+    }
+  }
+
+  void _onSpeechResult(String transcript, bool isFinal) {
+    if (!mounted) return;
+    setState(() {
+      _transcript = transcript;
+    });
+
+    if (isFinal || transcript.length >= widget.targetText.length - 2) {
+      final score = _calculateScore(transcript, widget.targetText);
+      final newFeedback = _analyzeWordFeedback(transcript, widget.targetText);
+
+      setState(() {
+        _isRecording = false;
+        _attempts++;
+        if (score > _bestScore) _bestScore = score;
+        _feedback = newFeedback;
+      });
+      _sttService?.stopListening();
+    }
+  }
+
+  int _calculateScore(String spoken, String target) {
+    final cleanSpoken = spoken.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '');
+    final cleanTarget = target.toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '');
+    if (cleanSpoken.isEmpty || cleanTarget.isEmpty) return 0;
+    final distance = _levenshteinDistance(cleanSpoken, cleanTarget);
+    final maxLength = math.max(cleanSpoken.length, cleanTarget.length);
+    final score = ((1 - distance / maxLength) * 100).round();
+    return score.clamp(0, 100);
+  }
+
+  int _levenshteinDistance(String a, String b) {
+    final dp = List.generate(a.length + 1, (i) => List.filled(b.length + 1, 0));
+    for (var i = 0; i <= a.length; i++) dp[i][0] = i;
+    for (var j = 0; j <= b.length; j++) dp[0][j] = j;
+
+    for (var i = 1; i <= a.length; i++) {
+      for (var j = 1; j <= b.length; j++) {
+        if (a[i - 1] == b[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = 1 +
+              math.min(dp[i - 1][j - 1], math.min(dp[i - 1][j], dp[i][j - 1]));
+        }
+      }
+    }
+    return dp[a.length][b.length];
+  }
+
+  List<_WordFeedback> _analyzeWordFeedback(String spoken, String target) {
+    final sWords = spoken
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .split(' ')
+      ..removeWhere((e) => e.isEmpty);
+    final tWords = target
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .split(' ')
+      ..removeWhere((e) => e.isEmpty);
+    final originalTWords = target.split(' ')..removeWhere((e) => e.isEmpty);
+
+    final feedback = <_WordFeedback>[];
+    for (var i = 0; i < tWords.length; i++) {
+      final tw = tWords[i];
+      final ow = originalTWords[i];
+      if (sWords.contains(tw)) {
+        feedback.add(_WordFeedback(ow, _FeedbackStatus.correct));
+        sWords.remove(tw);
+      } else {
+        feedback.add(_WordFeedback(ow, _FeedbackStatus.incorrect));
+      }
+    }
+    return feedback;
+  }
+
+  Color _getScoreColor(int score, int attempts) {
+    if (attempts == 0)
+      return widget.appColors.textSecondary.withValues(alpha: 0.3);
+    if (score >= 80) return Colors.green;
+    if (score >= 50) return Colors.amber.shade700;
+    return Colors.red;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = widget.appColors;
+    return Column(
+      children: [
+        const Spacer(),
+
+        // Score Circle
+        if (_attempts > 0 && !_isRecording)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SizedBox(
+              width: 80,
+              height: 80,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: CircularProgressIndicator(
+                      value: _attempts == 0 ? 0.0 : _bestScore / 100,
+                      strokeWidth: 8,
+                      backgroundColor:
+                          appColors.textSecondary.withValues(alpha: 0.25),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _getScoreColor(_bestScore, _attempts),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '$_bestScore%',
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: _getScoreColor(_bestScore, _attempts),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Main Text (Target)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: _feedback.isEmpty
+              ? Text(
+                  widget.targetText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    color: appColors.textPrimary,
+                    height: 1.3,
+                  ),
+                )
+              : _buildFeedbackRichText(),
+        ),
+
+        const SizedBox(height: 24),
+
+        // Spoken Transcript (You said)
+        if (_transcript != null && !_isRecording) ...[
+          Text(
+            'You said:',
+            style: TextStyle(
+              color: appColors.textSecondary,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            decoration: BoxDecoration(
+              color:
+                  _getScoreColor(_bestScore, _attempts).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _getScoreColor(_bestScore, _attempts)
+                    .withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              _transcript!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _getScoreColor(_bestScore, _attempts),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+
+        const Spacer(),
+
+        // Error message
+        if (_sttError != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Colors.red, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _sttError!,
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Mic button
+        Padding(
+          padding: const EdgeInsets.only(bottom: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: _isRecording ? _stopListening : _startListening,
+                borderRadius: BorderRadius.circular(50),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: (_isRecording
+                            ? Colors.amber
+                            : _getScoreColor(_bestScore, _attempts))
+                        .withValues(alpha: _isRecording ? 0.3 : 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isRecording ? Icons.stop_rounded : Icons.mic,
+                    color: _isRecording
+                        ? Colors.amber
+                        : _getScoreColor(_bestScore, _attempts),
+                    size: 32,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isRecording ? 'Recording...' : 'Tap to record',
+                style: TextStyle(
+                  color: _isRecording ? Colors.amber : appColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeedbackRichText() {
+    final spans = <InlineSpan>[];
+    for (var i = 0; i < _feedback.length; i++) {
+      final item = _feedback[i];
+      Color color = widget.appColors.textPrimary;
+      if (item.status == _FeedbackStatus.correct) color = Colors.green;
+      if (item.status == _FeedbackStatus.incorrect) color = Colors.red;
+
+      spans.add(
+        TextSpan(
+          text: item.word,
+          style: TextStyle(
+            fontSize: 24,
+            color: color,
+            height: 1.3,
+          ),
+        ),
+      );
+      if (i < _feedback.length - 1) {
+        spans.add(const TextSpan(text: ' '));
+      }
+    }
+    return Text.rich(TextSpan(children: spans), textAlign: TextAlign.center);
   }
 }

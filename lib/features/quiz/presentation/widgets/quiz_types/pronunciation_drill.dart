@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fluency/core/themes/app_colors_extension.dart';
@@ -20,6 +21,7 @@ class PronunciationDrill extends StatefulWidget {
     this.onPrev,
     this.onWordLongPress,
     this.onCheck,
+    this.finalActionText,
     super.key,
   });
 
@@ -30,6 +32,7 @@ class PronunciationDrill extends StatefulWidget {
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<PronunciationDrill> createState() => _PronunciationDrillState();
@@ -41,9 +44,17 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   SttService? _sttService;
   bool _speechEnabled = false;
   String? _sttError;
+  bool _isRetryingItem = false;
+  StreamSubscription<String>? _sttStatusSub;
+  bool _isPlayingAudio = false;
 
   // Map<ItemID, State>
   final Map<String, _PronunciationDrillItemState> _itemStates = {};
+
+  int get _firstUnpassedIndex {
+    final drills = widget.quiz.pronunciations ?? [];
+    return drills.indexWhere((d) => !(_itemStates[d.id]?.passed ?? false));
+  }
 
   // Animation variables
   late PageController _pageController;
@@ -65,6 +76,18 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
       _sttService = SystemSttService();
 
       final available = await _sttService!.initialize();
+      if (available) {
+        _sttStatusSub = _sttService!.statusStream.listen((status) {
+          if (mounted && (status == 'notListening' || status == 'done')) {
+            if (_isRecording) {
+              setState(() {
+                _isRecording = false;
+              });
+            }
+          }
+        });
+      }
+
       if (mounted) {
         setState(() {
           _speechEnabled = available;
@@ -105,6 +128,10 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
               passed: data['passed'] as bool? ?? false,
               attempts: data['attempts'] as int? ?? 0,
               transcript: data['transcript'] as String?,
+              attemptResults: (data['attemptResults'] as List?)
+                      ?.map((e) => e as bool)
+                      .toList() ??
+                  [],
             );
           });
         }
@@ -119,8 +146,20 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
           }
         }
 
+        final savedIndex =
+            progress.data?['currentIndex'] as int? ?? firstUnpassed;
+
+        int indexToUse = savedIndex;
+
+        // Hybrid logic: if we are at the end but have unpassed items, jump back to first unpassed
+        if (savedIndex == drills.length - 1 &&
+            firstUnpassed != -1 &&
+            firstUnpassed < savedIndex) {
+          indexToUse = firstUnpassed;
+        }
+
         setState(() {
-          _currentIndex = firstUnpassed;
+          _currentIndex = indexToUse;
         });
 
         // Sync PageView with restored index
@@ -163,13 +202,14 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
           'passed': value.passed,
           'attempts': value.attempts,
           'transcript': value.transcript,
+          'attemptResults': value.attemptResults,
         });
       });
 
       final totalItems = widget.quiz.pronunciations?.length ?? 0;
       // Completed if passed (correct) OR attempts > 0 (tried)
       final completedItems =
-          _itemStates.values.where((s) => s.attempts > 0 || s.passed).length;
+          _itemStates.values.where((s) => s.attempts >= 3 || s.passed).length;
       final correctItems = _itemStates.values.where((s) => s.passed).length;
 
       await quizStateProvider.saveQuizProgress(
@@ -192,6 +232,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
 
   @override
   void dispose() {
+    _sttStatusSub?.cancel();
     _pageController.dispose();
     _sttService?.dispose();
     super.dispose();
@@ -200,12 +241,15 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
+      _isRetryingItem = false;
     });
     _saveProgress();
     _speakCurrentWord();
   }
 
   Future<void> _speakCurrentWord() async {
+    if (_isPlayingAudio) return;
+    if (mounted) setState(() => _isPlayingAudio = true);
     try {
       final ttsProvider = context.read<TtsProvider>();
       if (!ttsProvider.isInitialized) {
@@ -217,10 +261,15 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
 
       if (text.isNotEmpty) {
         await ttsProvider.ttsService?.speak(text);
+        await Future<void>.delayed(const Duration(
+            milliseconds:
+                1500)); // Ensure UI stays mapped to playing status even if TTS is too fast
       }
     } catch (e, s) {
       MonitoringService.captureError(e, stackTrace: s);
       debugPrint('PronunciationDrill Error speaking word: $e');
+    } finally {
+      if (mounted) setState(() => _isPlayingAudio = false);
     }
   }
 
@@ -287,13 +336,18 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
           _isRecording = false;
           final current =
               _itemStates[item.id] ?? _PronunciationDrillItemState();
+          final newAttemptResults = List<bool>.from(current.attemptResults)
+            ..add(passed);
+
           _itemStates[item.id] = current.copyWith(
             score: score,
             bestScore: score > current.bestScore ? score : current.bestScore,
             passed: passed || current.passed,
             attempts: current.attempts + 1,
             transcript: transcript,
+            attemptResults: newAttemptResults,
           );
+          _isRetryingItem = false;
 
           // Play sound effect
           if (mounted) {
@@ -370,250 +424,245 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
                   final state =
                       _itemStates[item.id] ?? _PronunciationDrillItemState();
 
-                  final borderColor = state.passed
-                      ? Colors.green
-                      : (state.attempts > 0
-                          ? Colors.red
-                          : Colors.grey.withValues(alpha: 0.5));
                   return Padding(
                     padding: const EdgeInsets.only(
-                        left: 16, right: 16, bottom: 24, top: 24),
-                    child: Container(
+                        left: 16, right: 16, bottom: 12, top: 24),
+                    child: SizedBox(
                       width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: appColors.cardBackground,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: borderColor,
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
-                        ),
-                        child: Column(
-                          children: [
-                            // Header inside Card (Counter + Progress)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // Counter
-                                  Text(
-                                    '${index + 1} / ${drills.length}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.normal,
-                                      color: appColors.textPrimary,
-                                    ),
-                                  ),
-                                  // Progress Circle
-                                  SizedBox(
-                                    width: 32,
-                                    height: 32,
-                                    child: CustomPaint(
-                                      painter: _CircularProgressPainter(
-                                        progress: drills.isEmpty
-                                            ? 0
-                                            : completedCount / drills.length,
-                                        color: appColors.primary,
-                                        trackColor: appColors.border,
+                      child: Column(
+                        children: [
+                          // Content (Flex to fill available space)
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: Center(
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 8,
                                       ),
-                                      child: Center(
-                                        child: Text(
-                                          '$completedCount',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: appColors.textSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Divider(
-                              height: 1,
-                              color: appColors.border.withValues(alpha: 0.5),
-                            ),
-
-                            // Content (Flex to fill available space)
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: SingleChildScrollView(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 8,
-                                        ),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            // Score Display
-                                            if (state.attempts > 0)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  bottom: 20,
-                                                ),
-                                                child: Text(
-                                                  '${state.bestScore}%',
-                                                  style: TextStyle(
-                                                    fontSize: 36,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: state.bestScore >= 80
-                                                        ? Colors.green
-                                                        : (state.bestScore >= 50
-                                                            ? Colors.orange
-                                                            : Colors.red),
-                                                  ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          // Score Display
+                                          if (state.attempts > 0 &&
+                                              !_isRecording)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 24,
+                                              ),
+                                              child: SizedBox(
+                                                width: 80,
+                                                height: 80,
+                                                child: Stack(
+                                                  alignment: Alignment.center,
+                                                  children: [
+                                                    SizedBox(
+                                                      width: 80,
+                                                      height: 80,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        value: state.bestScore /
+                                                            100,
+                                                        strokeWidth: 8,
+                                                        backgroundColor:
+                                                            appColors
+                                                                .textSecondary
+                                                                .withValues(
+                                                                    alpha:
+                                                                        0.25),
+                                                        valueColor:
+                                                            AlwaysStoppedAnimation<
+                                                                Color>(
+                                                          _getScoreColor(
+                                                              state.bestScore,
+                                                              state.attempts,
+                                                              appColors),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      '${state.bestScore}%',
+                                                      style: TextStyle(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.w900,
+                                                        color: _getScoreColor(
+                                                            state.bestScore,
+                                                            state.attempts,
+                                                            appColors),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-
-                                            // Main Text
-                                            _buildFormattedText(
-                                              context,
-                                              item.text,
-                                              state.passed,
-                                              appColors,
                                             ),
 
-                                            const SizedBox(height: 12),
+                                          // Attempt Tracker (Dots)
+                                          _buildAttemptUI(state, appColors),
+                                          const SizedBox(height: 24),
 
-                                            // IPA
-                                            if (item.ipa != null &&
-                                                item.ipa!.isNotEmpty)
-                                              Text(
-                                                item.ipa!,
+                                          // Main Text
+                                          _buildFormattedText(
+                                            context,
+                                            item.text,
+                                            state.passed,
+                                            appColors,
+                                          ),
+
+                                          const SizedBox(height: 12),
+
+                                          // IPA
+                                          if (item.ipa != null &&
+                                              item.ipa!.isNotEmpty)
+                                            Text(
+                                              item.ipa!,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: _isRecording
+                                                    ? Colors.amber
+                                                    : _getScoreColor(
+                                                        state.bestScore,
+                                                        state.attempts,
+                                                        appColors),
+                                                fontSize: 18,
+                                                fontFamily: 'NotoSans',
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+
+                                          // Translation
+                                          if (item.translate != null)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.only(top: 8),
+                                              child: Text(
+                                                item.translate!,
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   color:
                                                       appColors.textSecondary,
                                                   fontSize: 18,
-                                                  fontFamily: 'NotoSans',
                                                 ),
                                               ),
+                                            ),
 
-                                            // Translation
-                                            if (item.translate != null)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 8),
-                                                child: Text(
-                                                  item.translate!,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color:
-                                                        appColors.textSecondary,
-                                                    fontSize: 18,
-                                                  ),
-                                                ),
-                                              ),
-
-                                            // Transcript (Feedback)
-                                            if (state.transcript != null)
-                                              Container(
-                                                margin: const EdgeInsets.only(
-                                                    top: 24),
-                                                padding:
-                                                    const EdgeInsets.all(16),
-                                                decoration: BoxDecoration(
-                                                  color: appColors.primary
-                                                      .withValues(alpha: 0.05),
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                  border: Border.all(
-                                                    color: appColors.primary
-                                                        .withValues(alpha: 0.3),
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  '"${state.transcript}"',
+                                          // Transcript (Feedback)
+                                          if (state.transcript != null &&
+                                              !_isRecording)
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                const SizedBox(height: 24),
+                                                Text(
+                                                  'You said:',
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     color:
                                                         appColors.textSecondary,
                                                     fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Divider(
-                              height: 1,
-                              color: appColors.border.withValues(alpha: 0.5),
-                            ),
-
-                            // Footer Actions
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  if (_sttError != null)
-                                    Container(
-                                      margin: const EdgeInsets.only(bottom: 16),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Colors.red.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                            color: Colors.red
-                                                .withValues(alpha: 0.3)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                              Icons.warning_amber_rounded,
-                                              color: Colors.red,
-                                              size: 20),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              'This device does not support speech-to-text service.',
-                                              style: TextStyle(
-                                                color: Colors.red[700],
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                                const SizedBox(height: 8),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 24,
+                                                      vertical: 12),
+                                                  decoration: BoxDecoration(
+                                                    color: _getScoreColor(
+                                                            state.bestScore,
+                                                            state.attempts,
+                                                            appColors)
+                                                        .withValues(
+                                                            alpha: 0.15),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    border: Border.all(
+                                                      color: _getScoreColor(
+                                                              state.bestScore,
+                                                              state.attempts,
+                                                              appColors)
+                                                          .withValues(
+                                                              alpha: 0.3),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    state.transcript!,
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: _getScoreColor(
+                                                          state.bestScore,
+                                                          state.attempts,
+                                                          appColors),
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ),
                                         ],
                                       ),
                                     ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildFooterActions(
-                                        state,
-                                        item,
-                                        appColors,
-                                        drills,
-                                        index,
-                                      ),
-                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+
+                          // Footer Actions
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16.0),
+                            child: Column(
+                              children: [
+                                if (_sttError != null)
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: Colors.red
+                                              .withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.warning_amber_rounded,
+                                            color: Colors.red, size: 20),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            'This device does not support speech-to-text service.',
+                                            style: TextStyle(
+                                              color: Colors.red[700],
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                _buildFooterActions(
+                                  state,
+                                  item,
+                                  appColors,
+                                  drills,
+                                  index,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -621,6 +670,54 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
               ),
             ),
           ],
+        ),
+        if (!_isRecording)
+          Positioned(
+            top: 16,
+            left: 16,
+            child: InkWell(
+              onTap: _isPlayingAudio ? null : _speakCurrentWord,
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: (_isPlayingAudio
+                          ? appColors.primary
+                          : appColors.textSecondary)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.volume_up_rounded,
+                  color: _isPlayingAudio
+                      ? appColors.primary
+                      : appColors.textSecondary,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        // Top Right: Badge
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: appColors.textPrimary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${_currentIndex + 1}/${drills.length}',
+              style: TextStyle(
+                color: appColors.textSecondary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -691,7 +788,7 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
               color: isHidden
                   ? appColors.primary
                   : appColors.textPrimary, // Highlight if it was hidden
-              fontWeight: FontWeight.normal,
+              fontWeight: FontWeight.w900,
             ),
           ),
         );
@@ -728,33 +825,115 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     List<PronunciationItem> drills,
     int index,
   ) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Mic Button
-        _buildMicButton(state, item, appColors),
-
-        // Next Button (if passed)
-        if (state.passed && widget.onNext != null) ...[
-          const SizedBox(width: 16),
+    if ((state.passed || state.attempts >= 3) && !_isRetryingItem) {
+      return Row(
+        children: [
+          // Retry button
           ElevatedButton(
-            onPressed: () => _handleNext(drills.length),
+            onPressed: () {
+              setState(() {
+                _itemStates[item.id] = _PronunciationDrillItemState();
+                _isRetryingItem = true;
+              });
+              _saveProgress();
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: appColors.primary.withValues(alpha: 0.15),
-              foregroundColor: appColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: appColors.textSecondary.withValues(alpha: 0.15),
+              foregroundColor: appColors.textSecondary,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
               elevation: 0,
             ),
-            child: Text(index < drills.length - 1 ? 'Next' : 'Finish',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('Retry',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
+          const SizedBox(width: 16),
+          // Next Button
+          if (widget.onNext != null)
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  final isLast = index == drills.length - 1;
+                  if (isLast) {
+                    final unpassed = _firstUnpassedIndex;
+                    if (unpassed != -1) {
+                      _pageController.animateToPage(
+                        unpassed,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    } else {
+                      widget.onCheck?.call();
+                      widget.onNext?.call();
+                    }
+                  } else {
+                    _handleNext(drills.length);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.withValues(alpha: 0.15),
+                  foregroundColor: Colors.green,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: Text(
+                    index == drills.length - 1
+                        ? (_firstUnpassedIndex != -1
+                            ? 'Review Uncompleted'
+                            : (widget.finalActionText ?? 'Finish'))
+                        : 'Next',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
         ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Mic Button (only show if not passed/max attempts or retrying)
+        _buildMicButton(state, item, appColors),
       ],
     );
+  }
+
+  Widget _buildAttemptUI(
+    _PronunciationDrillItemState state,
+    AppColorsExtension appColors,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(3, (index) {
+        final results = state.attemptResults;
+        Color color = appColors.textSecondary.withValues(alpha: 0.3);
+        if (index < results.length) {
+          color = results[index] ? Colors.green : Colors.red;
+        }
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: 24,
+          height: 4,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        );
+      }),
+    );
+  }
+
+  Color _getScoreColor(int score, int attempts, AppColorsExtension appColors) {
+    if (attempts == 0) return appColors.buttonBg;
+    if (score <= 20) return Colors.red;
+    if (score <= 40) return Colors.orange;
+    if (score <= 60) return Colors.amber;
+    if (score <= 80) return Colors.cyan;
+    return Colors.green;
   }
 
   Widget _buildMicButton(
@@ -763,34 +942,53 @@ class _PronunciationDrillState extends State<PronunciationDrill> {
     AppColorsExtension appColors,
   ) {
     if (_sttError != null) return const SizedBox.shrink();
-    final bool canRecord = _speechEnabled && _sttError == null;
+    final bool canRecord = _speechEnabled &&
+        _sttError == null &&
+        !state.passed &&
+        state.attempts < 3;
 
-    return InkWell(
-      onTap: canRecord
-          ? (_isRecording
-              ? () => _stopRecording(item)
-              : () => _startRecording(item))
-          : null,
-      borderRadius: BorderRadius.circular(50),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: _isRecording
-              ? appColors.primary.withValues(alpha: 0.15)
-              : Colors.grey.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Opacity(
-          opacity: canRecord ? 1.0 : 0.4,
-          child: Icon(
-            Icons.mic,
-            color: _isRecording ? appColors.primary : Colors.grey,
-            size: 24,
+    final scoreColor =
+        _getScoreColor(state.bestScore, state.attempts, appColors);
+    final micColor = _isRecording ? Colors.amber : scoreColor;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: canRecord
+              ? (_isRecording
+                  ? () => _stopRecording(item)
+                  : () => _startRecording(item))
+              : null,
+          borderRadius: BorderRadius.circular(50),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: micColor.withValues(alpha: _isRecording ? 0.3 : 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Opacity(
+              opacity: canRecord ? 1.0 : 0.4,
+              child: Icon(
+                Icons.mic,
+                color: micColor,
+                size: 32,
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 8),
+        Text(
+          _isRecording ? 'Recording...' : 'Tap to record',
+          style: TextStyle(
+            color: _isRecording ? Colors.amber : appColors.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -802,12 +1000,14 @@ class _PronunciationDrillItemState {
     this.passed = false,
     this.attempts = 0,
     this.transcript,
+    this.attemptResults = const [],
   });
   final int score;
   final int bestScore;
   final bool passed;
   final int attempts;
   final String? transcript;
+  final List<bool> attemptResults;
 
   _PronunciationDrillItemState copyWith({
     int? score,
@@ -815,6 +1015,7 @@ class _PronunciationDrillItemState {
     bool? passed,
     int? attempts,
     String? transcript,
+    List<bool>? attemptResults,
   }) {
     return _PronunciationDrillItemState(
       score: score ?? this.score,
@@ -822,112 +1023,7 @@ class _PronunciationDrillItemState {
       passed: passed ?? this.passed,
       attempts: attempts ?? this.attempts,
       transcript: transcript ?? this.transcript,
+      attemptResults: attemptResults ?? this.attemptResults,
     );
-  }
-}
-
-// Dashed Border Painter
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
-  }
-}
-
-// Circular Progress Painter
-class _CircularProgressPainter extends CustomPainter {
-  _CircularProgressPainter({
-    required this.progress,
-    required this.color,
-    required this.trackColor,
-  });
-  final double progress;
-  final Color color;
-  final Color trackColor;
-  final double strokeWidth = 4;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - strokeWidth) / 2;
-
-    // Track
-    final trackPaint = Paint()
-      ..color = trackColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-
-    canvas.drawCircle(center, radius, trackPaint);
-
-    // Progress
-    final progressPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    final sweepAngle = 2 * math.pi * progress;
-    // Rotate to start from top (-pi/2)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      sweepAngle,
-      false,
-      progressPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _CircularProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.color != color ||
-        oldDelegate.trackColor != trackColor;
   }
 }

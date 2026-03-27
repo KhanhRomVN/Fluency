@@ -20,7 +20,8 @@ class PiperTtsService implements TtsService {
   }
 
   @override
-  Future<void> speak(String text) async {
+  Future<void> speak(String text,
+      {double speed = 1.0, double pitch = 1.0}) async {
     debugPrint('Piper TTS speak ignored on Web.');
   }
 

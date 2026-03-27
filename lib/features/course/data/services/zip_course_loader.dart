@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:isolate';
+import 'package:fluency/core/utils/sort_utils.dart';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
@@ -18,7 +19,7 @@ class ZipCourseLoader {
   static const String _courseBoxName = 'encrypted_course_data';
 
   /// Mở Hive Box được mã hóa
-  Future<Box> _openCourseBox() async {
+  Future<Box<dynamic>> _openCourseBox() async {
     final encryptionKey = await ZipSecurity.getHiveEncryptionKey();
     return await Hive.openBox(_courseBoxName,
         encryptionCipher: HiveAesCipher(encryptionKey));
@@ -111,14 +112,29 @@ class ZipCourseLoader {
 
   /// Extract a ZIP file from assets to cache directory
   Future<Directory?> extractZipFile(String assetPath,
-      {void Function(double)? onProgress}) async {
+      {void Function(double)? onProgress,
+      bool skipSync = false,
+      bool refresh = false}) async {
     try {
       // Check if already extracted
       final courseName = assetPath.split('/').last.replaceAll('.zip', '');
+      final cacheDir = await _getCacheDirectory();
+      final extractDir = Directory('${cacheDir.path}/$courseName');
+
+      if (!refresh &&
+          extractDir.existsSync() &&
+          File('${extractDir.path}/course_id.txt').existsSync()) {
+        debugPrint('Using existing extracted course: $courseName');
+        _extractedCourses[courseName] = extractDir;
+        onProgress?.call(1.0);
+        return extractDir;
+      }
+
+      // Check memory cache as fallback
       if (_extractedCourses.containsKey(courseName)) {
         final cachedDir = _extractedCourses[courseName]!;
         if (cachedDir.existsSync()) {
-          debugPrint('Using cached extracted course: $courseName');
+          debugPrint('Using memory cached extracted course: $courseName');
           onProgress?.call(1.0);
           return cachedDir;
         }
@@ -131,14 +147,14 @@ class ZipCourseLoader {
       final bytes = data.buffer.asUint8List();
 
       // Get cache directory
-      final cacheDir = await _getCacheDirectory();
-      final extractDir = Directory('${cacheDir.path}/$courseName');
+      // Atomic extraction: extract to temp, then move
+      final tempDir = Directory('${extractDir.path}_temp');
 
-      // Remove old extraction if exists
-      if (extractDir.existsSync()) {
-        await extractDir.delete(recursive: true);
+      // Remove old temp if exists
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
       }
-      await extractDir.create(recursive: true);
+      await tempDir.create(recursive: true);
 
       final password = await ZipSecurity.getZipPassword();
       final key = await ZipSecurity.getEncryptionKey();
@@ -146,7 +162,7 @@ class ZipCourseLoader {
       // Simple wrapper for calling extraction
       final params = {
         'bytes': bytes,
-        'extractPath': extractDir.path,
+        'extractPath': tempDir.path,
         'zipPassword': password,
         'encryptionKey': base64Encode(key.bytes),
       };
@@ -176,11 +192,19 @@ class ZipCourseLoader {
         onProgress?.call(1.0);
       }
 
+      // Move temp to final location (Atomic move)
+      if (extractDir.existsSync()) {
+        await extractDir.delete(recursive: true);
+      }
+      await tempDir.rename(extractDir.path);
+
       debugPrint('Successfully extracted $courseName to ${extractDir.path}');
       _extractedCourses[courseName] = extractDir;
 
-      // Import to Hive after extraction
-      await _syncWithHive(extractDir, key: key);
+      // Import to Hive after extraction (unless skipped)
+      if (!skipSync) {
+        await syncWithHive(extractDir, key: key);
+      }
 
       return extractDir;
     } catch (e, stack) {
@@ -192,15 +216,28 @@ class ZipCourseLoader {
 
   /// Extract a ZIP file from a local File object
   Future<Directory?> extractZipFileFromFile(File zipFile,
-      {void Function(double)? onProgress}) async {
+      {void Function(double)? onProgress,
+      bool skipSync = false,
+      bool refresh = false}) async {
     try {
-      final courseName = zipFile.path.split('/').last.replaceAll('.zip', '');
-
       // Check if already extracted
+      final courseName = zipFile.path.split('/').last.replaceAll('.zip', '');
+      final cacheDir = await _getCacheDirectory();
+      final extractDir = Directory('${cacheDir.path}/$courseName');
+
+      if (!refresh &&
+          extractDir.existsSync() &&
+          File('${extractDir.path}/course_id.txt').existsSync()) {
+        debugPrint('Using existing extracted course: $courseName');
+        _extractedCourses[courseName] = extractDir;
+        onProgress?.call(1.0);
+        return extractDir;
+      }
+
       if (_extractedCourses.containsKey(courseName)) {
         final cachedDir = _extractedCourses[courseName]!;
         if (cachedDir.existsSync()) {
-          debugPrint('Using cached extracted course: $courseName');
+          debugPrint('Using memory cached extracted course: $courseName');
           onProgress?.call(1.0);
           return cachedDir;
         }
@@ -208,20 +245,19 @@ class ZipCourseLoader {
 
       debugPrint('Extracting local ZIP file: ${zipFile.path}');
 
-      final cacheDir = await _getCacheDirectory();
-      final extractDir = Directory('${cacheDir.path}/$courseName');
+      final tempDir = Directory('${extractDir.path}_temp');
 
-      if (extractDir.existsSync()) {
-        await extractDir.delete(recursive: true);
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
       }
-      await extractDir.create(recursive: true);
+      await tempDir.create(recursive: true);
 
       final password = await ZipSecurity.getZipPassword();
       final key = await ZipSecurity.getEncryptionKey();
 
       final params = {
         'zipPath': zipFile.path,
-        'extractPath': extractDir.path,
+        'extractPath': tempDir.path,
         'zipPassword': password,
         'encryptionKey': base64Encode(key.bytes),
       };
@@ -251,13 +287,21 @@ class ZipCourseLoader {
         onProgress?.call(1.0);
       }
 
+      // Atomic move
+      if (extractDir.existsSync()) {
+        await extractDir.delete(recursive: true);
+      }
+      await tempDir.rename(extractDir.path);
+
       debugPrint(
         'Successfully extracted local ZIP $courseName to ${extractDir.path}',
       );
       _extractedCourses[courseName] = extractDir;
 
-      // Import to Hive after extraction
-      await _syncWithHive(extractDir, key: key);
+      // Import to Hive after extraction (unless skipped)
+      if (!skipSync) {
+        await syncWithHive(extractDir, key: key);
+      }
 
       return extractDir;
     } catch (e, stack) {
@@ -268,7 +312,7 @@ class ZipCourseLoader {
   }
 
   /// Sync extracted JSON files with Hive and delete them
-  Future<void> _syncWithHive(Directory extractedDir,
+  Future<void> syncWithHive(Directory extractedDir,
       {encrypt_pkg.Key? key}) async {
     try {
       final encryptionKey = key ?? await ZipSecurity.getEncryptionKey();
@@ -287,14 +331,21 @@ class ZipCourseLoader {
           }
         }
 
+        // Mark folder with course ID for future Hive lookups
+        final idFile = File('${extractedDir.path}/course_id.txt');
+        await idFile.writeAsString(courseId);
+
         // Delete JSON files for security
         final files = await extractedDir.list().toList();
         for (final file in files) {
-          if (file is File && file.path.endsWith('.json')) {
+          if (file is File &&
+              file.path.endsWith('.json') &&
+              !file.path.endsWith('course_id.txt')) {
             await file.delete();
           }
         }
-        debugPrint('Synced course $courseId with Hive and deleted local JSONs');
+        debugPrint(
+            'Synced course $courseId with Hive and marked folder with ID');
       }
     } catch (e, stack) {
       debugPrint('Error syncing with Hive: $e');
@@ -310,7 +361,15 @@ class ZipCourseLoader {
       final diskCourse = await _loadCourseJsonLegacy(extractedDir, key: key);
       if (diskCourse != null) return diskCourse;
 
-      // 2. Try Hive search
+      // 2. Try Hive search via course_id.txt mapping
+      final idFile = File('${extractedDir.path}/course_id.txt');
+      if (await idFile.exists()) {
+        final courseId = (await idFile.readAsString()).trim();
+        final data = await _getFromHive('course_$courseId');
+        if (data != null) return data;
+      }
+
+      // 3. Fallback: try all courses (risky, but better than nothing)
       final box = await _openCourseBox();
       for (var hiveKey in box.keys) {
         if (hiveKey.toString().startsWith('course_')) {
@@ -382,10 +441,10 @@ class ZipCourseLoader {
       final diskLessons = await _loadLessonJsonsLegacy(extractedDir, key: key);
       if (diskLessons.isNotEmpty) return diskLessons;
 
-      // 2. Try Hive search
-      final courseJson = await loadCourseJson(extractedDir);
-      if (courseJson != null && courseJson['id'] != null) {
-        final courseId = courseJson['id'] as String;
+      // 2. Try Hive search via course_id.txt
+      final idFile = File('${extractedDir.path}/course_id.txt');
+      if (await idFile.exists()) {
+        final courseId = (await idFile.readAsString()).trim();
         final box = await _openCourseBox();
         for (var key in box.keys) {
           if (key.toString().startsWith('lesson_')) {
@@ -404,7 +463,13 @@ class ZipCourseLoader {
     lessons.sort((a, b) {
       final aNum = a['lessonNumber'] as int? ?? 0;
       final bNum = b['lessonNumber'] as int? ?? 0;
-      return aNum.compareTo(bNum);
+      if (aNum != 0 || bNum != 0) {
+        if (aNum != bNum) return aNum.compareTo(bNum);
+      }
+      return SortUtils.naturalCompare(
+        a['title']?.toString() ?? '',
+        b['title']?.toString() ?? '',
+      );
     });
     return lessons;
   }
@@ -451,7 +516,14 @@ class ZipCourseLoader {
                 } catch (e) {
                   jsonString = await entity.readAsString();
                 }
-                lessons.add(json.decode(jsonString) as Map<String, dynamic>);
+                final lessonData =
+                    json.decode(jsonString) as Map<String, dynamic>;
+                // Add basePath if not already present
+                if (lessonData['basePath'] == null ||
+                    lessonData['basePath'].toString().isEmpty) {
+                  lessonData['basePath'] = lessonFolder;
+                }
+                lessons.add(lessonData);
               } catch (e, stack) {
                 MonitoringService.captureError(e, stackTrace: stack);
               }
@@ -597,5 +669,45 @@ class ZipCourseLoader {
       MonitoringService.captureError(e, stackTrace: stack);
     }
     return lessons;
+  }
+
+  /// Delete course data from memory and Hive
+  Future<void> deleteCourseData(String courseId) async {
+    final lowerId = courseId.toLowerCase();
+    _extractedCourses.removeWhere((key, value) {
+      final match = key.toLowerCase().contains(lowerId) ||
+          courseId.toLowerCase().contains(key.toLowerCase());
+      if (match) {
+        debugPrint('Removing $key from ZipCourseLoader memory cache');
+      }
+      return match;
+    });
+
+    try {
+      final box = await _openCourseBox();
+
+      // Delete course entry
+      await box.delete('course_$courseId');
+
+      // Delete all lessons for this course
+      final keysToDelete = <String>[];
+      for (var key in box.keys) {
+        if (key.toString().startsWith('lesson_')) {
+          final lesson = await _getFromHive(key.toString());
+          if (lesson != null && lesson['courseId'] == courseId) {
+            keysToDelete.add(key.toString());
+          }
+        }
+      }
+
+      for (var key in keysToDelete) {
+        await box.delete(key);
+      }
+
+      debugPrint('Cleared all data for course $courseId from Hive');
+    } catch (e, stack) {
+      debugPrint('Error clearing Hive data for $courseId: $e');
+      MonitoringService.captureError(e, stackTrace: stack);
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:fluency/features/quiz/domain/entities/quiz_progress.dart';
@@ -10,6 +11,7 @@ class QuizProgressStorage {
   QuizProgressStorage._internal();
   static final QuizProgressStorage _instance = QuizProgressStorage._internal();
 
+  Timer? _saveTimer;
   // Structure: {lessonId: {quizId: QuizProgress}}
   final Map<String, Map<String, QuizProgress>> _progressData = {};
   bool _initialized = false;
@@ -57,7 +59,7 @@ class QuizProgressStorage {
         final lessonId = lessonEntry.key;
         final quizzes = lessonEntry.value;
 
-        json[lessonId] = {};
+        json[lessonId] = <String, dynamic>{};
         for (final quizEntry in quizzes.entries) {
           final quizId = quizEntry.key;
           final progress = quizEntry.value;
@@ -65,12 +67,16 @@ class QuizProgressStorage {
         }
       }
 
-      await file.writeAsString(jsonEncode(json));
+      final jsonString = await compute(_encodeJsonString, json);
+      await file.writeAsString(jsonString);
     } catch (e, stack) {
       MonitoringService.captureError(e, stackTrace: stack);
       debugPrint('Error saving quiz progress: $e');
     }
   }
+
+  static String _encodeJsonString(Map<String, dynamic> data) =>
+      jsonEncode(data);
 
   Future<void> saveProgress(
     String lessonId,
@@ -81,7 +87,11 @@ class QuizProgressStorage {
 
     _progressData[lessonId] ??= {};
     _progressData[lessonId]![quizId] = progress;
-    await _save();
+
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), () {
+      _save();
+    });
   }
 
   QuizProgress? getProgress(String lessonId, String quizId) {

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:fluency/app.dart';
 import 'package:fluency/core/config/environment_config.dart';
 import 'package:fluency/core/services/activity/activity_repository.dart';
-import 'package:fluency/core/services/monitoring/providers/clarity_monitoring_provider.dart';
 import 'package:fluency/core/services/usage/app_usage_service.dart';
 import 'package:fluency/di/injection_container.dart' as di;
 import 'package:fluency/di/injection_container.dart';
@@ -21,10 +20,8 @@ import 'package:fluency/firebase_options.dart';
 import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 import 'package:fluency/core/services/monitoring/providers/firebase_monitoring_provider.dart';
 import 'package:fluency/core/services/monitoring/providers/sentry_monitoring_provider.dart';
-import 'package:fluency/core/services/monitoring/providers/posthog_monitoring_provider.dart';
 import 'package:fluency/core/services/monitoring/providers/talsec_monitoring_provider.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:clarity_flutter/clarity_flutter.dart';
 
 /// App runner class
 class Runner {
@@ -73,8 +70,6 @@ class Runner {
             'https://6f7d290fb7a06a5996c8e91ab780b41f@o4511049481322496.ingest.us.sentry.io/4511049482502144',
       ));
     }
-    MonitoringService.registerProvider(PostHogMonitoringProvider());
-    MonitoringService.registerProvider(ClarityMonitoringProvider());
     if (!kIsWeb) {
       MonitoringService.registerProvider(TalsecMonitoringProvider(
         watcherMail: 'khanhromvn@gmail.com',
@@ -114,15 +109,7 @@ class Runner {
     // Initialize SharedPreferences
     final sharedPreferences = await SharedPreferences.getInstance();
 
-    final config = ClarityConfig(
-      projectId: "vw8s6sgm29",
-      logLevel: kDebugMode ? LogLevel.Error : LogLevel.None,
-    );
-
-    runApp(ClarityWidget(
-      app: Application(sharedPreferences: sharedPreferences),
-      clarityConfig: config,
-    ));
+    runApp(Application(sharedPreferences: sharedPreferences));
 
     // Log app start after UI is visible
     unawaited(MonitoringService.trackEvent('app_start_optimized'));

@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 class GapFillTyping extends StatefulWidget {
   const GapFillTyping({
+    required this.quiz,
     required this.lessonId,
     required this.quizId,
     required this.question,
@@ -21,9 +22,11 @@ class GapFillTyping extends StatefulWidget {
     this.onWordLongPress,
     this.onNext,
     this.onPrev,
+    this.finalActionText,
     super.key,
   });
 
+  final Quiz quiz;
   final String lessonId;
   final String quizId;
   final String question;
@@ -36,6 +39,7 @@ class GapFillTyping extends StatefulWidget {
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<GapFillTyping> createState() => _GapFillTypingState();
@@ -110,7 +114,7 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
   void _parseGaps() {
     _controllers.clear(); // Clear old controllers if re-parsing
-    final regex = RegExp("</gap id='(.*?)'>");
+    final regex = RegExp(r"id=['\u0022](.*?)['\u0022]", caseSensitive: false);
     final matches = regex.allMatches(widget.question);
     for (final match in matches) {
       final id = match.group(1);
@@ -144,8 +148,10 @@ class _GapFillTypingState extends State<GapFillTyping> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
     final borderColor = _isChecked
-        ? (_allGapsCorrect() ? Colors.green : Colors.red)
-        : Colors.grey.withValues(alpha: 0.5);
+        ? (_allGapsCorrect()
+            ? Colors.green.withValues(alpha: 0.5)
+            : Colors.red.withValues(alpha: 0.5))
+        : Colors.grey.withValues(alpha: 0.3);
 
     return Stack(
       children: [
@@ -153,64 +159,41 @@ class _GapFillTypingState extends State<GapFillTyping> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Instruction (Fixed at top, outside text)
-
-            // 2. Question Card (Takes remaining space)
+            // Question Card
             Expanded(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: appColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Theme(
-                                  data: Theme.of(context).copyWith(
-                                    textTheme:
-                                        Theme.of(context).textTheme.copyWith(
-                                              bodyMedium: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
-                                                  ?.copyWith(fontSize: 16),
-                                            ),
-                                  ),
-                                  child: _buildContent(context),
-                                ),
-                              ],
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 24, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Theme(
+                              data: Theme.of(context).copyWith(
+                                textTheme: Theme.of(context).textTheme.copyWith(
+                                      bodyMedium: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(fontSize: 16),
+                                    ),
+                              ),
+                              child: _buildContent(context),
                             ),
-                          ),
+                          ],
                         ),
-                        if (_isChecked || _areAllGapsFilled)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                _buildActionButtons(appColors),
-                              ],
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
+            ),
+            // Bottom Action Button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 24, 16),
+              child: _buildActionButtons(appColors),
             ),
           ],
         ),
@@ -233,82 +216,94 @@ class _GapFillTypingState extends State<GapFillTyping> {
   }
 
   Widget _buildActionButtons(AppColorsExtension appColors) {
+    // Determine button text and action
+    String text;
+    VoidCallback? onPressed;
+    Color? backgroundColor = appColors.primary.withValues(alpha: 0.15);
+    Color? foregroundColor = appColors.primary;
+
     if (_isChecked) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary.withValues(alpha: 0.15),
-          foregroundColor: appColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        onPressed: widget.onNext,
-        child:
-            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
-      );
-    }
+      text = widget.finalActionText ?? 'Next';
+      onPressed = widget.onNext;
+    } else {
+      text = 'Check answers';
+      // Enable only if all gaps are filled
+      onPressed = _areAllGapsFilled
+          ? () {
+              setState(() {
+                _isChecked = true;
+              });
 
-    // Check Button: Show when all gaps filled AND not checked yet
-    if (_areAllGapsFilled && !_isChecked) {
-      return ElevatedButton(
-        onPressed: () async {
-          setState(() {
-            _isChecked = true;
-          });
-
-          // Check if all are correct to play sound
-          bool allCorrect = true;
-          for (final answer in widget.answers) {
-            final controller = _controllers[answer.id];
-            if (controller != null) {
-              final userAnswer = controller.text;
-              final isCorrect = answer.answer.any(
-                (ans) =>
-                    userAnswer.toLowerCase().trim() == ans.toLowerCase().trim(),
-              );
-              if (!isCorrect) {
-                allCorrect = false;
-                break;
+              // Check if all are correct to play sound
+              bool allCorrect = true;
+              for (final answer in widget.answers) {
+                final controller = _controllers[answer.id];
+                if (controller != null) {
+                  final userAnswer = controller.text;
+                  final isCorrect = answer.answer.any(
+                    (ans) =>
+                        userAnswer.toLowerCase().trim() ==
+                        ans.toLowerCase().trim(),
+                  );
+                  if (!isCorrect) {
+                    allCorrect = false;
+                    break;
+                  }
+                }
               }
-            }
-          }
 
-          if (mounted) {
-            final soundProvider = context.read<SoundEffectProvider>();
-            if (allCorrect) {
-              soundProvider.playCorrect();
-            } else {
-              soundProvider.playWrong();
-            }
-          }
+              if (mounted) {
+                final soundProvider = context.read<SoundEffectProvider>();
+                if (allCorrect) {
+                  soundProvider.playCorrect();
+                } else {
+                  soundProvider.playWrong();
+                }
+              }
 
-          widget.onCheck?.call();
-          await _saveProgress();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary.withValues(alpha: 0.15),
-          foregroundColor: appColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        child: const Text(
-          'Check answers',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
+              _saveProgress();
+              widget.onCheck?.call();
+            }
+          : null;
     }
 
-    return const SizedBox.shrink();
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          foregroundColor: foregroundColor,
+          disabledBackgroundColor:
+              appColors.textPrimary.withValues(alpha: 0.05),
+          disabledForegroundColor: appColors.textPrimary.withValues(alpha: 0.3),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
   }
 
   /// Parses the question string and builds a list of widgets.
   Widget _buildContent(BuildContext context) {
-    return _buildRichText(context, widget.question, isQuestion: true);
+    // Sanitize question string to remove any hidden characters or leading spaces
+    // and replace newline tags with actual newlines
+    final sanitizedQuestion = widget.question
+        .trim()
+        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
+        .replaceAll('</n>', '\n')
+        .replaceAll('</n', '\n');
+    return _buildRichText(context, sanitizedQuestion, isQuestion: true);
   }
 
   /// Parses the text content and builds a list of widgets.
@@ -405,6 +400,10 @@ class _GapFillTypingState extends State<GapFillTyping> {
           constraints: const BoxConstraints(minWidth: 40),
           child: TextField(
             controller: controller,
+            onChanged: (value) {
+              _saveProgress();
+              _checkIfAllGapsFilled();
+            },
             // maxLength: maxLength, // Removed explicit maxLength to match React "auto-width" feel better visually
             maxLengthEnforcement: MaxLengthEnforcement.none,
             buildCounter: (
@@ -439,10 +438,6 @@ class _GapFillTypingState extends State<GapFillTyping> {
                 borderSide: BorderSide(color: Colors.red, width: 2),
               ),
             ),
-            onChanged: (val) {
-              // Force rebuild to check input state for button visibility
-              _checkIfAllGapsFilled();
-            },
           ),
         ),
       );
@@ -470,7 +465,14 @@ class _GapFillTypingState extends State<GapFillTyping> {
 
     // Calculate correctness for progress
     // Count how many gaps are correct
+    final totalGaps = widget.answers.length;
+    final totalScore = widget.quiz.totalScore;
+    final filledScore = widget.answers
+        .where((a) => _controllers[a.id]?.text.isNotEmpty == true)
+        .fold(0, (sum, a) => sum + a.score);
+
     var correctCount = 0;
+    final Map<String, bool> correctness = {};
     if (_isChecked) {
       for (final answer in widget.answers) {
         final controller = _controllers[answer.id];
@@ -480,27 +482,33 @@ class _GapFillTypingState extends State<GapFillTyping> {
             (ans) =>
                 userAnswer.toLowerCase().trim() == ans.toLowerCase().trim(),
           );
-          if (isCorrect) correctCount++;
+          if (isCorrect) correctCount += answer.score;
+          correctness[answer.id] = isCorrect;
+        }
+      }
+    } else {
+      // If not checked, mark as "correct" (primary color) if filled
+      for (final answer in widget.answers) {
+        final controller = _controllers[answer.id];
+        if (controller != null && controller.text.isNotEmpty) {
+          correctness[answer.id] = true;
         }
       }
     }
-
-    final totalGaps = widget.answers.length;
-    final filledGaps =
-        _controllers.values.where((c) => c.text.isNotEmpty).length;
 
     await quizStateProvider.saveQuizProgress(
       lessonId: widget.lessonId,
       quizId: widget.quizId,
       quizType: 'gap-fill-typing',
-      completedItems: filledGaps,
-      totalItems: totalGaps,
+      completedItems: filledScore,
+      totalItems: totalScore,
       correctItems: correctCount,
       data: {
         'isChecked': _isChecked,
         'userAnswers': userAnswers,
         'correctCount': correctCount,
         'totalGaps': totalGaps,
+        'correctness': correctness,
       },
     );
   }
@@ -509,57 +517,3 @@ class _GapFillTypingState extends State<GapFillTyping> {
 // -----------------------------------------------------------------------------
 // Custom Painters (Copied from MultipleChoice for consistency)
 // -----------------------------------------------------------------------------
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
-  }
-}

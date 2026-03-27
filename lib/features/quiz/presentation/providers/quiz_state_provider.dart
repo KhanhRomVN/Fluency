@@ -7,6 +7,20 @@ import 'package:fluency/features/quiz/domain/entities/quiz_progress.dart';
 import 'package:fluency/features/course/domain/entities/course.dart';
 import 'package:uuid/uuid.dart';
 
+class CourseProgressInfo {
+  final double percentage;
+  final int totalItems;
+  final int completedItems;
+  final int correctItems;
+
+  const CourseProgressInfo({
+    required this.percentage,
+    required this.totalItems,
+    required this.completedItems,
+    required this.correctItems,
+  });
+}
+
 class QuizStateProvider extends ChangeNotifier {
   // Key: lessonId, Value: Set of completed quizIds
   final Map<String, Set<String>> _completedQuizzes = {};
@@ -31,7 +45,15 @@ class QuizStateProvider extends ChangeNotifier {
       init(); // Trigger init if not ready
       return false;
     }
-    return _completedQuizzes[lessonId]?.contains(quizId) ?? false;
+    if (_completedQuizzes[lessonId]?.contains(quizId) ?? false) return true;
+
+    // Fallback for legacy non-prefixed lesson IDs
+    if (lessonId.contains('_')) {
+      final simpleId = lessonId.split('_').last;
+      return _completedQuizzes[simpleId]?.contains(quizId) ?? false;
+    }
+
+    return false;
   }
 
   void markQuizCompleted(dynamic lessonOrId, String quizId) {
@@ -152,7 +174,19 @@ class QuizStateProvider extends ChangeNotifier {
   }
 
   QuizProgress? getQuizProgress(String lessonId, String quizId) {
-    return _quizProgress[lessonId]?[quizId];
+    var progressMap = _quizProgress[lessonId];
+
+    // Fallback for legacy non-prefixed lesson IDs
+    if ((progressMap == null || !progressMap.containsKey(quizId)) &&
+        lessonId.contains('_')) {
+      final simpleId = lessonId.split('_').last;
+      final legacyMap = _quizProgress[simpleId];
+      if (legacyMap != null && legacyMap.containsKey(quizId)) {
+        return legacyMap[quizId];
+      }
+    }
+
+    return progressMap?[quizId];
   }
 
   Map<String, dynamic>? getQuestionState(
@@ -176,7 +210,18 @@ class QuizStateProvider extends ChangeNotifier {
   }
 
   Map<String, QuizProgress>? getLessonProgress(String lessonId) {
-    return _quizProgress[lessonId];
+    var progressMap = _quizProgress[lessonId];
+
+    // Fallback for legacy non-prefixed lesson IDs
+    if (progressMap == null && lessonId.contains('_')) {
+      final simpleId = lessonId.split('_').last;
+      // We only fallback if the legacy Map contains at least one quiz
+      // that is NOT present in any other active lesson... but simpler:
+      // just check if it exists.
+      progressMap = _quizProgress[simpleId];
+    }
+
+    return progressMap;
   }
 
   bool hasQuizProgress(String lessonId, String quizId) {
@@ -184,7 +229,14 @@ class QuizStateProvider extends ChangeNotifier {
   }
 
   bool hasLessonProgress(String lessonId) {
-    return quizProgressStorage.hasLessonProgress(lessonId);
+    if (quizProgressStorage.hasLessonProgress(lessonId)) return true;
+
+    // Fallback for legacy non-prefixed lesson IDs
+    if (lessonId.contains('_')) {
+      final simpleId = lessonId.split('_').last;
+      return quizProgressStorage.hasLessonProgress(simpleId);
+    }
+    return false;
   }
 
   Future<void> clearQuizProgress(String lessonId, String quizId) async {
@@ -208,7 +260,11 @@ class QuizStateProvider extends ChangeNotifier {
   }
 
   // Calculate lesson progress percentage
-  double getLessonProgressPercentage(String lessonId, int totalQuizzes) {
+  double getLessonProgressPercentage(
+    String lessonId,
+    int totalQuizzes, {
+    List<String>? quizIds,
+  }) {
     if (!_initialized) {
       debugPrint('QuizStateProvider not initialized, triggering init()');
       init();
@@ -226,26 +282,35 @@ class QuizStateProvider extends ChangeNotifier {
       }
     }
 
-    final lessonProgress = _quizProgress[lessonId];
-    debugPrint(
-        'lessonProgress keys: ${lessonProgress?.keys.toList() ?? "null or empty"}');
-
+    final lessonProgress = getLessonProgress(lessonId);
     if (lessonProgress == null || lessonProgress.isEmpty) {
-      debugPrint('Returning 0.0 (storage fallback check skipped or empty)');
+      debugPrint('Returning 0.0 (lessonProgress null or empty)');
       return 0.0;
     }
 
     double totalProgressSum = 0.0;
 
-    // Process detailed progress
-    for (final entry in lessonProgress.entries) {
-      final progress = entry.value;
-      debugPrint(
-          'Quiz ${entry.key}: completed=${progress.completedItems}, total=${progress.totalItems}');
-      if (progress.totalItems > 0) {
-        double quizPercentage = progress.completedItems / progress.totalItems;
-        if (quizPercentage > 1.0) quizPercentage = 1.0;
-        totalProgressSum += quizPercentage;
+    if (quizIds != null && quizIds.isNotEmpty) {
+      // Filtered calculation to avoid leakage from legacy IDs
+      for (final String qId in quizIds) {
+        final QuizProgress? progress = lessonProgress[qId];
+        if (progress != null && progress.totalItems > 0) {
+          double quizPercentage = progress.completedItems / progress.totalItems;
+          if (quizPercentage > 1.0) quizPercentage = 1.0;
+          totalProgressSum += quizPercentage;
+        }
+      }
+    } else {
+      // Process detailed progress (unfiltered fallback)
+      for (final entry in lessonProgress.entries) {
+        final QuizProgress progress = entry.value;
+        debugPrint(
+            'Quiz ${entry.key}: completed=${progress.completedItems}, total=${progress.totalItems}');
+        if (progress.totalItems > 0) {
+          double quizPercentage = progress.completedItems / progress.totalItems;
+          if (quizPercentage > 1.0) quizPercentage = 1.0;
+          totalProgressSum += quizPercentage;
+        }
       }
     }
 
@@ -269,6 +334,83 @@ class QuizStateProvider extends ChangeNotifier {
     }
 
     return result;
+  }
+
+  // Calculate overall course progress percentage (quiz-level)
+  double getCourseProgress(Course course) {
+    return getCourseProgressInfo(course).percentage;
+  }
+
+  CourseProgressInfo getCourseProgressInfo(Course course) {
+    if (!_initialized) {
+      init();
+      return const CourseProgressInfo(
+        percentage: 0.0,
+        totalItems: 0,
+        completedItems: 0,
+        correctItems: 0,
+      );
+    }
+
+    double totalProgressSum = 0.0;
+    int totalQuizzesCount = 0;
+    int totalItemsAtCourse = 0;
+    int completedItemsAtCourse = 0;
+    int correctItemsAtCourse = 0;
+
+    for (final lesson in course.lessons) {
+      totalQuizzesCount += lesson.quizCount;
+      totalItemsAtCourse +=
+          lesson.totalItems > 0 ? lesson.totalItems : lesson.quizCount;
+
+      final lessonProgress = getLessonProgress(lesson.id);
+      if (lessonProgress != null) {
+        // If we have actual quizzes in the lesson object, filter by them
+        if (lesson.quizzes.isNotEmpty) {
+          for (final quiz in lesson.quizzes) {
+            final QuizProgress? progress = lessonProgress[quiz.id];
+            if (progress != null) {
+              if (progress.totalItems > 0) {
+                totalProgressSum +=
+                    (progress.completedItems / progress.totalItems)
+                        .clamp(0.0, 1.0);
+              }
+              completedItemsAtCourse += progress.completedItems.toInt();
+              correctItemsAtCourse += progress.correctItems.toInt();
+            }
+          }
+        } else {
+          // Fallback for thin lessons (stubs)
+          for (final entry in lessonProgress.entries) {
+            final QuizProgress progress = entry.value;
+            if (progress.totalItems > 0) {
+              totalProgressSum +=
+                  (progress.completedItems / progress.totalItems)
+                      .clamp(0.0, 1.0);
+            }
+            completedItemsAtCourse += progress.completedItems.toInt();
+            correctItemsAtCourse += progress.correctItems.toInt();
+          }
+        }
+      }
+    }
+
+    if (totalQuizzesCount == 0) {
+      return const CourseProgressInfo(
+        percentage: 0.0,
+        totalItems: 0,
+        completedItems: 0,
+        correctItems: 0,
+      );
+    }
+
+    return CourseProgressInfo(
+      percentage:
+          (totalProgressSum / totalQuizzesCount * 100).clamp(0.0, 100.0),
+      totalItems: totalItemsAtCourse,
+      completedItems: completedItemsAtCourse,
+      correctItems: correctItemsAtCourse,
+    );
   }
 
   void logLessonCompletion(Lesson lesson) async {

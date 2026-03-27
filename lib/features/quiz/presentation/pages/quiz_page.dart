@@ -163,9 +163,11 @@ class _QuizPageState extends State<QuizPage>
       );
     } else {
       // Last quiz completed, maybe show summary or go back
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lesson completed!')),
-      );
+      if (widget.onNextLesson != null) {
+        widget.onNextLesson!();
+      } else {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -274,43 +276,230 @@ class _QuizPageState extends State<QuizPage>
                         ),
                       ),
 
-                      // Center: Quiz text + Badge
-                      Padding(
-                        padding: const EdgeInsets.only(left: 24),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Quiz',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: appColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: appColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '${_activeQuizIndex + 1}/${lesson.quizzes.length}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: appColors.primary,
-                                      fontWeight: FontWeight.bold,
+                      // Center: Progress Bar + Quiz Info
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Consumer<QuizStateProvider>(
+                                builder: (context, provider, child) {
+                                  final progress = activeQuiz != null
+                                      ? provider.getQuizProgress(
+                                          lesson.id, activeQuiz.id)
+                                      : null;
+
+                                  final totalSubQuiz =
+                                      progress?.totalItems ?? 0;
+                                  final savedIndex = (progress
+                                              ?.data?['currentIndex'] ??
+                                          progress
+                                              ?.data?['currentQuestionIndex'])
+                                      as int?;
+                                  final currentSubQuiz = savedIndex != null
+                                      ? (savedIndex + 1)
+                                          .clamp(1, max(1, totalSubQuiz))
+                                      : (progress != null
+                                          ? (progress.completedItems + 1)
+                                              .clamp(1, max(1, totalSubQuiz))
+                                          : 1);
+
+                                  final progressText = totalSubQuiz > 0
+                                      ? '$currentSubQuiz/$totalSubQuiz'
+                                      : '1';
+
+                                  return Text(
+                                    '$progressText | ${activeQuiz?.title ?? activeQuiz?.question ?? 'Untitled'}',
+                                    style: TextStyle(
                                       fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: appColors.textPrimary
+                                          .withValues(alpha: 0.6),
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  );
+                                },
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: Consumer<QuizStateProvider>(
+                                  builder: (context, provider, child) {
+                                    final progress = activeQuiz != null
+                                        ? provider.getQuizProgress(
+                                            lesson.id, activeQuiz.id)
+                                        : null;
+
+                                    if (progress == null ||
+                                        progress.totalItems == 0) {
+                                      return LinearProgressIndicator(
+                                        value: 0,
+                                        backgroundColor: appColors.textPrimary
+                                            .withValues(alpha: 0.05),
+                                        minHeight: 6,
+                                      );
+                                    }
+                                    // Identify types that show completion-only (primary color) progress
+                                    final isCompletionOnlyType = [
+                                      'scripted-chat',
+                                      'matching-dropdown',
+                                      'gap-fill-typing'
+                                    ].contains(activeQuiz?.type);
+
+                                    final isChecked =
+                                        progress?.data?['isChecked'] as bool? ??
+                                            false;
+
+                                    // Get ordered results
+                                    final List<bool?> results = [];
+                                    if (activeQuiz != null) {
+                                      final correctness = (progress
+                                              .data?['questionCorrectness'] ??
+                                          progress.data?['cardCorrectness'] ??
+                                          progress
+                                              .data?['correctness']) as Map<
+                                          String, dynamic>?;
+
+                                      final List<String> itemIds = [];
+                                      final q = activeQuiz;
+                                      if (q.type == 'gap-fill' ||
+                                          q.type == 'gap-fill-dropdown') {
+                                        itemIds
+                                            .addAll(q.answers.map((e) => e.id));
+                                      } else if (q.type == 'matching' ||
+                                          q.type == 'matching-dropdown') {
+                                        itemIds.addAll(
+                                            q.matchings?.map((e) => e.id) ??
+                                                []);
+                                      } else if (q.type == 'flashcard') {
+                                        itemIds.addAll(
+                                            q.flashcards?.map((e) => e.id) ??
+                                                []);
+                                      } else if (q.type == 'dictation') {
+                                        itemIds.addAll(
+                                            q.dictations?.map((e) => e.id) ??
+                                                []);
+                                      } else if (q.type == 'pronunciation' ||
+                                          q.type == 'pronunciation-drill') {
+                                        itemIds.addAll(q.pronunciations
+                                                ?.map((e) => e.id) ??
+                                            []);
+                                      } else if (q.type == 'error-correction') {
+                                        itemIds.addAll(q.errorCorrections
+                                                ?.map((e) => e.id) ??
+                                            []);
+                                      } else if (q.type ==
+                                          'sentence-transformation') {
+                                        itemIds.addAll(q.sentenceTransformations
+                                                ?.map((e) => e.id) ??
+                                            []);
+                                      } else if (q.type == 'scripted-chat') {
+                                        itemIds.addAll(
+                                            q.chats?.map((e) => e.id) ?? []);
+                                      } else if (q.type == 'gap-fill-typing') {
+                                        itemIds
+                                            .addAll(q.answers.map((e) => e.id));
+                                      } else {
+                                        itemIds.addAll(
+                                            q.questions.map((e) => e.id));
+                                      }
+
+                                      final itemStates =
+                                          progress.data?['itemStates']
+                                              as Map<String, dynamic>?;
+                                      final selections =
+                                          progress.data?['selections']
+                                              as Map<String, dynamic>?;
+
+                                      if (itemIds.isNotEmpty) {
+                                        for (int i = 0;
+                                            i < itemIds.length;
+                                            i++) {
+                                          final id = itemIds[i];
+                                          // Try look up by ID, then index as fallback
+                                          // Try correctness map first, then itemStates (for Dictation/Pronunciation)
+                                          final result = correctness?[id] ??
+                                              correctness?['$i'] ??
+                                              itemStates?[id]?['passed'] ??
+                                              itemStates?['$i']?['passed'];
+
+                                          if (result == null && !isChecked) {
+                                            // If not checked, check if it's filled
+                                            final isFilled =
+                                                selections?[id] != null &&
+                                                    selections![id]
+                                                        .toString()
+                                                        .isNotEmpty;
+                                            results.add(isFilled ? true : null);
+                                          } else {
+                                            results.add(result as bool?);
+                                          }
+                                        }
+                                      } else if (progress.totalItems > 0) {
+                                        // Fallback for types without discrete IDs (like chatting)
+                                        for (int i = 0;
+                                            i < progress.correctItems;
+                                            i++) {
+                                          results.add(true);
+                                        }
+                                        for (int i = 0;
+                                            i <
+                                                progress.completedItems -
+                                                    progress.correctItems;
+                                            i++) {
+                                          results.add(false);
+                                        }
+                                        for (int i = 0;
+                                            i <
+                                                progress.totalItems -
+                                                    progress.completedItems;
+                                            i++) {
+                                          results.add(null);
+                                        }
+                                      }
+                                    }
+
+                                    if (results.isEmpty) {
+                                      return LinearProgressIndicator(
+                                        value: 0,
+                                        backgroundColor: appColors.textPrimary
+                                            .withValues(alpha: 0.05),
+                                        minHeight: 6,
+                                      );
+                                    }
+
+                                    return CustomPaint(
+                                      size: const Size(double.infinity, 6),
+                                      painter: _LinearSegmentedProgressPainter(
+                                        results: results,
+                                        greenColor: isCompletionOnlyType
+                                            ? appColors.primary
+                                                .withValues(alpha: 0.7)
+                                            : (isChecked
+                                                ? Colors.green
+                                                    .withValues(alpha: 0.7)
+                                                : appColors.primary
+                                                    .withValues(alpha: 0.7)),
+                                        redColor: isCompletionOnlyType
+                                            ? appColors.primary
+                                                .withValues(alpha: 0.7)
+                                            : (isChecked
+                                                ? Colors.red
+                                                    .withValues(alpha: 0.7)
+                                                : appColors.primary
+                                                    .withValues(alpha: 0.7)),
+                                        greyColor: appColors.textPrimary
+                                            .withValues(alpha: 0.05),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 
@@ -520,16 +709,38 @@ class _QuizPageState extends State<QuizPage>
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: SvgPicture.asset(
-                                  'assets/icons/align_end_vertical.svg',
-                                  width: 16,
-                                  height: 16,
-                                  colorFilter: ColorFilter.mode(
-                                    appColors.textPrimary
-                                        .withValues(alpha: 0.6),
-                                    BlendMode.srcIn,
-                                  ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        value: (_activeQuizIndex + 1) /
+                                            max(1, lesson.quizzes.length),
+                                        strokeWidth: 2,
+                                        backgroundColor: appColors.textPrimary
+                                            .withValues(alpha: 0.15),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                appColors.primary),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${_activeQuizIndex + 1}/${lesson.quizzes.length}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: appColors.textPrimary
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -634,9 +845,22 @@ class _QuizPageState extends State<QuizPage>
       return const Center(child: Text('No quiz available'));
     }
 
+    final isLastQuiz = _activeQuizIndex == widget.lesson.quizzes.length - 1;
+    final isLastLesson = widget.onNextLesson == null;
+
+    String finalActionText;
+    if (!isLastQuiz) {
+      finalActionText = 'Next';
+    } else if (!isLastLesson) {
+      finalActionText = 'Finish lesson';
+    } else {
+      finalActionText = 'Finish';
+    }
+
     switch (type) {
       case 'gap-fill-dropdown':
         return GapFillDropdown(
+          quiz: quiz,
           question: quiz.question,
           lessonId: widget.lesson.id,
           quizId: quiz.id,
@@ -653,6 +877,7 @@ class _QuizPageState extends State<QuizPage>
             });
           },
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'multiple-choice':
         return MultipleChoice(
@@ -669,6 +894,7 @@ class _QuizPageState extends State<QuizPage>
           },
           onWordLongPress: _onWordLongPress,
           targetQuestionIndex: _targetQuestionIndices[quiz.id],
+          finalActionText: finalActionText,
         );
       case 'matching-dropdown':
         return MatchingDropdown(
@@ -684,6 +910,7 @@ class _QuizPageState extends State<QuizPage>
             });
           },
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'builder':
         return QuizBuilder(
@@ -700,6 +927,7 @@ class _QuizPageState extends State<QuizPage>
             });
           },
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'free-chat':
         return FreeChat(
@@ -708,6 +936,7 @@ class _QuizPageState extends State<QuizPage>
           quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
           onCheck: _onQuizChecked,
+          // finalActionText: finalActionText, // Chat types usually don't use next btn
         );
       case 'scripted-chat':
         return ScriptedChat(
@@ -716,6 +945,7 @@ class _QuizPageState extends State<QuizPage>
           quizId: quiz.id,
           onWordLongPress: _onWordLongPress,
           onCheck: _onQuizChecked,
+          // finalActionText: finalActionText, // Scripted chat
         );
       case 'chatting-speech': // Legacy support
         return ScriptedChat(
@@ -734,6 +964,7 @@ class _QuizPageState extends State<QuizPage>
           onNext: _onNextQuiz,
           onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'error-correction':
         return ErrorCorrection(
@@ -743,6 +974,7 @@ class _QuizPageState extends State<QuizPage>
           onNext: _onNextQuiz,
           onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'flashcard':
         return Flashcard(
@@ -752,6 +984,7 @@ class _QuizPageState extends State<QuizPage>
           onNext: _onNextQuiz,
           onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'pronunciation':
       case 'pronunciation-drill':
@@ -763,6 +996,7 @@ class _QuizPageState extends State<QuizPage>
           onNext: _onNextQuiz,
           onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'sentence-transformation':
         return SentenceTransformation(
@@ -779,6 +1013,7 @@ class _QuizPageState extends State<QuizPage>
             });
           },
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'speaking-essay':
         return SpeakingEssay(
@@ -789,6 +1024,7 @@ class _QuizPageState extends State<QuizPage>
           onNext: _onNextQuiz,
           onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       case 'listening-choice':
         return ListeningChoice(
@@ -806,6 +1042,7 @@ class _QuizPageState extends State<QuizPage>
           onWordLongPress: _onWordLongPress,
           onSegmentChange: _handleSegmentChange,
           targetQuestionIndex: _targetQuestionIndices[quiz.id],
+          finalActionText: finalActionText,
         );
       case 'writing-essay':
         return WritingEssay(
@@ -816,9 +1053,11 @@ class _QuizPageState extends State<QuizPage>
           onNext: _onNextQuiz,
           onPrev: _onPrevQuiz,
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
       default:
         return GapFillTyping(
+          quiz: quiz,
           lessonId: widget.lesson.id,
           quizId: quiz.id,
           question: question,
@@ -836,6 +1075,7 @@ class _QuizPageState extends State<QuizPage>
           },
           hasAudio: quiz.audio != null && quiz.audio!.isNotEmpty,
           onWordLongPress: _onWordLongPress,
+          finalActionText: finalActionText,
         );
     }
   }
@@ -1461,4 +1701,56 @@ class _SweepPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SweepPainter oldDelegate) =>
       oldDelegate.angle != angle;
+}
+
+class _LinearSegmentedProgressPainter extends CustomPainter {
+  final List<bool?> results;
+  final Color greenColor;
+  final Color redColor;
+  final Color greyColor;
+
+  _LinearSegmentedProgressPainter({
+    required this.results,
+    required this.greenColor,
+    required this.redColor,
+    required this.greyColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (results.isEmpty) return;
+
+    final double totalWidth = size.width;
+    const double gap = 1.0;
+    final double segmentWidth =
+        (totalWidth - (results.length - 1) * gap) / results.length;
+
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (int i = 0; i < results.length; i++) {
+      final isCorrect = results[i];
+      if (isCorrect == null) {
+        paint.color = greyColor;
+      } else if (isCorrect) {
+        paint.color = greenColor;
+      } else {
+        paint.color = redColor;
+      }
+
+      final double left = i * (segmentWidth + gap);
+      // Use drawRect to ensure pixel-perfect alignment within the height
+      canvas.drawRect(
+        Rect.fromLTWH(left, 0, segmentWidth, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LinearSegmentedProgressPainter oldDelegate) {
+    return oldDelegate.results != results ||
+        oldDelegate.greenColor != greenColor ||
+        oldDelegate.redColor != redColor ||
+        oldDelegate.greyColor != greyColor;
+  }
 }

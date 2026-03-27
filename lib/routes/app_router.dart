@@ -14,7 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:posthog_flutter/posthog_flutter.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorDashboardKey =
@@ -34,7 +33,6 @@ class AppRouter {
     observers: [
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
       SentryNavigatorObserver(),
-      PosthogObserver(),
     ],
     routes: [
       GoRoute(

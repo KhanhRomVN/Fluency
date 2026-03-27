@@ -1,16 +1,15 @@
-import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:fluency/features/setting/presentation/pages/achievement_page.dart';
 import 'package:fluency/features/setting/presentation/pages/privacy_policy_page.dart';
 import 'package:fluency/features/setting/presentation/pages/open_source_lib_page.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:fluency/core/constants/route_constants.dart';
 import 'package:fluency/core/themes/app_colors_extension.dart';
-import 'package:fluency/features/course/domain/entities/course.dart';
-import 'package:fluency/features/course/data/course_repository.dart';
 import 'package:fluency/features/course/presentation/providers/course_provider.dart';
 import 'package:fluency/features/setting/presentation/widgets/setting_section_header.dart';
 import 'package:fluency/features/setting/presentation/widgets/setting_tile.dart';
+import 'package:fluency/features/course/presentation/widgets/import_method_drawer.dart';
+import 'package:fluency/features/course/presentation/widgets/import_status_drawer.dart';
+import 'package:fluency/core/widgets/modern_option_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -41,7 +40,7 @@ class SettingPage extends StatelessWidget {
         useRootNavigator: true,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (context) => _ImportStatusDrawer(
+        builder: (context) => ImportStatusDrawer(
           importAction: (
               {bool force = false, void Function(double)? onProgress}) async {
             if (kIsWeb) {
@@ -135,7 +134,7 @@ class SettingPage extends StatelessWidget {
         useRootNavigator: true,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (context) => _ImportStatusDrawer(
+        builder: (context) => ImportStatusDrawer(
           importAction: (
               {bool force = false, void Function(double)? onProgress}) async {
             return await Provider.of<CourseProvider>(context, listen: false)
@@ -159,196 +158,20 @@ class SettingPage extends StatelessWidget {
       backgroundColor: colors.drawerBackground,
       isScrollControlled: true,
       useRootNavigator: true,
-      useSafeArea: false,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      builder: (modalContext) => Container(
-        decoration: BoxDecoration(
-          color: colors.drawerBackground,
-          border: Border.all(
-            color: colors.border.withValues(alpha: 0.1),
-          ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colors.textSecondary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Choose Import Method',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: colors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          Text(
-                            'Select how you want to add content',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(modalContext),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: colors.inputBackground,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: colors.border.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.close_rounded,
-                            size: 18,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildModernOption(
-                context: modalContext,
-                colors: colors,
-                icon: Icons.file_present_rounded,
-                title: 'Local File',
-                subtitle: 'Select a .zip file from your device',
-                onTap: () {
-                  Navigator.pop(modalContext);
-                  _importCourseFromFile(context);
-                },
-              ),
-              const SizedBox(height: 8),
-              const SizedBox(height: 8),
-              Opacity(
-                opacity: 0.5,
-                child: AbsorbPointer(
-                  child: _buildModernOption(
-                    context: modalContext,
-                    colors: colors,
-                    icon: Icons.link_rounded,
-                    title: 'URL (Disabled)',
-                    subtitle: 'Temporary unavailable',
-                    onTap: () {
-                      Navigator.pop(modalContext);
-                      _importCourseFromUrl(context);
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernOption({
-    required BuildContext context,
-    required AppColorsExtension colors,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: colors.cardBackground,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: colors.border,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(
-                  icon,
-                  color: colors.primary,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 16,
-                color: colors.textSecondary,
-              ),
-            ],
-          ),
-        ),
+      builder: (modalContext) => ImportMethodDrawer(
+        appColors: colors,
+        onFileTap: () {
+          Navigator.pop(modalContext);
+          _importCourseFromFile(context);
+        },
+        onUrlTap: () {
+          Navigator.pop(modalContext);
+          _importCourseFromUrl(context);
+        },
       ),
     );
   }
@@ -441,9 +264,8 @@ class SettingPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildModernOption(
-                context: supportContext,
-                colors: colors,
+              ModernOptionTile(
+                appColors: colors,
                 icon: Icons.discord_rounded,
                 title: 'Discord',
                 subtitle: 'https://discord.gg/s7BTV3T9Ce',
@@ -456,9 +278,8 @@ class SettingPage extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 8),
-              _buildModernOption(
-                context: supportContext,
-                colors: colors,
+              ModernOptionTile(
+                appColors: colors,
                 icon: Icons.email_rounded,
                 title: 'Gmail',
                 subtitle: 'Send us an email',
@@ -484,12 +305,12 @@ class SettingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColorsExtension>();
+    final colors = Theme.of(context).extension<AppColorsExtension>()!;
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.currentTheme?.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: colors?.background,
+      backgroundColor: colors.background,
       body: SafeArea(
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -504,7 +325,7 @@ class SettingPage extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
-                          color: colors?.textPrimary,
+                          color: colors.textPrimary,
                         ),
                   ),
                 ),
@@ -562,26 +383,62 @@ class SettingPage extends StatelessWidget {
                         ),
                         showDivider: true,
                       ),
+                    ],
+                  ),
+
+                  // VOICE SETTINGS
+                  const SettingSectionHeader(title: 'VOICE SETTINGS'),
+                  _buildGroup(
+                    context,
+                    [
                       Consumer<TtsProvider>(
                         builder: (context, ttsProvider, child) {
                           final isFemale =
                               ttsProvider.preferredGender == 'female';
-                          return SettingTile(
-                            icon: Icons.record_voice_over_outlined,
-                            gradient: const [
-                              Color(0xFF3B82F6),
-                              Color(0xFF8B5CF6)
+                          return Column(
+                            children: [
+                              SettingTile(
+                                icon: Icons.record_voice_over_outlined,
+                                gradient: const [
+                                  Color(0xFF3B82F6),
+                                  Color(0xFF8B5CF6)
+                                ],
+                                title: 'Voice Gender',
+                                subtitle:
+                                    isFemale ? 'Female Voice' : 'Male Voice',
+                                onTap: () => ttsProvider.setPreferredGender(
+                                    isFemale ? 'male' : 'female'),
+                                trailing: _VoiceToggle(
+                                  isFemale: isFemale,
+                                  onChanged: (v) =>
+                                      ttsProvider.setPreferredGender(
+                                          v ? 'female' : 'male'),
+                                ),
+                                showDivider: true,
+                              ),
+                              _buildSliderTile(
+                                context: context,
+                                icon: Icons.speed_rounded,
+                                title: 'Voice Speed',
+                                value: ttsProvider.speed,
+                                min: 0.5,
+                                max: 2.0,
+                                onChanged: (v) => ttsProvider.setSpeed(v),
+                                colors: colors,
+                                showDivider: true,
+                              ),
+                              _buildSliderTile(
+                                context: context,
+                                icon: Icons.height_rounded,
+                                title: 'Voice Pitch',
+                                value: ttsProvider.pitch,
+                                min: 0.5,
+                                max: 2.0,
+                                onChanged: (v) => ttsProvider.setPitch(v),
+                                colors: colors,
+                                showDivider: false,
+                              ),
                             ],
-                            title: 'Voice Gender',
-                            subtitle: isFemale ? 'Female Voice' : 'Male Voice',
-                            onTap: () => ttsProvider.setPreferredGender(
-                                isFemale ? 'male' : 'female'),
-                            trailing: _VoiceToggle(
-                              isFemale: isFemale,
-                              onChanged: (v) => ttsProvider
-                                  .setPreferredGender(v ? 'female' : 'male'),
-                            ),
-                            showDivider: false,
                           );
                         },
                       ),
@@ -664,6 +521,106 @@ class SettingPage extends StatelessWidget {
     );
   }
 
+  Widget _buildSliderTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required double value,
+    required double min,
+    required double max,
+    required ValueChanged<double> onChanged,
+    required AppColorsExtension colors,
+    bool showDivider = true,
+  }) {
+    return Container(
+      color: colors.cardBackground,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: colors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            title,
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: colors.textPrimary,
+                                    ),
+                          ),
+                          Text(
+                            value.toStringAsFixed(2),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: colors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 4,
+                          thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6),
+                          overlayShape:
+                              const RoundSliderOverlayShape(overlayRadius: 14),
+                          activeTrackColor: colors.primary,
+                          inactiveTrackColor:
+                              colors.primary.withValues(alpha: 0.1),
+                          thumbColor: colors.primary,
+                          overlayColor: colors.primary.withValues(alpha: 0.1),
+                        ),
+                        child: Slider(
+                          value: value,
+                          min: min,
+                          max: max,
+                          onChanged: onChanged,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showDivider)
+            Padding(
+              padding: const EdgeInsets.only(left: 68),
+              child: Divider(
+                height: 1,
+                thickness: 0.5,
+                color: colors.divider.withValues(alpha: 0.1),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGroup(BuildContext context, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
@@ -723,424 +680,6 @@ class _PremiumToggle extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ImportStatusDrawer extends StatefulWidget {
-  const _ImportStatusDrawer({
-    required this.importAction,
-    required this.onRetry,
-    required this.appColors,
-  });
-
-  final Future<Course?> Function(
-      {bool force, void Function(double)? onProgress}) importAction;
-  final VoidCallback onRetry;
-  final AppColorsExtension appColors;
-
-  @override
-  State<_ImportStatusDrawer> createState() => _ImportStatusDrawerState();
-}
-
-class _ImportStatusDrawerState extends State<_ImportStatusDrawer> {
-  bool _isLoading = true;
-  double _progress = 0;
-  Course? _importedCourse;
-  String? _error;
-  CourseVersionConflictException? _conflict;
-
-  @override
-  void initState() {
-    super.initState();
-    _startImport();
-  }
-
-  Future<void> _startImport({bool force = false}) async {
-    setState(() {
-      _isLoading = true;
-      _progress = 0;
-      _error = null;
-      _conflict = null;
-    });
-
-    try {
-      final course = await widget.importAction(
-        force: force,
-        onProgress: (p) {
-          if (mounted) {
-            setState(() {
-              _progress = p;
-            });
-          }
-        },
-      );
-      if (mounted) {
-        setState(() {
-          _importedCourse = course;
-          _isLoading = false;
-        });
-      }
-    } on CourseVersionConflictException catch (e) {
-      if (mounted) {
-        setState(() {
-          _conflict = e;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: widget.appColors.drawerBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -1),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        bottom: true,
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _isLoading
-                              ? 'Importing Course...'
-                              : (_conflict != null
-                                  ? 'Version Conflict Detected'
-                                  : (_error != null
-                                      ? 'Import Failed'
-                                      : 'Import Successful')),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: widget.appColors.textPrimary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _isLoading
-                              ? 'Please wait while we process the files'
-                              : (_conflict != null
-                                  ? 'A version of this course already exists'
-                                  : (_error != null
-                                      ? 'Something went wrong during import'
-                                      : 'The course is now available in your library')),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: widget.appColors.textSecondary,
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!_isLoading)
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: widget.appColors.inputBackground,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color:
-                                widget.appColors.border.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.close_rounded,
-                            size: 18,
-                            color: widget.appColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Divider
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                height: 1,
-                color: widget.appColors.divider.withValues(alpha: 0.1),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Content
-            if (_isLoading)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: _progress,
-                        backgroundColor:
-                            widget.appColors.primary.withValues(alpha: 0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            widget.appColors.primary),
-                        minHeight: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '${(_progress * 100).toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: widget.appColors.primary,
-                        fontFeatures: const [ui.FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else if (_conflict != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: widget.appColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: widget.appColors.primary
-                                .withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        _conflict!.type == CourseConflictType.older
-                            ? 'You are importing an older version (v${_conflict!.newCourse.version}) while the current version is v${_conflict!.oldCourse.version}. Previous data may be overwritten if some lessons or cards were deleted in this package. Import anyway?'
-                            : (_conflict!.type == CourseConflictType.same
-                                ? 'This course already exists with the same version (v${_conflict!.oldCourse.version}).'
-                                : 'An older version exists (v${_conflict!.oldCourse.version}). Would you like to update to the new version v${_conflict!.newCourse.version}? Existing data may be overwritten.'),
-                        style: TextStyle(
-                            color: widget.appColors.textPrimary, fontSize: 13),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (_conflict!.type != CourseConflictType.same)
-                      _buildOption(
-                        icon: Icons.check_circle_outline_rounded,
-                        label: _conflict!.type == CourseConflictType.older
-                            ? 'Import Anyway'
-                            : 'Update Now',
-                        description: 'Proceed with the import/update',
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
-                        ),
-                        onTap: () => _startImport(force: true),
-                      ),
-                    if (_conflict!.type != CourseConflictType.same)
-                      const SizedBox(height: 12),
-                    _buildOption(
-                      icon: Icons.close_rounded,
-                      label: 'Exit',
-                      description: 'Cancel and go back',
-                      gradient: LinearGradient(
-                        colors: [
-                          widget.appColors.textSecondary.withValues(alpha: 0.1),
-                          widget.appColors.textSecondary.withValues(alpha: 0.2),
-                        ],
-                      ),
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildOption(
-                      icon: Icons.refresh_rounded,
-                      label: 'Retry',
-                      description: 'Try importing the file again',
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)],
-                      ),
-                      onTap: widget.onRetry,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildOption(
-                      icon: Icons.close_rounded,
-                      label: 'Exit',
-                      description: 'Close this dialog',
-                      gradient: LinearGradient(
-                        colors: [
-                          widget.appColors.textSecondary.withValues(alpha: 0.1),
-                          widget.appColors.textSecondary.withValues(alpha: 0.2),
-                        ],
-                      ),
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    _buildOption(
-                      icon: Icons.play_arrow_rounded,
-                      label: 'Start Learning',
-                      description: 'Start learning this course now',
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        if (_importedCourse != null) {
-                          context.push(
-                            '${RouteConstants.course}/detail',
-                            extra: _importedCourse,
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildOption(
-                      icon: Icons.close_rounded,
-                      label: 'Exit',
-                      description: 'Go back to settings',
-                      gradient: LinearGradient(
-                        colors: [
-                          widget.appColors.textSecondary.withValues(alpha: 0.1),
-                          widget.appColors.textSecondary.withValues(alpha: 0.2),
-                        ],
-                      ),
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOption({
-    required IconData icon,
-    required String label,
-    required String description,
-    required Gradient gradient,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: widget.appColors.cardBackground,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: widget.appColors.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: gradient,
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: widget.appColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: widget.appColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 16,
-              color: widget.appColors.textSecondary,
-            ),
-          ],
         ),
       ),
     );

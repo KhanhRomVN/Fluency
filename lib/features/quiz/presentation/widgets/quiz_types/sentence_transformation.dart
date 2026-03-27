@@ -16,6 +16,7 @@ class SentenceTransformation extends StatefulWidget {
     this.onCheck,
     this.onShowExplain,
     this.onWordLongPress,
+    this.finalActionText,
     super.key,
   });
 
@@ -27,6 +28,7 @@ class SentenceTransformation extends StatefulWidget {
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<SentenceTransformation> createState() => _SentenceTransformationState();
@@ -37,6 +39,12 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
 
   // Map<ItemID, CardState>
   final Map<String, _CardState> _cardStates = {};
+
+  int get _firstUnpassedIndex {
+    final items = widget.quiz.sentenceTransformations ?? [];
+    return items
+        .indexWhere((item) => !(_cardStates[item.id]?.isChecked ?? false));
+  }
 
   // Animation variables
   late PageController _pageController;
@@ -289,117 +297,100 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
         final state = _cardStates[item.id] ?? _CardState();
 
         final borderColor = state.isChecked
-            ? (state.isCorrect ?? false ? Colors.green : Colors.red)
-            : Colors.grey.withValues(alpha: 0.5);
+            ? (state.isCorrect == true
+                ? Colors.green.withValues(alpha: 0.5)
+                : Colors.red.withValues(alpha: 0.5))
+            : appColors.border.withValues(alpha: 0.3);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.only(left: 8, top: 4, right: 16, bottom: 8),
           child: Stack(
             children: [
-              Container(
+              SizedBox(
                 width: double.infinity,
                 height: double.infinity,
-                decoration: BoxDecoration(
-                  color: appColors.cardBackground,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: CustomPaint(
-                  painter: _DashedBorderPainter(
-                    color: borderColor,
-                    strokeWidth: 2,
-                    gap: 4,
-                    borderRadius: 12,
-                  ),
-                  child: Column(
-                    children: [
-                      // Card Header: Counter & Progress
-                      _buildCardHeader(
-                        context,
-                        appColors,
-                        items,
-                        index,
-                      ),
-                      const Divider(height: 1),
+                child: Column(
+                  children: [
+                    // Card Header: Counter & Progress
 
-                      Expanded(
-                        child: ListView(
-                          padding: const EdgeInsets.all(24),
-                          children: [
-                            // Original Sentence (bordered container)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.only(left: 16),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(
-                                    color: appColors.primary,
-                                    width: 4,
-                                  ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.all(24),
+                        children: [
+                          // Original Sentence (bordered container)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.only(left: 16),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  color: appColors.primary,
+                                  width: 4,
                                 ),
                               ),
-                              child: DefaultTextStyle(
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: appColors.textPrimary,
-                                  height: 1.5,
-                                ),
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: RichTextParser.buildTextSpans(
-                                      context,
-                                      item.original ?? '',
-                                      onWordLongPress: widget.onWordLongPress,
-                                    ),
+                            ),
+                            child: DefaultTextStyle(
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: appColors.textPrimary,
+                                height: 1.5,
+                              ),
+                              child: Text.rich(
+                                TextSpan(
+                                  children: RichTextParser.buildTextSpans(
+                                    context,
+                                    item.original ?? '',
+                                    onWordLongPress: widget.onWordLongPress,
                                   ),
                                 ),
                               ),
                             ),
+                          ),
 
+                          const SizedBox(height: 24),
+
+                          // Gap-fill Input Area
+                          _buildGapFillArea(
+                            context,
+                            item,
+                            state,
+                            appColors,
+                          ),
+
+                          // Result Display
+                          if (state.isChecked) ...[
                             const SizedBox(height: 24),
-
-                            // Gap-fill Input Area
-                            _buildGapFillArea(
+                            _buildResultDisplay(
                               context,
                               item,
                               state,
                               appColors,
                             ),
+                          ],
 
-                            // Result Display
-                            if (state.isChecked) ...[
-                              const SizedBox(height: 24),
-                              _buildResultDisplay(
-                                context,
-                                item,
-                                state,
-                                appColors,
-                              ),
-                            ],
-
-                            // Spacing for floating buttons
-                            const SizedBox(height: 24),
+                          // Spacing for floating buttons
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                    if (state.isChecked || _isInputComplete(item)) ...[
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _buildFooterActions(
+                              context,
+                              item,
+                              state,
+                              appColors,
+                            ),
                           ],
                         ),
                       ),
-                      if (state.isChecked || _isInputComplete(item)) ...[
-                        const Divider(height: 1),
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              _buildFooterActions(
-                                context,
-                                item,
-                                state,
-                                appColors,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
               ),
             ],
@@ -624,6 +615,8 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     AppColorsExtension appColors,
   ) {
     if (state.isChecked) {
+      final isLast = _currentIndex ==
+          (widget.quiz.sentenceTransformations?.length ?? 0) - 1;
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary.withValues(alpha: 0.15),
@@ -634,11 +627,29 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        onPressed: _goToNext,
+        onPressed: () {
+          if (isLast) {
+            final unpassed = _firstUnpassedIndex;
+            if (unpassed != -1) {
+              _pageController.animateToPage(
+                unpassed,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            } else {
+              widget.onCheck?.call();
+              widget.onNext?.call();
+            }
+          } else {
+            _goToNext();
+          }
+        },
         child: Text(
-          _currentIndex < (widget.quiz.sentenceTransformations?.length ?? 0) - 1
-              ? 'Next'
-              : 'Finish',
+          isLast
+              ? (_firstUnpassedIndex != -1
+                  ? 'Review Uncompleted'
+                  : (widget.finalActionText ?? 'Finish'))
+              : 'Next',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       );
@@ -664,71 +675,6 @@ class _SentenceTransformationState extends State<SentenceTransformation> {
     }
 
     return const SizedBox.shrink();
-  }
-
-  Widget _buildCardHeader(
-    BuildContext context,
-    AppColorsExtension appColors,
-    List<SentenceTransformationItem> questions,
-    int index,
-  ) {
-    // Count how many items are checked
-    final completedCount = _cardStates.values.where((v) => v.isChecked).length;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Counter
-          Text(
-            '${index + 1} / ${questions.length}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: appColors.textSecondary,
-            ),
-          ),
-
-          // Segmented Progress Circle
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(32, 32),
-                  painter: _SegmentedProgressPainter(
-                    totalSegments: questions.length,
-                    segmentStates: List.generate(questions.length, (index) {
-                      final qId = questions[index].id;
-                      final state = _cardStates[qId];
-                      if (state == null || !state.isChecked)
-                        return 0; // Not done
-                      return (state.isCorrect ?? false)
-                          ? 1
-                          : 2; // 1: Correct, 2: Wrong
-                    }),
-                    primaryColor: appColors.primary,
-                    errorColor: Colors.red,
-                    emptyColor: appColors.border.withValues(alpha: 0.5),
-                  ),
-                ),
-                Text(
-                  '$completedCount',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -761,14 +707,14 @@ class _GapInputField extends StatelessWidget {
 
     if (isChecked) {
       if (isCorrect ?? false) {
-        borderColor = Colors.green;
+        borderColor = Colors.green.withValues(alpha: 0.5);
         textColor = Colors.green;
       } else {
-        borderColor = Colors.red;
+        borderColor = Colors.red.withValues(alpha: 0.5);
         textColor = Colors.red;
       }
     } else {
-      borderColor = appColors.primary.withValues(alpha: 0.5);
+      borderColor = appColors.primary.withValues(alpha: 0.3);
       textColor = appColors.textPrimary;
     }
 
@@ -826,120 +772,5 @@ class _CardState {
       isCorrect: isCorrect ?? this.isCorrect,
       isChecked: isChecked ?? this.isChecked,
     );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
-  }
-}
-
-class _SegmentedProgressPainter extends CustomPainter {
-  _SegmentedProgressPainter({
-    required this.totalSegments,
-    required this.segmentStates,
-    required this.primaryColor,
-    required this.errorColor,
-    required this.emptyColor,
-  });
-  final int totalSegments;
-  // 0: Empty, 1: Correct, 2: Wrong
-  final List<int> segmentStates;
-  final Color primaryColor;
-  final Color errorColor;
-  final Color emptyColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const strokeWidth = 3.0;
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-
-    var startAngle = -3.14159 / 2; // -pi/2
-    final gap = (totalSegments > 1) ? 0.2 : 0;
-    final totalGap = gap * totalSegments;
-    final segmentAngle = (2 * 3.14159 - totalGap) / totalSegments;
-
-    for (var i = 0; i < totalSegments; i++) {
-      final state = (i < segmentStates.length) ? segmentStates[i] : 0;
-
-      if (state == 1) {
-        paint.color = primaryColor;
-      } else if (state == 2) {
-        paint.color = errorColor;
-      } else {
-        paint.color = emptyColor;
-      }
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
-        startAngle,
-        segmentAngle,
-        false,
-        paint,
-      );
-
-      startAngle += segmentAngle + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SegmentedProgressPainter oldDelegate) {
-    return oldDelegate.totalSegments != totalSegments ||
-        oldDelegate.segmentStates != segmentStates;
   }
 }

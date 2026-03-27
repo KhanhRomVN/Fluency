@@ -132,12 +132,13 @@ class CourseProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteCourse(Course course) async {
+  Future<void> deleteCourse(Course course,
+      {void Function(double)? onProgress}) async {
     _isLoading = true;
     _safeNotifyListeners();
 
     try {
-      await _repository.deleteCourse(course);
+      await _repository.deleteCourse(course, onProgress: onProgress);
       await loadCourses();
     } catch (e) {
       _isLoading = false;

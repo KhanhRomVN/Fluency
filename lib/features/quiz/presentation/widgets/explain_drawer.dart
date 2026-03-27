@@ -71,12 +71,13 @@ class _ExplainDrawerState extends State<ExplainDrawer>
   ) {
     final spans = <TextSpan>[];
 
-    // Remove line breaks first
-    final processedContent = content.replaceAll('</n>', ' ');
+    // Remove line breaks first if they are specialized tags (like </n>)
+    var processedContent = content.replaceAll('</n>', ' ');
 
-    // Parse tags
-    final tagRegex =
-        RegExp(r"<p\s*(?:style='([^']*)')?>|</p>", caseSensitive: false);
+    // Match common HTML tags: <p>, <strong>, <b>, <br>
+    final tagRegex = RegExp(
+        r"(<p\s*(?:style='([^']*)')?>|</p>|<strong>|</strong>|<b>|</b>|<br\s*/?>)",
+        caseSensitive: false);
     var lastIndex = 0;
 
     var isBold = false;
@@ -99,16 +100,22 @@ class _ExplainDrawerState extends State<ExplainDrawer>
         }
       }
 
-      final tag = match.group(0)!;
+      final tag = match.group(0)!.toLowerCase();
       if (tag.startsWith('<p')) {
-        final styleAttr = match.group(1);
+        final styleAttr = match.group(2); // Group 2 for the style attribute
         if (styleAttr != null) {
-          isBold = styleAttr.contains('bold');
-          isItalic = styleAttr.contains('italic');
+          isBold = isBold || styleAttr.contains('bold');
+          isItalic = isItalic || styleAttr.contains('italic');
         }
       } else if (tag == '</p>') {
         isBold = false;
         isItalic = false;
+      } else if (tag == '<strong>' || tag == '<b>') {
+        isBold = true;
+      } else if (tag == '</strong>' || tag == '</b>') {
+        isBold = false;
+      } else if (tag.startsWith('<br')) {
+        spans.add(const TextSpan(text: '\n'));
       }
 
       lastIndex = match.end;

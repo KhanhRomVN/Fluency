@@ -219,25 +219,22 @@ class CourseCard extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColorsExtension>()!;
     // Calculate real progress from all lessons
     final quizStateProvider = context.watch<QuizStateProvider>();
-    int totalCompleted = 0;
-    int totalCorrect = 0;
-    int totalCourseItems = 0;
+    final progressInfo = quizStateProvider.getCourseProgressInfo(course);
 
-    for (final lesson in course.lessons) {
-      final lessonProgress = quizStateProvider.getLessonProgress(lesson.id);
-      if (lessonProgress != null) {
-        for (final progress in lessonProgress.values) {
-          totalCompleted += progress.completedItems;
-          totalCorrect += progress.correctItems;
-        }
-      }
-      totalCourseItems += lesson.totalItems;
-    }
+    final double courseProgress = progressInfo.percentage;
+    final int totalCompleted = progressInfo.completedItems;
+    final int totalCorrect = progressInfo.correctItems;
+    final int totalCourseItems = progressInfo.totalItems;
 
     final int wrong = totalCompleted - totalCorrect;
-    final int averageProgress = totalCourseItems > 0
-        ? (totalCompleted / totalCourseItems * 100).round().clamp(0, 100)
+    final int averageProgress = courseProgress.round();
+
+    // Use percentages for the bar segments to be robust
+    final int correctFlex = totalCourseItems > 0
+        ? (totalCorrect / totalCourseItems * 100).round()
         : 0;
+    final int wrongFlex =
+        totalCourseItems > 0 ? (wrong / totalCourseItems * 100).round() : 0;
 
     return Column(
       children: [
@@ -271,9 +268,9 @@ class CourseCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         _SegmentedProgressBar(
-          correct: totalCorrect,
-          wrong: wrong > 0 ? wrong : 0,
-          total: totalCourseItems > 0 ? totalCourseItems : 1,
+          correct: correctFlex,
+          wrong: wrongFlex,
+          total: 100, // Fixed scale for percentages
         ),
       ],
     );

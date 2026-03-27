@@ -23,6 +23,7 @@ class ListeningChoice extends StatefulWidget {
     this.onWordLongPress,
     this.onSegmentChange,
     this.targetQuestionIndex,
+    this.finalActionText,
     super.key,
   });
 
@@ -36,6 +37,7 @@ class ListeningChoice extends StatefulWidget {
   final void Function(double? start, double? end)? onSegmentChange;
 
   final int? targetQuestionIndex;
+  final String? finalActionText;
 
   @override
   State<ListeningChoice> createState() => _ListeningChoiceState();
@@ -53,6 +55,11 @@ class _ListeningChoiceState extends State<ListeningChoice> {
 
   // Current active question index
   int _currentQuestionIndex = 0;
+
+  int get _firstUnsubmittedIndex {
+    final questions = widget.quiz.questions;
+    return questions.indexWhere((q) => !_submittedQuestions.contains(q.id));
+  }
 
   TranscriptData? _transcriptData;
 
@@ -350,7 +357,7 @@ class _ListeningChoiceState extends State<ListeningChoice> {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+            padding: const EdgeInsets.fromLTRB(8, 10, 16, 24),
             child: PageView.builder(
               controller: _pageController,
               itemCount: questions.length,
@@ -373,86 +380,65 @@ class _ListeningChoiceState extends State<ListeningChoice> {
                   child: Column(
                     children: [
                       Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: appColors.cardBackground,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: CustomPaint(
-                            painter: _DashedBorderPainter(
-                              color: _getBorderColor(appColors, question),
-                              strokeWidth: 2,
-                              gap: 4,
-                              borderRadius: 12,
-                            ),
-                            child: Column(
-                              children: [
-                                // Header - Pass the specfic index for this card
-                                _buildHeader(
-                                    context, appColors, questions, index),
-                                const Divider(height: 1),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Column(
+                            children: [
+                              // Header - Pass the specfic index for this card
 
-                                // Content
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    padding: const EdgeInsets.all(24),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Images
-                                        _buildImages(question),
-                                        if ((question.images?.isNotEmpty ??
-                                                false) ||
-                                            question.image != null)
-                                          const SizedBox(height: 16),
+                              // Content
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Images
+                                      _buildImages(question),
+                                      if ((question.images?.isNotEmpty ??
+                                              false) ||
+                                          question.image != null)
+                                        const SizedBox(height: 16),
 
-                                        // Question Text
-                                        if (question.question.isNotEmpty) ...[
-                                          Text(
-                                            question.question,
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                              color: appColors.textPrimary,
-                                              height: 1.4,
-                                            ),
+                                      // Question Text
+                                      if (question.question.isNotEmpty) ...[
+                                        Text(
+                                          question.question,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: appColors.textPrimary,
+                                            height: 1.4,
                                           ),
-                                          const SizedBox(height: 24),
-                                        ],
-
-                                        // Options
-                                        _buildOptions(context, question,
-                                            appColors, isSubmitted),
+                                        ),
+                                        const SizedBox(height: 24),
                                       ],
-                                    ),
+
+                                      // Options
+                                      _buildOptions(context, question,
+                                          appColors, isSubmitted),
+                                    ],
                                   ),
                                 ),
-                                // Footer
-                                if (_submittedQuestions.contains(question.id) ||
-                                    _selectedAnswers
-                                        .containsKey(question.id)) ...[
-                                  const Divider(height: 1),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        _buildActionButtons(appColors,
-                                            questions[_currentQuestionIndex]),
-                                      ],
-                                    ),
+                              ),
+                              // Footer
+                              if (_submittedQuestions.contains(question.id) ||
+                                  _selectedAnswers
+                                      .containsKey(question.id)) ...[
+                                const Divider(height: 1),
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      _buildActionButtons(appColors,
+                                          questions[_currentQuestionIndex]),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ],
-                            ),
+                            ],
                           ),
                         ),
                       ),
@@ -476,64 +462,6 @@ class _ListeningChoiceState extends State<ListeningChoice> {
           : Colors.red;
     }
     return appColors.border.withValues(alpha: 0.5);
-  }
-
-  Widget _buildHeader(BuildContext context, AppColorsExtension appColors,
-      List<QuizQuestion> questions, int index) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '${index + 1} / ${questions.length}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: appColors.textSecondary,
-            ),
-          ),
-
-          // Progress Circle (Custom Painter from MultipleChoice)
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                _buildSegmentedProgress(appColors, questions),
-                Text(
-                  '${_submittedQuestions.length}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSegmentedProgress(
-      AppColorsExtension appColors, List<QuizQuestion> questions) {
-    return CustomPaint(
-      size: const Size(32, 32),
-      painter: SegmentedProgressPainter(
-        totalSegments: questions.length,
-        segmentStates: List.generate(questions.length, (index) {
-          final qId = questions[index].id;
-          if (!_submittedQuestions.contains(qId)) return 0;
-          return (_questionCorrectness[qId] ?? false) ? 1 : 2;
-        }),
-        primaryColor: appColors.primary,
-        errorColor: Colors.red,
-        emptyColor: appColors.border,
-      ),
-    );
   }
 
   Widget _buildImages(QuizQuestion question) {
@@ -686,6 +614,8 @@ class _ListeningChoiceState extends State<ListeningChoice> {
     final isSubmitted = _submittedQuestions.contains(currentQuestion.id);
 
     if (isSubmitted) {
+      final isLast = _currentQuestionIndex == widget.quiz.questions.length - 1;
+
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: appColors.primary.withValues(alpha: 0.15),
@@ -696,11 +626,29 @@ class _ListeningChoiceState extends State<ListeningChoice> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
-        onPressed: () => _handleNext(widget.quiz.questions.length),
+        onPressed: () {
+          if (isLast) {
+            final uncompleted = _firstUnsubmittedIndex;
+            if (uncompleted != -1) {
+              _pageController.animateToPage(
+                uncompleted,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            } else {
+              widget.onCheck?.call();
+              widget.onNext?.call();
+            }
+          } else {
+            _handleNext(widget.quiz.questions.length);
+          }
+        },
         child: Text(
-          _currentQuestionIndex < widget.quiz.questions.length - 1
-              ? 'Next'
-              : 'Finish',
+          isLast
+              ? (_firstUnsubmittedIndex != -1
+                  ? 'Review Uncompleted'
+                  : (widget.finalActionText ?? 'Finish'))
+              : 'Next',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       );
@@ -731,106 +679,3 @@ class _ListeningChoiceState extends State<ListeningChoice> {
 
 // Re-defining Painter here to avoid import issues or dependencies if needed,
 // though importing from multiple_choice is fine if it's exported.
-class SegmentedProgressPainter extends CustomPainter {
-  SegmentedProgressPainter({
-    required this.totalSegments,
-    required this.segmentStates,
-    required this.primaryColor,
-    required this.errorColor,
-    required this.emptyColor,
-  });
-  final int totalSegments;
-  final List<int> segmentStates; // 0: Empty, 1: Correct, 2: Wrong
-  final Color primaryColor;
-  final Color errorColor;
-  final Color emptyColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const strokeWidth = 3.0;
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-
-    var startAngle = -pi / 2;
-    final gap = (totalSegments > 1) ? 0.2 : 0;
-    final totalGap = gap * totalSegments;
-    final segmentAngle = (2 * pi - totalGap) / totalSegments;
-
-    for (var i = 0; i < totalSegments; i++) {
-      final state = (i < segmentStates.length) ? segmentStates[i] : 0;
-      paint.color =
-          state == 1 ? primaryColor : (state == 2 ? errorColor : emptyColor);
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
-        startAngle,
-        segmentAngle,
-        false,
-        paint,
-      );
-      startAngle += segmentAngle + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
-  }
-}

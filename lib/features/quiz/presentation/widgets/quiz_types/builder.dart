@@ -15,6 +15,7 @@ class QuizBuilder extends StatefulWidget {
     this.onPrev,
     this.onShowExplain,
     this.onWordLongPress,
+    this.finalActionText,
     super.key,
   });
 
@@ -26,6 +27,7 @@ class QuizBuilder extends StatefulWidget {
   final VoidCallback? onPrev;
   final void Function(String explanation)? onShowExplain;
   final void Function(String word)? onWordLongPress;
+  final String? finalActionText;
 
   @override
   State<QuizBuilder> createState() => _QuizBuilderState();
@@ -35,9 +37,13 @@ class _QuizBuilderState extends State<QuizBuilder> {
   int _currentIndex = 0;
   // Key: Question ID, Value: List of selected indices from the options pool
   final Map<String, List<int>> _selectedIndices = {};
-  // Map<QuestionID, isCorrect>
   final Map<String, bool?> _correctness = {};
   final Map<String, bool> _isCheckedMap = {};
+
+  int get _firstUncheckedIndex {
+    final questions = widget.quiz.questions;
+    return questions.indexWhere((q) => !(_isCheckedMap[q.id] ?? false));
+  }
 
   // Animation variables
   late PageController _pageController;
@@ -265,280 +271,267 @@ class _QuizBuilderState extends State<QuizBuilder> {
         final selected = _selectedIndices[item.id] ?? [];
 
         final borderColor = isChecked
-            ? (isCorrect ?? false ? Colors.green : Colors.red)
-            : Colors.grey.withValues(alpha: 0.5);
+            ? (isCorrect == true
+                ? Colors.green.withValues(alpha: 0.5)
+                : Colors.red.withValues(alpha: 0.5))
+            : appColors.border.withValues(alpha: 0.3);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          padding: const EdgeInsets.only(left: 8, top: 12, right: 8, bottom: 8),
           child: Stack(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: appColors.cardBackground,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: CustomPaint(
-                  painter: _DashedBorderPainter(
-                    color: borderColor,
-                    strokeWidth: 2,
-                    gap: 4,
-                    borderRadius: 12,
-                  ),
-                  child: Column(
-                    children: [
-                      // Card Header: Counter & Progress
-                      _buildCardHeader(
-                        context,
-                        appColors,
-                        questions,
-                        index,
-                      ),
-                      const Divider(height: 1),
-
-                      // Content
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Context Hint
-                              if (hint.isNotEmpty) ...[
-                                Text(
-                                  hint,
-                                  style: TextStyle(
-                                    color: appColors.textSecondary,
-                                    fontSize: 14,
-                                  ),
+              SizedBox(
+                width: double.infinity,
+                height: double.infinity,
+                child: Column(
+                  children: [
+                    // Content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Context Hint
+                            if (hint.isNotEmpty) ...[
+                              Text(
+                                hint,
+                                style: TextStyle(
+                                  color: appColors.textSecondary,
+                                  fontSize: 14,
                                 ),
-                                const SizedBox(height: 16),
-                              ],
+                              ),
+                              const SizedBox(height: 16),
+                            ],
 
-                              // Built Sentence Display (Dashed Border)
-                              Container(
-                                width: double.infinity,
-                                constraints:
-                                    const BoxConstraints(minHeight: 80),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
+                            // Built Sentence Display (Dashed Border)
+                            Container(
+                              width: double.infinity,
+                              constraints: const BoxConstraints(minHeight: 80),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isChecked
+                                    ? (isCorrect ?? false
+                                        ? Colors.green.withValues(alpha: 0.1)
+                                        : Colors.red.withValues(alpha: 0.1))
+                                    : appColors.cardBackground,
+                                border: Border.all(
                                   color: isChecked
                                       ? (isCorrect ?? false
-                                          ? Colors.green.withValues(alpha: 0.1)
-                                          : Colors.red.withValues(alpha: 0.1))
-                                      : appColors.cardBackground,
-                                  border: Border.all(
-                                    color: isChecked
-                                        ? (isCorrect ?? false
-                                            ? Colors.green
-                                            : Colors.red)
-                                        : appColors.primary
-                                            .withValues(alpha: 0.5),
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
+                                          ? Colors.green
+                                          : Colors.red)
+                                      : selected.isEmpty
+                                          ? appColors.border
+                                              .withValues(alpha: 0.3)
+                                          : appColors.primary
+                                              .withValues(alpha: 0.5),
+                                  width: 2,
                                 ),
-                                child: selected.isEmpty
-                                    ? Center(
-                                        child: Text(
-                                          'Tap blocks below to build',
-                                          style: TextStyle(
-                                            color: appColors.textSecondary,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      )
-                                    : Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: selected.map((idx) {
-                                          return GestureDetector(
-                                            onTap: isChecked
-                                                ? null
-                                                : () => _handleItemClick(idx),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 8,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isChecked
-                                                    ? appColors.background
-                                                    : appColors.primary,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                options[idx],
-                                                style: TextStyle(
-                                                  color: isChecked
-                                                      ? appColors.textPrimary
-                                                      : Colors.white,
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 16,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-
-                              // Correct Answer (shown after check if wrong)
-                              if (isChecked && isCorrect == false) ...[
-                                const SizedBox(height: 16),
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.1),
-                                    border: Border.all(color: Colors.green),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Correct answer:',
+                              child: selected.isEmpty
+                                  ? Center(
+                                      child: Text(
+                                        'Tap blocks below to build',
                                         style: TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.w500,
+                                          color: appColors.textSecondary,
                                           fontSize: 14,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
+                                    )
+                                  : Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: selected.map((idx) {
+                                        return GestureDetector(
+                                          onTap: isChecked
+                                              ? null
+                                              : () => _handleItemClick(idx),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isChecked
+                                                  ? appColors.background
+                                                  : appColors.cardBackground,
+                                              border: Border.all(
+                                                color: appColors.border,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              // Add shadow to match Available words (optional, but makes them "similar")
+                                              boxShadow: isChecked
+                                                  ? null
+                                                  : [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withValues(
+                                                                alpha: 0.05),
+                                                        blurRadius: 2,
+                                                        offset:
+                                                            const Offset(0, 2),
+                                                      ),
+                                                    ],
+                                            ),
+                                            child: Text(
+                                              options[idx],
+                                              style: TextStyle(
+                                                color: appColors.textPrimary,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                            ),
+
+                            // Correct Answer (shown after check if wrong)
+                            if (isChecked && isCorrect == false) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withValues(alpha: 0.1),
+                                  border: Border.all(color: Colors.green),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Correct answer:',
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      item.validAnswers.firstOrNull ?? '',
+                                      style: TextStyle(
+                                        color: appColors.textPrimary,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            // Explanation Button
+                            if (isChecked && item.explain.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: InkWell(
+                                  onTap: () {
+                                    widget.onShowExplain?.call(item.explain);
+                                  },
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.menu_book_outlined,
+                                        size: 16,
+                                        color: appColors.primary,
+                                      ),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        item.validAnswers.firstOrNull ?? '',
+                                        'Explain',
                                         style: TextStyle(
-                                          color: appColors.textPrimary,
+                                          color: appColors.primary,
+                                          fontWeight: FontWeight.bold,
                                           fontSize: 16,
+                                          decoration: TextDecoration.underline,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ],
+                              ),
+                            ],
 
-                              // Explanation Button
-                              if (isChecked && item.explain.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: InkWell(
-                                    onTap: () {
-                                      widget.onShowExplain?.call(item.explain);
-                                    },
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.menu_book_outlined,
-                                          size: 16,
-                                          color: appColors.primary,
+                            const SizedBox(height: 24),
+
+                            // Item Blocks (Available Words)
+                            Center(
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 12,
+                                children: options.asMap().entries.map((entry) {
+                                  final idx = entry.key;
+                                  final word = entry.value;
+                                  final isSelected = selected.contains(idx);
+
+                                  return GestureDetector(
+                                    onTap: () => _handleItemClick(idx),
+                                    child: AnimatedOpacity(
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      opacity:
+                                          isSelected || isChecked ? 0.5 : 1.0,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 10,
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Explain',
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? appColors.background
+                                              : appColors.cardBackground,
+                                          border: Border.all(
+                                            color: appColors.border,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          boxShadow: isSelected
+                                              ? null
+                                              : [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withValues(
+                                                            alpha: 0.05),
+                                                    blurRadius: 2,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                        ),
+                                        child: Text(
+                                          word,
                                           style: TextStyle(
-                                            color: appColors.primary,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            decoration:
-                                                TextDecoration.underline,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-
-                              const SizedBox(height: 24),
-
-                              // Item Blocks (Available Words)
-                              Center(
-                                child: Wrap(
-                                  alignment: WrapAlignment.center,
-                                  spacing: 8,
-                                  runSpacing: 12,
-                                  children:
-                                      options.asMap().entries.map((entry) {
-                                    final idx = entry.key;
-                                    final word = entry.value;
-                                    final isSelected = selected.contains(idx);
-
-                                    return GestureDetector(
-                                      onTap: () => _handleItemClick(idx),
-                                      child: AnimatedOpacity(
-                                        duration:
-                                            const Duration(milliseconds: 200),
-                                        opacity:
-                                            isSelected || isChecked ? 0.5 : 1.0,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 10,
-                                          ),
-                                          decoration: BoxDecoration(
                                             color: isSelected
-                                                ? appColors.background
-                                                : appColors.cardBackground,
-                                            border: Border.all(
-                                              color: appColors.border,
-                                            ),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            boxShadow: isSelected
-                                                ? null
-                                                : [
-                                                    BoxShadow(
-                                                      color: Colors.black
-                                                          .withValues(
-                                                              alpha: 0.05),
-                                                      blurRadius: 2,
-                                                      offset:
-                                                          const Offset(0, 2),
-                                                    ),
-                                                  ],
-                                          ),
-                                          child: Text(
-                                            word,
-                                            style: TextStyle(
-                                              color: isSelected
-                                                  ? appColors.textSecondary
-                                                  : appColors.textPrimary,
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 16,
-                                            ),
+                                                ? appColors.textSecondary
+                                                : appColors.textPrimary,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 16,
                                           ),
                                         ),
                                       ),
-                                    );
-                                  }).toList(),
-                                ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
-                              // Spacing at bottom for scrolling past floating button
-                              const SizedBox(height: 24),
-                            ],
-                          ),
+                            ),
+                            // Spacing at bottom for scrolling past floating button
+                            const SizedBox(height: 24),
+                          ],
                         ),
                       ),
-                      // Footer
-                      if (isChecked || selected.isNotEmpty) ...[
-                        const Divider(height: 1),
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              _buildFooterActions(appColors, item),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                    ),
+                    // Footer
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          left: 8.0, top: 0, right: 8.0, bottom: 8.0),
+                      child: _buildFooterActions(appColors, item),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -548,249 +541,98 @@ class _QuizBuilderState extends State<QuizBuilder> {
     );
   }
 
-  Widget _buildCardHeader(
-    BuildContext context,
-    AppColorsExtension appColors,
-    List<QuizQuestion> questions,
-    int index,
-  ) {
-    final completedCount = _isCheckedMap.values.where((v) => v).length;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Counter
-          Text(
-            '${index + 1} / ${questions.length}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: appColors.textSecondary,
-            ),
-          ),
-
-          // Segmented Progress Circle
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(32, 32),
-                  painter: _SegmentedProgressPainter(
-                    totalSegments: questions.length,
-                    segmentStates: List.generate(questions.length, (index) {
-                      final qId = questions[index].id;
-                      if (!(_isCheckedMap[qId] ?? false)) return 0; // Not done
-                      return (_correctness[qId] ?? false)
-                          ? 1
-                          : 2; // 1: Correct, 2: Wrong
-                    }),
-                    primaryColor: appColors.primary,
-                    errorColor: Colors.red,
-                    emptyColor: appColors.border.withValues(alpha: 0.5),
-                  ),
-                ),
-                Text(
-                  '$completedCount',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFooterActions(AppColorsExtension appColors, QuizQuestion item) {
     final isChecked = _isCheckedMap[item.id] ?? false;
-    final isCorrect = _correctness[item.id];
     final selected = _selectedIndices[item.id] ?? [];
 
     if (isChecked) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary.withValues(alpha: 0.15),
-          foregroundColor: appColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        onPressed: () {
-          if (_currentIndex < widget.quiz.questions.length - 1) {
-            _animateToNextQuestion();
-          } else {
-            widget.onNext?.call();
-          }
-        },
-        child:
-            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
-      );
-    }
+      final isLast = _currentIndex == widget.quiz.questions.length - 1;
 
-    if (!isChecked && selected.length == item.options.length) {
-      return ElevatedButton(
-        onPressed: _checkAnswer,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary.withValues(alpha: 0.15),
-          foregroundColor: appColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        child: const Text(
-          'Check',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
-    }
-
-    if (!isChecked && isCorrect != true && selected.isNotEmpty) {
-      return ElevatedButton(
-        onPressed: () => _resetItem(item.id),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.textSecondary.withValues(alpha: 0.15),
-          foregroundColor: appColors.textSecondary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        child: const Text(
-          'Reset',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: appColors.primary.withValues(alpha: 0.15),
+            foregroundColor: appColors.primary,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 0,
+          ),
+          onPressed: () {
+            if (isLast) {
+              final uncompleted = _firstUncheckedIndex;
+              if (uncompleted != -1) {
+                _pageController.animateToPage(
+                  uncompleted,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              } else {
+                widget.onCheck?.call();
+                widget.onNext?.call();
+              }
+            } else {
+              _animateToNextQuestion();
+            }
+          },
+          child: Text(
+            isLast
+                ? (_firstUncheckedIndex != -1
+                    ? 'Review Uncompleted'
+                    : (widget.finalActionText ?? 'Finish'))
+                : 'Next',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       );
     }
 
-    return const SizedBox.shrink();
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
+    return Row(
+      children: [
+        if (selected.isNotEmpty) ...[
+          OutlinedButton(
+            onPressed: () => _resetItem(item.id),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: appColors.textSecondary,
+              side: BorderSide(color: appColors.border),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Clear',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: ElevatedButton(
+            onPressed:
+                selected.length == item.options.length ? _checkAnswer : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appColors.primary.withValues(alpha: 0.15),
+              foregroundColor: appColors.primary,
+              disabledBackgroundColor:
+                  appColors.textSecondary.withValues(alpha: 0.15),
+              disabledForegroundColor: appColors.textSecondary,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Submit',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
         ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
-  }
-}
-
-class _SegmentedProgressPainter extends CustomPainter {
-  _SegmentedProgressPainter({
-    required this.totalSegments,
-    required this.segmentStates,
-    required this.primaryColor,
-    required this.errorColor,
-    required this.emptyColor,
-  });
-  final int totalSegments;
-  // 0: Empty, 1: Correct, 2: Wrong
-  final List<int> segmentStates;
-  final Color primaryColor;
-  final Color errorColor;
-  final Color emptyColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const strokeWidth = 3.0;
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-
-    var startAngle = -3.14159 / 2; // -pi/2
-    final gap = (totalSegments > 1) ? 0.2 : 0;
-    final totalGap = gap * totalSegments;
-    final segmentAngle = (2 * 3.14159 - totalGap) / totalSegments;
-
-    for (var i = 0; i < totalSegments; i++) {
-      final state = (i < segmentStates.length) ? segmentStates[i] : 0;
-
-      if (state == 1) {
-        paint.color = primaryColor;
-      } else if (state == 2) {
-        paint.color = errorColor;
-      } else {
-        paint.color = emptyColor;
-      }
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
-        startAngle,
-        segmentAngle,
-        false,
-        paint,
-      );
-
-      startAngle += segmentAngle + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SegmentedProgressPainter oldDelegate) {
-    return oldDelegate.totalSegments != totalSegments ||
-        oldDelegate.segmentStates != segmentStates;
+      ],
+    );
   }
 }

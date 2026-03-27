@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:fluency/core/utils/sort_utils.dart';
 // import 'dart:io'; // Removed to support web
 import 'package:fluency/core/utils/web_helper.dart';
 
@@ -19,6 +20,7 @@ import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluency/core/constants/api_constants.dart';
 import 'package:fluency/core/services/monitoring/monitoring_service.dart';
+import 'package:fluency/features/quiz/data/services/quiz_progress_storage.dart';
 
 enum CourseConflictType { older, same, newer }
 
@@ -120,14 +122,30 @@ class CourseRepository {
             await _zipLoader.loadLessonJsonsFromMemory(extractedFiles);
         if (lessonJsons.isNotEmpty) {
           final lessons = lessonJsons.map(Lesson.fromJson).toList();
+          // Filter out matching lessons from course.lessons to avoid duplicates/stubs
+          final lessonIds = lessons.map((l) => l.id).toSet();
+          final existingLessons =
+              course.lessons.where((l) => !lessonIds.contains(l.id)).toList();
+
           course = course.copyWith(
-            lessons: [...course.lessons, ...lessons]
-              ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+            lessons: [...existingLessons, ...lessons]..sort((a, b) {
+                if (a.lessonNumber != 0 || b.lessonNumber != 0) {
+                  if (a.lessonNumber != b.lessonNumber) {
+                    return a.lessonNumber.compareTo(b.lessonNumber);
+                  }
+                }
+                return SortUtils.naturalCompare(a.title, b.title);
+              }),
           );
         }
 
         // Resolve Path with Blob URLs
         course = _resolvePathsFromMemory(course, extractedFiles);
+
+        // Clear progress for fresh import
+        for (final lesson in course.lessons) {
+          await quizProgressStorage.clearLessonProgress(lesson.id);
+        }
 
         // Inject lesson metadata
         course = course.copyWith(
@@ -209,12 +227,16 @@ class CourseRepository {
         throw Exception('File not found: $path');
       }
 
-      // 1. Peek into ZIP to get course JSON
-      final extractedDir =
-          await _zipLoader.extractZipFileFromFile(file, onProgress: (p) {
-        // Here we can split progress: 0-90% for extraction, 90-100% for Hive sync
-        onProgress?.call(p * 0.9);
-      });
+      // 1. Peek into ZIP to get course JSON (Skip Hive sync for now)
+      final extractedDir = await _zipLoader.extractZipFileFromFile(
+        file,
+        skipSync: true,
+        refresh: force,
+        onProgress: (p) {
+          // Here we can split progress: 0-90% for extraction, 90-100% for Hive sync
+          onProgress?.call(p * 0.9);
+        },
+      );
       if (extractedDir == null) {
         throw Exception('Failed to extract ZIP file for validation.');
       }
@@ -257,6 +279,9 @@ class CourseRepository {
         await deleteCourse(existingCourse);
       }
 
+      // Now that validation is passed, sync with Hive
+      await _zipLoader.syncWithHive(extractedDir);
+
       // 2. Perform actual import
       final appDocDir = await getApplicationDocumentsDirectory();
       final importDir = Directory('${appDocDir.path}/imported_courses');
@@ -284,8 +309,31 @@ class CourseRepository {
         },
       ));
 
+      // 3. Load full lesson details (Native)
+      final lessonJsons = await _zipLoader.loadLessonJsons(extractedDir);
+      final lessons = lessonJsons.map(Lesson.fromJson).toList();
+      final lessonIds = lessons.map((l) => l.id).toSet();
+      final existingLessons =
+          newCourse.lessons.where((l) => !lessonIds.contains(l.id)).toList();
+
+      final fullCourse = newCourse.copyWith(
+        lessons: [...existingLessons, ...lessons]..sort((a, b) {
+            if (a.lessonNumber != 0 || b.lessonNumber != 0) {
+              if (a.lessonNumber != b.lessonNumber) {
+                return a.lessonNumber.compareTo(b.lessonNumber);
+              }
+            }
+            return SortUtils.naturalCompare(a.title, b.title);
+          }),
+      );
+
+      // 4. Clear progress for fresh import
+      for (final lesson in fullCourse.lessons) {
+        await quizProgressStorage.clearLessonProgress(lesson.id);
+      }
+
       onProgress?.call(1.0);
-      return newCourse;
+      return _resolvePathsFromZip(fullCourse, extractedDir);
     } catch (e, stack) {
       debugPrint('Error importing course: $e');
       await MonitoringService.captureError(e, stackTrace: stack);
@@ -492,8 +540,14 @@ class CourseRepository {
             final lessons = lessonJsons.map(Lesson.fromJson).toList();
 
             course = course.copyWith(
-              lessons: [...course.lessons, ...lessons]
-                ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+              lessons: [...course.lessons, ...lessons]..sort((a, b) {
+                  if (a.lessonNumber != 0 || b.lessonNumber != 0) {
+                    if (a.lessonNumber != b.lessonNumber) {
+                      return a.lessonNumber.compareTo(b.lessonNumber);
+                    }
+                  }
+                  return SortUtils.naturalCompare(a.title, b.title);
+                }),
             );
           }
 
@@ -504,6 +558,7 @@ class CourseRepository {
           course = course.copyWith(
             lessons: course.lessons
                 .map((l) => l.copyWith(
+                      id: '${course.id}_${l.id}',
                       courseId: course.id,
                       courseTitle: course.title,
                     ))
@@ -560,8 +615,14 @@ class CourseRepository {
           if (lessonJsons.isNotEmpty) {
             final lessons = lessonJsons.map(Lesson.fromJson).toList();
             course = course.copyWith(
-              lessons: [...course.lessons, ...lessons]
-                ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+              lessons: [...course.lessons, ...lessons]..sort((a, b) {
+                  if (a.lessonNumber != 0 || b.lessonNumber != 0) {
+                    if (a.lessonNumber != b.lessonNumber) {
+                      return a.lessonNumber.compareTo(b.lessonNumber);
+                    }
+                  }
+                  return SortUtils.naturalCompare(a.title, b.title);
+                }),
             );
           }
 
@@ -676,13 +737,24 @@ class CourseRepository {
           lessonFiles.sort((a, b) {
             final fileA = a.split('/').last.toLowerCase();
             final fileB = b.split('/').last.toLowerCase();
-            return fileA.compareTo(fileB);
+            return SortUtils.naturalCompare(fileA, fileB);
           });
 
           for (final elf in lessonFiles) {
             try {
               final lStr = await rootBundle.loadString(elf);
               final lJson = json.decode(lStr) as Map<String, dynamic>;
+
+              // Extract basePath for legacy lessons
+              final elfParts = elf.split('/');
+              final elfFolder =
+                  elfParts.length >= 2 ? elfParts[elfParts.length - 2] : '';
+              final courseFolderName = folder.split('/').last;
+
+              if (elfFolder.isNotEmpty && elfFolder != courseFolderName) {
+                lJson['basePath'] = elfFolder;
+              }
+
               loadedLessons.add(Lesson.fromJson(lJson));
             } catch (e, stack) {
               debugPrint('Error loading lesson $elf: $e');
@@ -698,8 +770,14 @@ class CourseRepository {
                 .toList();
 
             course = course.copyWith(
-              lessons: [...course.lessons, ...uniqueNewLessons]
-                ..sort((a, b) => a.lessonNumber.compareTo(b.lessonNumber)),
+              lessons: [...course.lessons, ...uniqueNewLessons]..sort((a, b) {
+                  if (a.lessonNumber != 0 || b.lessonNumber != 0) {
+                    if (a.lessonNumber != b.lessonNumber) {
+                      return a.lessonNumber.compareTo(b.lessonNumber);
+                    }
+                  }
+                  return SortUtils.naturalCompare(a.title, b.title);
+                }),
             );
           }
 
@@ -737,6 +815,11 @@ class CourseRepository {
       imageUrl = _zipLoader.resolveFilePath(extractedDir, imageUrl);
     }
 
+    var bookUrl = course.bookUrl;
+    if (bookUrl != null && bookUrl.startsWith('./')) {
+      bookUrl = _zipLoader.resolveFilePath(extractedDir, bookUrl);
+    }
+
     // Resolve lessons
     final resolvedLessons = course.lessons.map((lesson) {
       return _resolveLessonPathsFromZip(lesson, extractedDir);
@@ -744,13 +827,21 @@ class CourseRepository {
 
     return course.copyWith(
       imageUrl: imageUrl,
+      bookUrl: bookUrl,
       lessons: resolvedLessons,
     );
   }
 
   Lesson _resolveLessonPathsFromZip(Lesson lesson, Directory extractedDir) {
+    // Determine lesson directory if basePath is present
+    Directory lessonDir = extractedDir;
+    if (lesson.basePath.isNotEmpty) {
+      lessonDir =
+          Directory(path_utils.join(extractedDir.path, lesson.basePath));
+    }
+
     final resolvedQuizzes = lesson.quizzes.map((quiz) {
-      return _resolveQuizPathsFromZip(quiz, extractedDir);
+      return _resolveQuizPathsFromZip(quiz, lessonDir);
     }).toList();
 
     return Lesson(
@@ -765,42 +856,89 @@ class CourseRepository {
 
   Quiz _resolveQuizPathsFromZip(Quiz quiz, Directory extractedDir) {
     var audio = quiz.audio;
-    if (audio != null && audio.isNotEmpty) {
+    if (audio != null && audio.isNotEmpty && audio.startsWith('./')) {
       audio = _zipLoader.resolveFilePath(extractedDir, audio);
     }
 
     var transcript = quiz.transcript;
-    if (transcript != null && transcript.isNotEmpty) {
+    if (transcript != null &&
+        transcript.isNotEmpty &&
+        transcript.startsWith('./')) {
       transcript = _zipLoader.resolveFilePath(extractedDir, transcript);
     }
 
     var passage = quiz.passage;
-    if (passage != null && passage.isNotEmpty) {
+    if (passage != null && passage.isNotEmpty && passage.startsWith('./')) {
       passage = _zipLoader.resolveFilePath(extractedDir, passage);
     }
 
     // Resolve images in questions
     final resolvedQuestions = quiz.questions.map((q) {
       var image = q.image;
-      if (image != null && image.isNotEmpty) {
+      if (image != null && image.isNotEmpty && image.startsWith('./')) {
         image = _zipLoader.resolveFilePath(extractedDir, image);
       }
 
       var images = q.images;
       if (images != null && images.isNotEmpty) {
-        images = images
-            .map((img) => _zipLoader.resolveFilePath(extractedDir, img))
-            .toList();
+        images = images.map((img) {
+          if (img.startsWith('./')) {
+            return _zipLoader.resolveFilePath(extractedDir, img);
+          }
+          return img;
+        }).toList();
       }
 
       return q.copyWith(image: image, images: images);
     }).toList();
+
+    // Resolve Flashcards
+    final resolvedFlashcards = quiz.flashcards?.map((f) {
+      var image = f.image;
+      if (image != null && image.startsWith('./')) {
+        image = _zipLoader.resolveFilePath(extractedDir, image);
+      }
+      var images = f.images?.map((img) {
+        if (img.startsWith('./')) {
+          return _zipLoader.resolveFilePath(extractedDir, img);
+        }
+        return img;
+      }).toList();
+      var frontAudio = f.frontAudio;
+      if (frontAudio != null && frontAudio.startsWith('./')) {
+        frontAudio = _zipLoader.resolveFilePath(extractedDir, frontAudio);
+      }
+      var backAudio = f.backAudio;
+      if (backAudio != null && backAudio.startsWith('./')) {
+        backAudio = _zipLoader.resolveFilePath(extractedDir, backAudio);
+      }
+      return f.copyWith(
+          image: image,
+          images: images,
+          frontAudio: frontAudio,
+          backAudio: backAudio);
+    }).toList();
+
+    // Resolve Dictations
+    final resolvedDictations = quiz.dictations?.map((d) {
+      var audio = d.audio;
+      if (audio != null && audio.startsWith('./')) {
+        audio = _zipLoader.resolveFilePath(extractedDir, audio);
+      }
+      return d.copyWith(audio: audio);
+    }).toList();
+
+    // Resolve Pronunciations (None for now as PronunciationItem only contains text)
+    final resolvedPronunciations = quiz.pronunciations;
 
     return quiz.copyWith(
       audio: audio,
       transcript: transcript,
       passage: passage,
       questions: resolvedQuestions,
+      flashcards: resolvedFlashcards,
+      dictations: resolvedDictations,
+      pronunciations: resolvedPronunciations,
     );
   }
 
@@ -823,8 +961,17 @@ class CourseRepository {
   }
 
   Lesson _resolveLessonPaths(Lesson lesson, String basePath) {
+    // Combine global basePath with lesson-specific basePath
+    var effectiveBasePath = basePath;
+    if (lesson.basePath.isNotEmpty) {
+      effectiveBasePath = path_utils.join(basePath, lesson.basePath);
+      if (!effectiveBasePath.endsWith('/')) {
+        effectiveBasePath = '$effectiveBasePath/';
+      }
+    }
+
     final resolvedQuizzes = lesson.quizzes.map((quiz) {
-      return _resolveQuizPaths(quiz, basePath);
+      return _resolveQuizPaths(quiz, effectiveBasePath);
     }).toList();
 
     return Lesson(
@@ -958,45 +1105,56 @@ class CourseRepository {
     }
   }
 
-  Future<void> deleteCourse(Course course) async {
-    if (kIsWeb) return;
+  Future<void> deleteCourse(Course course,
+      {void Function(double)? onProgress}) async {
+    if (kIsWeb) {
+      _webImportedCourses.removeWhere((c) => c.id == course.id);
+      return;
+    }
 
     try {
       debugPrint(
           'Attempting robust delete for course: ${course.title} (ID: ${course.id})');
 
-      // Use Application Documents Directory where ZipCourseLoader extracts to
       final appDocDir = await getApplicationDocumentsDirectory();
-      // Match the directory name used in ZipCourseLoader._getCacheDirectory
       final courseCacheDir =
           Directory('${appDocDir.path}/course_cache_persistent');
-      String? targetFolderName;
+      final importDir = Directory('${appDocDir.path}/imported_courses');
 
-      // 1. Scan course_cache_persistent to find the folder containing this course ID
+      onProgress?.call(0.1);
+
+      // 1. Delete extracted cache folder
       if (courseCacheDir.existsSync()) {
         final entities = courseCacheDir.listSync();
         for (final entity in entities) {
           if (entity is Directory) {
             try {
-              // Read course JSON from this folder to verify ID
+              // Match by folder name (e.g. English_Grammar_In_Use)
+              final folderName = entity.path.split('/').last;
+              final isNameMatch =
+                  folderName.toLowerCase() == course.id.toLowerCase() ||
+                      folderName.toLowerCase().replaceAll('_', '') ==
+                          course.id.toLowerCase().replaceAll('_', '');
+
               final courseJson = await _zipLoader.loadCourseJson(entity);
-              if (courseJson != null && courseJson['id'] == course.id) {
-                targetFolderName = entity.path.split('/').last;
-                debugPrint('Found matching cache folder: $targetFolderName');
+              final isIdMatch =
+                  courseJson != null && courseJson['id'] == course.id;
+
+              if (isNameMatch || isIdMatch) {
+                debugPrint(
+                    'Deleting cache folder matching ${course.id}: ${entity.path}');
                 await entity.delete(recursive: true);
-                break;
               }
-            } catch (e, stack) {
-              debugPrint('Error inspecting cache folder ${entity.path}: $e');
-              await MonitoringService.captureError(e, stackTrace: stack);
+            } catch (e) {
+              // Ignore individual folder errors
             }
           }
         }
       }
 
-      // 2. Delete ZIP file in imported_courses
-      final importDir = Directory('${appDocDir.path}/imported_courses');
+      onProgress?.call(0.3);
 
+      // 2. Delete ZIP file in imported_courses using content scanning
       if (importDir.existsSync()) {
         final zipFiles = importDir
             .listSync()
@@ -1004,43 +1162,48 @@ class CourseRepository {
             .where((f) => f.path.endsWith('.zip'))
             .toList();
 
-        bool deletedZip = false;
+        for (final zipFile in zipFiles) {
+          try {
+            // Use temporary extraction to peek at course.json
+            final tempDir = await _zipLoader.extractZipFileFromFile(zipFile);
+            if (tempDir != null) {
+              final courseJson = await _zipLoader.loadCourseJson(tempDir);
+              final isMatch =
+                  courseJson != null && courseJson['id'] == course.id;
 
-        // Strategy A: If we found targetFolderName from cache, try deleting that ZIP
-        if (targetFolderName != null) {
-          final exactZip = File('${importDir.path}/$targetFolderName.zip');
-          if (exactZip.existsSync()) {
-            await exactZip.delete();
-            debugPrint('Deleted matching ZIP file: ${exactZip.path}');
-            deletedZip = true;
-          }
-        }
+              if (isMatch) {
+                debugPrint('Deleting matching ZIP file: ${zipFile.path}');
+                await zipFile.delete();
+              }
 
-        // Strategy B: Fallback search within ZIPs
-        if (!deletedZip) {
-          // Normalize both title and ID for comparison
-          final normalizedTitle =
-              course.title.toLowerCase().replaceAll(' ', '_');
-          final courseId = course.id;
-
-          for (final zip in zipFiles) {
-            final zipBaseName = zip.path.split('/').last.replaceAll('.zip', '');
-            final normalizedZipName = zipBaseName.toLowerCase();
-
-            // Check for match against title (snake_case) or ID
-            if (normalizedZipName == normalizedTitle ||
-                normalizedZipName == courseId ||
-                normalizedZipName.contains(normalizedTitle) ||
-                (normalizedTitle.isNotEmpty &&
-                    normalizedZipName.contains(normalizedTitle))) {
-              await zip.delete();
-              debugPrint(
-                  'Deleted likely matching ZIP file (fallback): ${zip.path}');
-              break;
+              // Always delete the temp folder we just created for peeking
+              if (tempDir.existsSync()) {
+                await tempDir.delete(recursive: true);
+              }
             }
+          } catch (e) {
+            debugPrint('Error peeking into ZIP ${zipFile.path}: $e');
           }
         }
       }
+
+      onProgress?.call(0.7);
+
+      // 3. Clear from Hive
+      await _zipLoader.deleteCourseData(course.id);
+
+      // 4. Clear lesson progress
+      for (final lesson in course.lessons) {
+        await quizProgressStorage.clearLessonProgress(lesson.id);
+      }
+
+      onProgress?.call(0.9);
+
+      // 5. Force refresh the index cache
+      final remainingCourses = await getCourses();
+      await _saveCoursesToIndexCache(remainingCourses);
+
+      onProgress?.call(1.0);
 
       // Log activity
       await sl<ActivityRepository>().logActivity(Activity(
@@ -1054,6 +1217,8 @@ class CourseRepository {
           'courseTitle': course.title,
         },
       ));
+
+      debugPrint('Successfully deleted all traces of course: ${course.id}');
     } catch (e, stack) {
       debugPrint('Error in robust deleteCourse: $e');
       await MonitoringService.captureError(e, stackTrace: stack);
@@ -1111,12 +1276,34 @@ class CourseRepository {
           return q.copyWith(image: image, images: images);
         }).toList();
 
+        // Resolve Flashcards
+        final resolvedFlashcards = quiz.flashcards?.map((f) {
+          var image = resolve(f.image);
+          var images = f.images?.map((img) => resolve(img)).toList();
+          var frontAudio = resolve(f.frontAudio);
+          var backAudio = resolve(f.backAudio);
+          return f.copyWith(
+            image: image,
+            images: images,
+            frontAudio: frontAudio,
+            backAudio: backAudio,
+          );
+        }).toList();
+
+        // Resolve Dictations
+        final resolvedDictations = quiz.dictations?.map((d) {
+          var audio = resolve(d.audio);
+          return d.copyWith(audio: audio);
+        }).toList();
+
         return quiz.copyWith(
           audio: audio,
           transcript:
               transcript, // Note: if transcript logic requires http.get, Blob URL works.
           passage: passage,
           questions: resolvedQuestions,
+          flashcards: resolvedFlashcards,
+          dictations: resolvedDictations,
         );
       }).toList();
 
@@ -1125,6 +1312,7 @@ class CourseRepository {
 
     return course.copyWith(
       imageUrl: imageUrl, // If image path was found
+      bookUrl: resolve(course.bookUrl),
       lessons: resolvedLessons,
     );
   }

@@ -166,15 +166,26 @@ class _QuizDrawerState extends State<QuizDrawer> {
                 // Get quiz type label and color
                 final String typeLabel;
                 final Color typeColor;
+
+                // Move declarations here, outside of any list literal
+                final totalItems = quiz.totalItems;
+                final progress =
+                    context.watch<QuizStateProvider>().getQuizProgress(
+                          widget.lesson.id,
+                          quiz.id,
+                        );
+                final isChecked =
+                    progress?.data?['isChecked'] as bool? ?? false;
+
                 switch (quiz.type) {
                   case 'multiple-choice':
                     typeLabel = 'MULTIPLE CHOICE';
                     typeColor = Colors.blue;
                   case 'gap-fill-typing':
-                    typeLabel = 'GAP FILL';
+                    typeLabel = 'GAP FILL TYPING';
                     typeColor = Colors.green;
                   case 'gap-fill-dropdown':
-                    typeLabel = 'GAP FILL';
+                    typeLabel = 'GAP FILL DROPDOWN';
                     typeColor = Colors.lightGreen;
                   case 'matching-dropdown':
                     typeLabel = 'MATCHING';
@@ -276,7 +287,7 @@ class _QuizDrawerState extends State<QuizDrawer> {
                                           ),
                                         ),
                                       ),
-                                      if (quiz.questions.isNotEmpty) ...[
+                                      if (totalItems > 0) ...[
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 6,
@@ -294,7 +305,7 @@ class _QuizDrawerState extends State<QuizDrawer> {
                                                 BorderRadius.circular(4),
                                           ),
                                           child: Text(
-                                            '${quiz.questions.length} questions',
+                                            '$totalItems questions',
                                             style: TextStyle(
                                               color: appColors.textSecondary,
                                               fontSize: 9,
@@ -302,31 +313,41 @@ class _QuizDrawerState extends State<QuizDrawer> {
                                             ),
                                           ),
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: appColors.textSecondary
-                                                .withValues(alpha: 0.1),
-                                            border: Border.all(
-                                              color: appColors.textSecondary
-                                                  .withValues(alpha: 0.3),
-                                              width: 0.5,
+                                        if (isChecked && progress != null)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
                                             ),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            '${context.watch<QuizStateProvider>().getQuizProgress(widget.lesson.id, quiz.id)?.correctItems ?? 0}/${quiz.questions.length}pt',
-                                            style: TextStyle(
-                                              color: appColors.textSecondary,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
+                                            decoration: BoxDecoration(
+                                              color: (progress.correctItems ==
+                                                          quiz.totalScore
+                                                      ? Colors.green
+                                                      : Colors.orange)
+                                                  .withValues(alpha: 0.1),
+                                              border: Border.all(
+                                                color: (progress.correctItems ==
+                                                            quiz.totalScore
+                                                        ? Colors.green
+                                                        : Colors.orange)
+                                                    .withValues(alpha: 0.3),
+                                                width: 0.5,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              '${progress.correctItems}/${quiz.totalScore} pt',
+                                              style: TextStyle(
+                                                color: progress.correctItems ==
+                                                        quiz.totalScore
+                                                    ? Colors.green
+                                                    : Colors.orange,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
-                                        ),
                                       ],
                                     ],
                                   ),

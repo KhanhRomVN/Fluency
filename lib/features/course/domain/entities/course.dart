@@ -1,3 +1,5 @@
+import 'package:fluency/core/utils/sort_utils.dart';
+
 class Course {
   const Course({
     required this.id,
@@ -17,9 +19,36 @@ class Course {
     this.completedLessons = 0,
     this.version = 1,
     this.hasUpdate = false,
+    this.bookUrl,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
+    final lessonList = (json['lessons'] as List?)?.map((e) {
+      final lessonId = json['id']?.toString() ?? '';
+      var lesson = Lesson.fromJson(e as Map<String, dynamic>);
+      // Prefix ID if not already prefixed to avoid double prefixing
+      if (lessonId.isNotEmpty && !lesson.id.startsWith('${lessonId}_')) {
+        lesson = lesson.copyWith(
+          id: '${lessonId}_${lesson.id}',
+          courseId: lessonId,
+        );
+      } else if (lessonId.isNotEmpty) {
+        lesson = lesson.copyWith(courseId: lessonId);
+      }
+      return lesson;
+    })?.toList();
+
+    if (lessonList != null) {
+      lessonList.sort((a, b) {
+        if (a.lessonNumber != 0 || b.lessonNumber != 0) {
+          if (a.lessonNumber != b.lessonNumber) {
+            return a.lessonNumber.compareTo(b.lessonNumber);
+          }
+        }
+        return SortUtils.naturalCompare(a.title, b.title);
+      });
+    }
+
     return Course(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
@@ -39,13 +68,11 @@ class Course {
       fullDescription: json['fullDescription']?.toString() ?? '',
       targetAudience:
           (json['targetAudience'] ?? json['targetAudiences'])?.toString() ?? '',
-      lessons: (json['lessons'] as List?)
-              ?.map((e) => Lesson.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
+      lessons: lessonList ?? const [],
       completedLessons: json['completedLessons'] as int? ?? 0,
       version: json['version'] as int? ?? 1,
       hasUpdate: json['hasUpdate'] as bool? ?? false,
+      bookUrl: json['bookUrl']?.toString(),
     );
   }
 
@@ -69,6 +96,7 @@ class Course {
   final int completedLessons;
   final int version;
   final bool hasUpdate;
+  final String? bookUrl;
 
   Course copyWith({
     String? id,
@@ -88,6 +116,7 @@ class Course {
     int? completedLessons,
     int? version,
     bool? hasUpdate,
+    String? bookUrl,
   }) {
     return Course(
       id: id ?? this.id,
@@ -107,6 +136,7 @@ class Course {
       completedLessons: completedLessons ?? this.completedLessons,
       version: version ?? this.version,
       hasUpdate: hasUpdate ?? this.hasUpdate,
+      bookUrl: bookUrl ?? this.bookUrl,
     );
   }
 
@@ -129,6 +159,7 @@ class Course {
       'completedLessons': completedLessons,
       'version': version,
       'hasUpdate': hasUpdate,
+      'bookUrl': bookUrl,
     };
   }
 }
@@ -143,12 +174,15 @@ class Lesson {
     this.quizzes = const [],
     this.courseId = '',
     this.courseTitle = '',
+    this.basePath = '',
   });
 
   factory Lesson.fromJson(Map<String, dynamic> json) {
     final quizList = (json['quiz'] ?? json['quizzes']) as List?;
     final quizzes = quizList
             ?.map((e) => Quiz.fromJson(e as Map<String, dynamic>))
+            .where((q) =>
+                q.type != 'error-correction' && q.type != 'error_correction')
             .toList() ??
         const [];
 
@@ -156,6 +190,7 @@ class Lesson {
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
+      basePath: json['basePath']?.toString() ?? '',
       lessonNumber: json['lessonNumber'] as int? ?? 0,
       quizCount: quizzes.length,
       quizzes: quizzes,
@@ -169,9 +204,10 @@ class Lesson {
   final List<Quiz> quizzes;
   final String courseId;
   final String courseTitle;
+  final String basePath;
 
   int get totalItems {
-    if (quizzes.isEmpty) return 0;
+    if (quizzes.isEmpty) return quizCount;
     return quizzes.fold(0, (sum, quiz) => sum + quiz.totalItems);
   }
 
@@ -184,6 +220,7 @@ class Lesson {
     List<Quiz>? quizzes,
     String? courseId,
     String? courseTitle,
+    String? basePath,
   }) {
     return Lesson(
       id: id ?? this.id,
@@ -194,6 +231,7 @@ class Lesson {
       quizzes: quizzes ?? this.quizzes,
       courseId: courseId ?? this.courseId,
       courseTitle: courseTitle ?? this.courseTitle,
+      basePath: basePath ?? this.basePath,
     );
   }
 
@@ -207,6 +245,7 @@ class Lesson {
       'quizzes': quizzes.map((e) => e.toJson()).toList(),
       'courseId': courseId,
       'courseTitle': courseTitle,
+      'basePath': basePath,
     };
   }
 }
@@ -409,7 +448,11 @@ class Quiz {
   final int? minTurns; // Minimum number of conversation turns
 
   int get totalItems {
-    if (type == 'gap-fill') return answers.length;
+    if (type == 'gap-fill' ||
+        type == 'gap-fill-dropdown' ||
+        type == 'gap-fill-typing') {
+      return answers.length;
+    }
     if (type == 'matching' || type == 'matching-dropdown') {
       return matchings?.length ?? 0;
     }
@@ -423,7 +466,31 @@ class Quiz {
     if (type == 'sentence-transformation') {
       return sentenceTransformations?.length ?? 0;
     }
-    return questions.length;
+    return questions.isNotEmpty ? questions.length : answers.length;
+  }
+
+  int get totalScore {
+    if (type == 'gap-fill' ||
+        type == 'gap-fill-dropdown' ||
+        type == 'gap-fill-typing') {
+      return answers.fold(0, (sum, item) => sum + item.score);
+    }
+    if (type == 'matching' || type == 'matching-dropdown') {
+      return matchings?.length ?? 0;
+    }
+    if (type == 'chatting' || type == 'ai-chat') return minTurns ?? 5;
+    if (type == 'flashcard') return flashcards?.length ?? 0;
+    if (type == 'dictation') {
+      return dictations?.length ?? 0;
+    }
+    if (type == 'pronunciation' || type == 'pronunciation-drill') {
+      return pronunciations?.length ?? 0;
+    }
+    if (type == 'error-correction') return errorCorrections?.length ?? 0;
+    if (type == 'sentence-transformation') {
+      return sentenceTransformations?.length ?? 0;
+    }
+    return questions.fold(0, (sum, item) => sum + item.score);
   }
 
   Quiz copyWith({
@@ -535,6 +602,7 @@ class QuizAnswer {
     required this.id,
     required this.answer,
     required this.explain,
+    this.score = 1,
     this.options = const [],
   });
 
@@ -553,6 +621,7 @@ class QuizAnswer {
       id: json['id']?.toString() ?? '',
       answer: parsedAnswer,
       explain: json['explain']?.toString() ?? '',
+      score: (json['score'] as num?)?.toInt() ?? 1,
       options: (json['options'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
     );
@@ -560,12 +629,14 @@ class QuizAnswer {
   final String id;
   final List<String> answer;
   final String explain;
+  final int score;
   final List<String> options;
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'answer': answer,
       'explain': explain,
+      'score': score,
       'options': options,
     };
   }
@@ -579,6 +650,7 @@ class QuizQuestion {
     required this.answer,
     required this.validAnswers,
     required this.explain,
+    this.score = 1,
     this.image,
     this.images,
     this.audioSegmentId,
@@ -629,6 +701,7 @@ class QuizQuestion {
       answer: singleAnswer,
       validAnswers: answersList,
       explain: json['explain']?.toString() ?? '',
+      score: (json['score'] as num?)?.toInt() ?? 1,
       image: json['image']?.toString() ?? json['imageUrl']?.toString(),
       images: (json['images'] as List?)?.map((e) => e.toString()).toList(),
       audioSegmentId: json['audioSegmentId']?.toString(),
@@ -641,6 +714,7 @@ class QuizQuestion {
       answer; // Kept for backward compat, but use validAnswers for logic
   final List<String> validAnswers;
   final String explain;
+  final int score;
   final String? image;
   final List<String>? images;
   final String? audioSegmentId;
@@ -652,6 +726,7 @@ class QuizQuestion {
     String? answer,
     List<String>? validAnswers,
     String? explain,
+    int? score,
     String? image,
     List<String>? images,
     String? audioSegmentId,
@@ -663,6 +738,7 @@ class QuizQuestion {
       answer: answer ?? this.answer,
       validAnswers: validAnswers ?? this.validAnswers,
       explain: explain ?? this.explain,
+      score: score ?? this.score,
       image: image ?? this.image,
       images: images ?? this.images,
       audioSegmentId: audioSegmentId ?? this.audioSegmentId,
@@ -677,6 +753,7 @@ class QuizQuestion {
       'answer': answer,
       'answers': validAnswers,
       'explain': explain,
+      'score': score,
       'image': image,
       'images': images,
       'audioSegmentId': audioSegmentId,
@@ -735,6 +812,20 @@ class MatchingItem {
       'answer': answer,
       'explain': explain,
     };
+  }
+
+  MatchingItem copyWith({
+    String? id,
+    String? question,
+    String? answer,
+    String? explain,
+  }) {
+    return MatchingItem(
+      id: id ?? this.id,
+      question: question ?? this.question,
+      answer: answer ?? this.answer,
+      explain: explain ?? this.explain,
+    );
   }
 }
 
@@ -801,6 +892,34 @@ class ChatMessage {
       'translate': translate,
     };
   }
+
+  ChatMessage copyWith({
+    String? id,
+    String? role,
+    String? content,
+    String? name,
+    String? gender,
+    String? time,
+    String? ipa,
+    List<String>? tips,
+    String? explain,
+    String? question,
+    String? translate,
+  }) {
+    return ChatMessage(
+      id: id ?? this.id,
+      role: role ?? this.role,
+      content: content ?? this.content,
+      name: name ?? this.name,
+      gender: gender ?? this.gender,
+      time: time ?? this.time,
+      ipa: ipa ?? this.ipa,
+      tips: tips ?? this.tips,
+      explain: explain ?? this.explain,
+      question: question ?? this.question,
+      translate: translate ?? this.translate,
+    );
+  }
 }
 
 class FlashcardItem {
@@ -858,6 +977,32 @@ class FlashcardItem {
       'score': score,
     };
   }
+
+  FlashcardItem copyWith({
+    String? id,
+    dynamic front,
+    String? frontAudio,
+    String? image,
+    List<String>? images,
+    dynamic back,
+    String? backAudio,
+    List<String>? options,
+    List<QuizOptionTrans>? optionsTrans,
+    int? score,
+  }) {
+    return FlashcardItem(
+      id: id ?? this.id,
+      front: front ?? this.front,
+      frontAudio: frontAudio ?? this.frontAudio,
+      image: image ?? this.image,
+      images: images ?? this.images,
+      back: back ?? this.back,
+      backAudio: backAudio ?? this.backAudio,
+      options: options ?? this.options,
+      optionsTrans: optionsTrans ?? this.optionsTrans,
+      score: score ?? this.score,
+    );
+  }
 }
 
 class QuizOptionTrans {
@@ -904,13 +1049,24 @@ class CorrectionError {
   final String id;
   final int index; // Token index
   final List<String> correct;
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'index': index,
       'correct': correct,
     };
+  }
+
+  CorrectionError copyWith({
+    String? id,
+    int? index,
+    List<String>? correct,
+  }) {
+    return CorrectionError(
+      id: id ?? this.id,
+      index: index ?? this.index,
+      correct: correct ?? this.correct,
+    );
   }
 }
 
@@ -964,6 +1120,24 @@ class SentenceTransformationItem {
       'explain': explain,
     };
   }
+
+  SentenceTransformationItem copyWith({
+    String? id,
+    List<String>? answer,
+    String? original,
+    String? question,
+    String? require,
+    String? explain,
+  }) {
+    return SentenceTransformationItem(
+      id: id ?? this.id,
+      answer: answer ?? this.answer,
+      original: original ?? this.original,
+      question: question ?? this.question,
+      require: require ?? this.require,
+      explain: explain ?? this.explain,
+    );
+  }
 }
 
 class DictationItem {
@@ -1011,6 +1185,28 @@ class DictationItem {
       'speed': speed,
     };
   }
+
+  DictationItem copyWith({
+    String? id,
+    String? audio,
+    String? text,
+    String? transcript,
+    String? translate,
+    String? ipa,
+    int? score,
+    double? speed,
+  }) {
+    return DictationItem(
+      id: id ?? this.id,
+      audio: audio ?? this.audio,
+      text: text ?? this.text,
+      transcript: transcript ?? this.transcript,
+      translate: translate ?? this.translate,
+      ipa: ipa ?? this.ipa,
+      score: score ?? this.score,
+      speed: speed ?? this.speed,
+    );
+  }
 }
 
 class PronunciationItem {
@@ -1038,7 +1234,6 @@ class PronunciationItem {
   final String? ipa;
   final String? translate;
   final String? hiddenWord;
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -1047,6 +1242,22 @@ class PronunciationItem {
       'translate': translate,
       'hiddenWord': hiddenWord,
     };
+  }
+
+  PronunciationItem copyWith({
+    String? id,
+    String? text,
+    String? ipa,
+    String? translate,
+    String? hiddenWord,
+  }) {
+    return PronunciationItem(
+      id: id ?? this.id,
+      text: text ?? this.text,
+      ipa: ipa ?? this.ipa,
+      translate: translate ?? this.translate,
+      hiddenWord: hiddenWord ?? this.hiddenWord,
+    );
   }
 }
 
@@ -1172,6 +1383,20 @@ class ErrorCorrectionItem {
       'errors': errors.map((e) => e.toJson()).toList(),
       'explain': explain,
     };
+  }
+
+  ErrorCorrectionItem copyWith({
+    String? id,
+    String? original,
+    List<CorrectionError>? errors,
+    String? explain,
+  }) {
+    return ErrorCorrectionItem(
+      id: id ?? this.id,
+      original: original ?? this.original,
+      errors: errors ?? this.errors,
+      explain: explain ?? this.explain,
+    );
   }
 }
 

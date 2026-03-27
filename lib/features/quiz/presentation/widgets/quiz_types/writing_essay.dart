@@ -16,6 +16,7 @@ class WritingEssay extends StatefulWidget {
     this.onCheck,
     this.onNext,
     this.onPrev,
+    this.finalActionText,
   });
 
   final Quiz quiz;
@@ -25,6 +26,7 @@ class WritingEssay extends StatefulWidget {
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<WritingEssay> createState() => _WritingEssayState();
@@ -204,18 +206,6 @@ class _WritingEssayState extends State<WritingEssay> {
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: appColors.cardBackground,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: appColors.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
                       child: Column(
                         children: [
                           Expanded(
@@ -312,7 +302,7 @@ class _WritingEssayState extends State<WritingEssay> {
                       widget.onNext?.call();
                     },
                     icon: const Icon(Icons.check_circle),
-                    label: const Text('Next question'),
+                    label: Text(widget.finalActionText ?? 'Next question'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           appColors.primary.withValues(alpha: 0.15),

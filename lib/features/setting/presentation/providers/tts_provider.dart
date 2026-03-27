@@ -19,6 +19,8 @@ class TtsProvider extends ChangeNotifier {
   static const String _defaultMaleVoiceKey = 'tts_default_male_voice';
   static const String _defaultFemaleVoiceKey = 'tts_default_female_voice';
   static const String _preferredGenderKey = 'tts_preferred_gender';
+  static const String _speedKey = 'tts_speed';
+  static const String _pitchKey = 'tts_pitch';
 
   final SharedPreferences _prefs;
   TtsService? _activeTtsService;
@@ -27,6 +29,8 @@ class TtsProvider extends ChangeNotifier {
   String? _defaultMaleVoice;
   String? _defaultFemaleVoice;
   String? _preferredGender;
+  double _speed = 1.0;
+  double _pitch = 1.0;
   bool _isInitialized = false;
 
   TtsProvider(this._prefs) {
@@ -40,6 +44,8 @@ class TtsProvider extends ChangeNotifier {
   String? get defaultMaleVoice => _defaultMaleVoice;
   String? get defaultFemaleVoice => _defaultFemaleVoice;
   String? get preferredGender => _preferredGender;
+  double get speed => _speed;
+  double get pitch => _pitch;
   bool get isInitialized => _isInitialized;
 
   Future<void> _loadSettings() async {
@@ -50,6 +56,8 @@ class TtsProvider extends ChangeNotifier {
     _defaultFemaleVoice =
         _prefs.getString(_defaultFemaleVoiceKey) ?? 'en_US-hfc_female-medium';
     _preferredGender = _prefs.getString(_preferredGenderKey);
+    _speed = _prefs.getDouble(_speedKey) ?? 1.0;
+    _pitch = _prefs.getDouble(_pitchKey) ?? 1.0;
 
     // Save defaults if not set
     if (!_prefs.containsKey(_defaultMaleVoiceKey)) {
@@ -267,20 +275,32 @@ class TtsProvider extends ChangeNotifier {
             debugPrint('Switching Piper voice to $genderToUse: $voiceCode');
             await setSelectedModel(modelPath);
           }
-          await _activeTtsService?.speak(text);
+          await _activeTtsService?.speak(text, speed: _speed, pitch: _pitch);
           return;
         }
       }
     }
 
     // Fallback to current voice
-    await _activeTtsService?.speak(text);
+    await _activeTtsService?.speak(text, speed: _speed, pitch: _pitch);
   }
 
   // Speak using the currently active model/engine without switching
   Future<void> speak(String text) async {
     if (!_isInitialized || _activeTtsService == null) return;
-    await _activeTtsService?.speak(text);
+    await _activeTtsService?.speak(text, speed: _speed, pitch: _pitch);
+  }
+
+  Future<void> setSpeed(double speed) async {
+    _speed = speed;
+    await _prefs.setDouble(_speedKey, speed);
+    notifyListeners();
+  }
+
+  Future<void> setPitch(double pitch) async {
+    _pitch = pitch;
+    await _prefs.setDouble(_pitchKey, pitch);
+    notifyListeners();
   }
 
   // Setters

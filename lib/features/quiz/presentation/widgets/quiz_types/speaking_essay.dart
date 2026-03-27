@@ -18,6 +18,7 @@ class SpeakingEssay extends StatefulWidget {
     this.onPrev,
     this.onCheck,
     this.onWordLongPress,
+    this.finalActionText,
     super.key,
   });
 
@@ -28,6 +29,7 @@ class SpeakingEssay extends StatefulWidget {
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<SpeakingEssay> createState() => _SpeakingEssayState();
@@ -37,6 +39,13 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
   int _activeIndex = 0;
   final Map<int, String> _answers = {};
   final Map<int, bool> _stepSubmitted = {};
+
+  int get _firstUncompletedIndex {
+    for (int i = 0; i < widget.quiz.questions.length; i++) {
+      if (!(_stepSubmitted[i] ?? false)) return i;
+    }
+    return -1;
+  }
 
   bool _isListening = false;
   SttService? _sttService;
@@ -371,18 +380,6 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                         child: Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: appColors.cardBackground,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: appColors.border),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
                           child: isSubmitted
                               ? SingleChildScrollView(
                                   child: Column(
@@ -578,16 +575,34 @@ class _SpeakingEssayState extends State<SpeakingEssay> {
                           ),
                         if (_isCurrentSubmitted)
                           ElevatedButton.icon(
-                            onPressed: _hasNext
-                                ? _handleNext
-                                : () {
-                                    widget.onCheck?.call();
-                                    widget.onNext?.call();
-                                  },
+                            onPressed: () {
+                              if (_hasNext) {
+                                _handleNext();
+                              } else {
+                                final uncompleted = _firstUncompletedIndex;
+                                if (uncompleted != -1) {
+                                  _pageController.animateToPage(
+                                    uncompleted,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                  );
+                                } else {
+                                  widget.onCheck?.call();
+                                  widget.onNext?.call();
+                                }
+                              }
+                            },
                             icon: Icon(_hasNext
                                 ? Icons.arrow_forward
-                                : Icons.check_circle),
-                            label: Text(_hasNext ? 'Next' : 'Next question'),
+                                : (_firstUncompletedIndex != -1
+                                    ? Icons.rate_review
+                                    : Icons.check_circle)),
+                            label: Text(_hasNext
+                                ? 'Next'
+                                : (_firstUncompletedIndex != -1
+                                    ? 'Review Uncompleted'
+                                    : (widget.finalActionText ??
+                                        'Next question'))),
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
                                   appColors.primary.withValues(alpha: 0.15),

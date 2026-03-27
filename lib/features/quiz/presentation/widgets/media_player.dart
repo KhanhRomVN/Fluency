@@ -67,7 +67,6 @@ class _MediaPlayerState extends State<MediaPlayer> {
     final targetSeconds = currentSeconds - 5.0;
 
     // Check if within segment bounds
-    // Fix: effectiveStart was undefined in previous broken logic
     final effectiveStart = widget.segmentStart ?? _internalSegmentStart;
 
     if (effectiveStart != null && targetSeconds < effectiveStart) {
@@ -84,7 +83,6 @@ class _MediaPlayerState extends State<MediaPlayer> {
   @override
   void initState() {
     super.initState();
-    // Use external player if provided, otherwise create a new one
     _player = widget.externalPlayer ?? AudioPlayer();
     _initAudio();
     _loadTranscript();
@@ -99,19 +97,12 @@ class _MediaPlayerState extends State<MediaPlayer> {
   }
 
   Future<void> _initAudio() async {
-    // Set the release mode to stop the audio when it finishes
     await _player.setReleaseMode(ReleaseMode.stop);
-
-    // Listen to logs for debugging
     _player.onLog.listen((msg) => debugPrint('AudioPlayer Log: $msg'));
 
-    // Initialize audio source properly
     if (widget.externalPlayer == null) {
       await _setSource();
     } else {
-      // If external player is used, source might be set by parent.
-      // But we ensure it's set if not playing or if path changed.
-      // For simplicity/safety, we can try setting it if state is stopped/completed.
       if (_player.state == PlayerState.stopped ||
           _player.state == PlayerState.completed) {
         await _setSource();
@@ -119,27 +110,21 @@ class _MediaPlayerState extends State<MediaPlayer> {
     }
 
     _durationSubscription = _player.onDurationChanged.listen((duration) {
-      debugPrint('Audio duration received: $duration');
       setState(() => _duration = duration);
     });
 
     _positionSubscription = _player.onPositionChanged.listen((p) {
       setState(() => _position = p);
-
-      // Check auto-pause/boundary
       final effectiveEnd = widget.segmentEnd ?? _internalSegmentEnd;
       if (effectiveEnd != null) {
         final currentSeconds = p.inMilliseconds / 1000.0;
         if (currentSeconds >= effectiveEnd && _isPlaying) {
-          debugPrint(
-              'MediaPlayer: Audio exceeded segment end ($effectiveEnd). Pausing.');
           _player.pause();
         }
       }
     });
 
     _playerCompleteSubscription = _player.onPlayerComplete.listen((event) {
-      debugPrint('Audio playback completed');
       setState(() {
         _playerState = PlayerState.stopped;
         _position = Duration.zero;
@@ -148,7 +133,6 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
     _playerStateChangeSubscription =
         _player.onPlayerStateChanged.listen((state) {
-      debugPrint('Audio player state changed: $state');
       setState(() {
         _playerState = state;
       });
@@ -157,51 +141,23 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
   Future<void> _setSource() async {
     try {
-      debugPrint('Attempting to set source: ${widget.audioPath}');
-      // Check if it's a file path (absolute path on device)
       if (widget.audioPath.startsWith('/') ||
           widget.audioPath.contains('course_cache')) {
         final file = File(widget.audioPath);
         if (await file.exists()) {
           await _player.setSource(DeviceFileSource(widget.audioPath));
-          debugPrint('Audio source set successfully (DeviceFileSource)');
-
-          // Try to get duration immediately
           final duration = await _player.getDuration();
           if (duration != null) {
-            debugPrint('Immediate duration: $duration');
             setState(() => _duration = duration);
-          } else {
-            debugPrint('Immediate duration is NULL');
           }
           return;
-        } else {
-          debugPrint('Audio file NOT found at path: ${widget.audioPath}');
-          // Diagnostic: List files in the same directory
-          try {
-            final dir = file.parent;
-            if (await dir.exists()) {
-              final files = await dir.list().toList();
-              debugPrint('Files in ${dir.path}:');
-              for (final f in files) {
-                debugPrint(' - ${f.path}');
-              }
-            } else {
-              debugPrint('Parent directory does NOT exist: ${dir.path}');
-            }
-          } catch (e) {
-            debugPrint('Error listing directory for diagnostics: $e');
-          }
         }
       }
-
-      // Fallback: Try to load as asset
       final bytes = await DefaultAssetBundle.of(context).load(widget.audioPath);
       final audioBytes = bytes.buffer.asUint8List();
       await _player.setSourceBytes(audioBytes);
-      debugPrint('Audio source set to asset bytes: ${widget.audioPath}');
     } catch (e) {
-      debugPrint('Error setting audio source (${widget.audioPath}): $e');
+      debugPrint('Error setting audio source: $e');
     }
   }
 
@@ -218,13 +174,13 @@ class _MediaPlayerState extends State<MediaPlayer> {
     try {
       String jsonString;
       if (path.startsWith('http')) {
-        return; // Download handling usually separate
+        return;
       } else if (path.startsWith('/')) {
         final file = File(path);
         if (await file.exists()) {
-          jsonString = await file.readAsString();
+          final bytes = await file.readAsBytes();
+          jsonString = utf8.decode(bytes, allowMalformed: true);
         } else {
-          debugPrint('MediaPlayer: Transcript file not found at $path');
           return;
         }
       } else {
@@ -244,12 +200,7 @@ class _MediaPlayerState extends State<MediaPlayer> {
             _internalSegmentStart = start;
             _internalSegmentEnd = end;
           });
-
-          // Move player to start of new segment immediately
           await _player.seek(Duration(milliseconds: (start * 1000).round()));
-
-          debugPrint(
-              'MediaPlayer: Parsed transcript. Start: $start, End: $end, Duration: ${end - start}s');
         }
       }
     } catch (e) {
@@ -263,10 +214,8 @@ class _MediaPlayerState extends State<MediaPlayer> {
     _positionSubscription?.cancel();
     _playerCompleteSubscription?.cancel();
     _playerStateChangeSubscription?.cancel();
-
-    // Only dispose if we created it
     if (widget.externalPlayer == null) {
-      _player.stop(); // Stop playback before disposing
+      _player.stop();
       _player.dispose();
     }
     super.dispose();
@@ -282,7 +231,6 @@ class _MediaPlayerState extends State<MediaPlayer> {
   Duration get _effectiveDuration {
     final start = widget.segmentStart ?? _internalSegmentStart;
     final end = widget.segmentEnd ?? _internalSegmentEnd;
-
     if (start != null && end != null) {
       final segmentLength = end - start;
       return Duration(milliseconds: (segmentLength * 1000).round());
@@ -292,7 +240,6 @@ class _MediaPlayerState extends State<MediaPlayer> {
 
   Duration get _effectivePosition {
     final start = widget.segmentStart ?? _internalSegmentStart;
-
     if (start != null) {
       final relativePosition = _position.inMilliseconds / 1000.0 - start;
       return Duration(
@@ -309,12 +256,8 @@ class _MediaPlayerState extends State<MediaPlayer> {
       if (_player.source == null) {
         await _setSource();
       }
-      // If we are at the end part of the segment (or full audio), resume normally
-      // But if we're at the very end, we might want to reset.
-      // Logic from TSX: If at segment end, seek to segment start first.
       final start = widget.segmentStart ?? _internalSegmentStart;
       final end = widget.segmentEnd ?? _internalSegmentEnd;
-
       if (start != null &&
           end != null &&
           _position.inMilliseconds / 1000.0 >= end - 0.1) {
@@ -327,36 +270,27 @@ class _MediaPlayerState extends State<MediaPlayer> {
   bool get _canSkipForward {
     final currentSeconds = _position.inMilliseconds / 1000.0;
     final targetSeconds = currentSeconds + 5.0;
-
-    // Can skip if target is within segment bounds (or no segment limit)
     final effectiveEnd = widget.segmentEnd ?? _internalSegmentEnd;
     if (effectiveEnd != null && targetSeconds > effectiveEnd) {
       return false;
     }
-
     return true;
   }
 
   bool get _canSkipBack {
     final currentSeconds = _position.inMilliseconds / 1000.0;
     final minPosition = widget.segmentStart ?? _internalSegmentStart ?? 0.0;
-
-    // Can skip back if we're not at the very start (with some buffer)
     return currentSeconds > minPosition + 0.5;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_duration.inMilliseconds == 0) {
+      return const SizedBox.shrink();
+    }
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
     return Container(
-      // Reduced padding to "move progress bar up" closer to controls?
-      // No, user said "nhích progressbar lên 1 chút" -> reduce vertical spacing between rows.
-      // Currently padding is 8. Row 1 has padding bottom 0.
-      // Maybe reduce container padding to 0 or very small?
-      // Or reduce padding between rows? There is no padding between rows.
-      // Let's reduce vertical padding overall.
-      padding: const EdgeInsets.only(left: 16, right: 16, top: 4, bottom: 12),
       decoration: BoxDecoration(
         color: appColors.cardBackground,
         boxShadow: [
@@ -368,162 +302,147 @@ class _MediaPlayerState extends State<MediaPlayer> {
         ],
       ),
       child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Row 1: Control Buttons (Centered)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 0.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Skip Back
-                  _buildIconButton(
-                    onTap: _handleSkipBack,
-                    svg: _skipBackSvg,
-                    appColors: appColors,
-                    size: 18, // Reduced from 20
-                    enabled: _canSkipBack,
-                  ),
-                  const SizedBox(width: 16),
-                  // Play/Pause
-                  InkWell(
-                    onTap: _togglePlay,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      width: 32, // Reduced from 36
-                      height: 32,
-                      alignment: Alignment.center,
-                      child: SvgPicture.asset(
-                        _isPlaying
-                            ? 'assets/icons/media_pause.svg'
-                            : 'assets/icons/media_play.svg',
-                        colorFilter: ColorFilter.mode(
-                          _isPlaying
-                              ? Colors.red
-                              : appColors.primary, // Red when playing
-                          BlendMode.srcIn,
+        top: true,
+        bottom: true,
+        child: Padding(
+          padding:
+              const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 3),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Progress Bar (Top)
+              SizedBox(
+                height: 14,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: MarkersPainter(
+                          duration:
+                              (widget.segmentEnd ?? _internalSegmentEnd) != null
+                                  ? (widget.segmentEnd ??
+                                          _internalSegmentEnd)! -
+                                      (widget.segmentStart ??
+                                          _internalSegmentStart ??
+                                          0)
+                                  : _duration.inMilliseconds / 1000.0,
+                          segmentStart:
+                              widget.segmentStart ?? _internalSegmentStart ?? 0,
+                          segmentEnd: widget.segmentEnd ?? _internalSegmentEnd,
+                          currentPosition:
+                              _effectivePosition.inMilliseconds / 1000.0,
+                          activeTrackColor: appColors.primary,
+                          inactiveTrackColor: appColors.border,
                         ),
-                        width: 22, // Slightly reduced from 24
-                        height: 22,
+                      ),
+                    ),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 3,
+                        thumbShape:
+                            const RoundSliderThumbShape(enabledThumbRadius: 5),
+                        overlayShape:
+                            const RoundSliderOverlayShape(overlayRadius: 10),
+                        activeTrackColor: Colors.transparent,
+                        inactiveTrackColor: Colors.transparent,
+                        thumbColor: appColors.primary,
+                        overlayColor: appColors.primary.withValues(alpha: 0.2),
+                        trackShape: FullWidthSliderTrackShape(),
+                      ),
+                      child: Slider(
+                        value: (_effectivePosition.inMilliseconds / 1000).clamp(
+                          0.0,
+                          (_effectiveDuration.inMilliseconds / 1000)
+                              .clamp(0.001, double.infinity),
+                        ),
+                        max: (_effectiveDuration.inMilliseconds / 1000)
+                            .clamp(0.001, double.infinity),
+                        onChanged: (value) {
+                          final start =
+                              widget.segmentStart ?? _internalSegmentStart;
+                          final seekTime =
+                              start != null ? start + value : value;
+                          final position =
+                              Duration(milliseconds: (seekTime * 1000).round());
+                          _player.seek(position);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(
+                  height: 0), // Removed gap as requested to move labels closer
+
+              // 2. Unified Row (Labels + Centered Icons)
+              Row(
+                children: [
+                  // Current Time Label
+                  Text(
+                    _formatDuration(_effectivePosition),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: appColors.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+
+                  // Center Icons Group
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildIconButton(
+                            onTap: _handleSkipBack,
+                            svg: _skipBackSvg,
+                            appColors: appColors,
+                            size: 16,
+                            enabled: _canSkipBack,
+                            color: appColors.textSecondary,
+                          ),
+                          const SizedBox(width: 24),
+                          _buildIconButton(
+                            onTap: _togglePlay,
+                            svg: _isPlaying
+                                ? 'assets/icons/media_pause.svg'
+                                : 'assets/icons/media_play.svg',
+                            appColors: appColors,
+                            size: 28,
+                            isAsset: true,
+                            color: _isPlaying
+                                ? appColors.primary
+                                : appColors.textSecondary,
+                          ),
+                          const SizedBox(width: 24),
+                          _buildIconButton(
+                            onTap: _handleSkipForward,
+                            svg: _skipForwardSvg,
+                            appColors: appColors,
+                            size: 16,
+                            enabled: _canSkipForward,
+                            color: appColors.textSecondary,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  // Skip Forward
-                  _buildIconButton(
-                    onTap: _handleSkipForward,
-                    svg: _skipForwardSvg,
-                    appColors: appColors,
-                    size: 18, // Reduced from 20
-                    enabled: _canSkipForward,
+
+                  // Total Duration Label
+                  Text(
+                    _formatDuration(_effectiveDuration),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: appColors.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ],
               ),
-            ),
-
-            // Row 2: Timeline (Time - Slider - Duration)
-            Row(
-              children: [
-                Text(
-                  _formatDuration(_effectivePosition),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: appColors.textSecondary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Markers and Custom Track overlay
-                      Positioned.fill(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          child: CustomPaint(
-                            painter: MarkersPainter(
-                              duration:
-                                  (widget.segmentEnd ?? _internalSegmentEnd) !=
-                                          null
-                                      ? (widget.segmentEnd ??
-                                              _internalSegmentEnd)! -
-                                          (widget.segmentStart ??
-                                              _internalSegmentStart ??
-                                              0)
-                                      : _duration.inMilliseconds / 1000.0,
-                              segmentStart: widget.segmentStart ??
-                                  _internalSegmentStart ??
-                                  0,
-                              segmentEnd:
-                                  widget.segmentEnd ?? _internalSegmentEnd,
-                              currentPosition:
-                                  _effectivePosition.inMilliseconds / 1000.0,
-                              activeTrackColor: appColors.primary,
-                              inactiveTrackColor: appColors.border,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Slider (Thumb only, transparent track)
-                      SizedBox(
-                        height: 14,
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            trackHeight: 3,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 5,
-                            ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 10,
-                            ),
-                            activeTrackColor: Colors.transparent,
-                            inactiveTrackColor: Colors.transparent,
-                            thumbColor: appColors.primary,
-                            overlayColor:
-                                appColors.primary.withValues(alpha: 0.2),
-                            trackShape: const RectangularSliderTrackShape(),
-                          ),
-                          child: Slider(
-                            value: (_effectivePosition.inMilliseconds / 1000)
-                                .clamp(
-                              0.0,
-                              (_effectiveDuration.inMilliseconds / 1000)
-                                  .clamp(0.001, double.infinity),
-                            ),
-                            max: (_effectiveDuration.inMilliseconds / 1000)
-                                .clamp(0.001, double.infinity),
-                            onChanged: (value) {
-                              final start =
-                                  widget.segmentStart ?? _internalSegmentStart;
-                              final seekTime =
-                                  start != null ? start + value : value;
-                              final position = Duration(
-                                milliseconds: (seekTime * 1000).round(),
-                              );
-                              _player.seek(position);
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _formatDuration(_effectiveDuration),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: appColors.textSecondary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -535,25 +454,38 @@ class _MediaPlayerState extends State<MediaPlayer> {
     required AppColorsExtension appColors,
     double size = 24,
     bool enabled = true,
+    bool isAsset = false,
+    Color? color,
   }) {
+    final iconColor =
+        color ?? (enabled ? appColors.primary : appColors.textSecondary);
+
     return InkWell(
-      onTap: enabled ? onTap : null, // Disable tap if not enabled
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(size),
       child: Container(
         width: size + 12,
         height: size + 12,
         alignment: Alignment.center,
-        child: SvgPicture.string(
-          svg,
-          colorFilter: ColorFilter.mode(
-            enabled
-                ? appColors.primary
-                : appColors.textSecondary, // Gray if disabled
-            BlendMode.srcIn,
-          ),
-          width: size,
-          height: size,
-        ),
+        child: isAsset
+            ? SvgPicture.asset(
+                svg,
+                colorFilter: ColorFilter.mode(
+                  iconColor,
+                  BlendMode.srcIn,
+                ),
+                width: size * (22 / 32),
+                height: size * (22 / 32),
+              )
+            : SvgPicture.string(
+                svg,
+                colorFilter: ColorFilter.mode(
+                  iconColor,
+                  BlendMode.srcIn,
+                ),
+                width: size,
+                height: size,
+              ),
       ),
     );
   }
@@ -568,7 +500,7 @@ class MarkersPainter extends CustomPainter {
   final double duration;
   final double segmentStart;
   final double? segmentEnd;
-  final double currentPosition; // Add current position for active track
+  final double currentPosition;
   final Color activeTrackColor;
   final Color inactiveTrackColor;
 
@@ -585,8 +517,7 @@ class MarkersPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (duration <= 0) return;
 
-    // 1. Draw Inactive Track
-    final trackHeight = 3.0; // Match TSX h-[3px]
+    final trackHeight = 3.0;
     final trackRect = Rect.fromCenter(
         center: Offset(size.width / 2, size.height / 2),
         width: size.width,
@@ -596,14 +527,10 @@ class MarkersPainter extends CustomPainter {
       ..color = inactiveTrackColor
       ..style = PaintingStyle.fill;
 
-    // Use RRect for rounded-full look
     canvas.drawRRect(
         RRect.fromRectAndRadius(trackRect, Radius.circular(trackHeight / 2)),
         inactivePaint);
 
-    // 2. Draw Active Track
-    // Calculate width relative to duration
-    // Note: currentPosition is already relative (effectivePosition), no need to subtract segmentStart again
     final progressRatio = currentPosition / duration;
     final clampedRatio = progressRatio.clamp(0.0, 1.0);
     final activeWidth = size.width * clampedRatio;
@@ -628,5 +555,23 @@ class MarkersPainter extends CustomPainter {
         oldDelegate.currentPosition != currentPosition ||
         oldDelegate.activeTrackColor != activeTrackColor ||
         oldDelegate.inactiveTrackColor != inactiveTrackColor;
+  }
+}
+
+class FullWidthSliderTrackShape extends RectangularSliderTrackShape {
+  @override
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    final double trackHeight = sliderTheme.trackHeight!;
+    final double trackLeft = offset.dx;
+    final double trackTop =
+        offset.dy + (parentBox.size.height - trackHeight) / 2;
+    final double trackWidth = parentBox.size.width;
+    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
   }
 }

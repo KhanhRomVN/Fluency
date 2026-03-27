@@ -8,6 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:fluency/features/course/presentation/widgets/import_method_drawer.dart';
+import 'package:fluency/features/course/presentation/widgets/import_status_drawer.dart';
+import 'package:fluency/features/course/domain/entities/course.dart';
+import 'package:fluency/features/course/data/course_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fluency/core/services/monitoring/monitoring_service.dart';
 
@@ -20,63 +24,49 @@ class CourseListPage extends StatefulWidget {
 
 class _CourseListPageState extends State<CourseListPage> {
   Future<void> _importCourseFromFile(BuildContext context) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
-        withData: kIsWeb, // Make sure to load data on web
-      );
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+      withData: kIsWeb,
+    );
 
-      if (result != null) {
-        if (kIsWeb) {
-          final bytes = result.files.single.bytes;
-          final name = result.files.single.name;
+    if (result != null) {
+      if (!context.mounted) return;
 
-          if (bytes != null) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Importing course (Web)...')),
-              );
+      final colors = Theme.of(context).extension<AppColorsExtension>()!;
+
+      showModalBottomSheet<void>(
+        context: context,
+        isDismissible: false,
+        enableDrag: false,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => ImportStatusDrawer(
+          importAction: (
+              {bool force = false, void Function(double)? onProgress}) async {
+            if (kIsWeb) {
+              final bytes = result.files.single.bytes;
+              final name = result.files.single.name;
+              if (bytes != null) {
+                return await Provider.of<CourseProvider>(context, listen: false)
+                    .importCourseFromBytes(bytes, name,
+                        force: force, onProgress: onProgress);
+              }
+            } else if (result.files.single.path != null) {
+              return await Provider.of<CourseProvider>(context, listen: false)
+                  .importCourse(result.files.single.path!,
+                      force: force, onProgress: onProgress);
             }
-            if (!context.mounted) return;
-
-            await Provider.of<CourseProvider>(context, listen: false)
-                .importCourseFromBytes(bytes, name);
-          }
-        } else if (result.files.single.path != null) {
-          final path = result.files.single.path!;
-
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Importing course...')),
-            );
-          }
-
-          if (!context.mounted) return;
-
-          await Provider.of<CourseProvider>(context, listen: false)
-              .importCourse(path);
-        }
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Course imported successfully!'),
-              backgroundColor: Colors.green.withOpacity(0.8),
-            ),
-          );
-        }
-      }
-    } catch (e, stack) {
-      MonitoringService.captureError(e, stackTrace: stack);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Import failed: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+            return null;
+          },
+          onRetry: () {
+            Navigator.pop(context);
+            _importCourseFromFile(context);
+          },
+          appColors: colors,
+        ),
+      );
     }
   }
 
@@ -136,36 +126,29 @@ class _CourseListPageState extends State<CourseListPage> {
     );
 
     if (url != null && url.isNotEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Downloading and importing course...')),
-        );
-      }
+      if (!context.mounted) return;
+      final appColors = Theme.of(context).extension<AppColorsExtension>()!;
 
-      try {
-        if (!context.mounted) return;
-        await Provider.of<CourseProvider>(context, listen: false)
-            .importCourseFromUrl(url);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Course imported successfully!'),
-              backgroundColor: Colors.green.withOpacity(0.8),
-            ),
-          );
-        }
-      } catch (e, stack) {
-        MonitoringService.captureError(e, stackTrace: stack);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Import failed: $e'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      }
+      showModalBottomSheet<void>(
+        context: context,
+        isDismissible: false,
+        enableDrag: false,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => ImportStatusDrawer(
+          importAction: (
+              {bool force = false, void Function(double)? onProgress}) async {
+            return await Provider.of<CourseProvider>(context, listen: false)
+                .importCourseFromUrl(url, force: force, onProgress: onProgress);
+          },
+          onRetry: () {
+            Navigator.pop(context);
+            _importCourseFromUrl(context);
+          },
+          appColors: appColors,
+        ),
+      );
     }
   }
 
@@ -189,186 +172,16 @@ class _CourseListPageState extends State<CourseListPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
       useSafeArea: true,
-      builder: (modalContext) => Container(
-        decoration: BoxDecoration(
-          color: colors.drawerBackground,
-          border: Border.all(
-            color: colors.border.withValues(alpha: 0.1),
-          ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colors.textSecondary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Choose Import Method',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: colors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          Text(
-                            'Select how you want to add content',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(modalContext),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: colors.inputBackground,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: colors.border.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Center(
-                          child: Icon(
-                            Icons.close_rounded,
-                            size: 18,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildModernOption(
-                context: modalContext,
-                colors: colors,
-                icon: Icons.language_rounded,
-                title: 'Fluency Hub',
-                subtitle: 'Browse and download courses from community',
-                onTap: () {
-                  Navigator.pop(modalContext);
-                  context.push('/hub');
-                },
-              ),
-              const SizedBox(height: 8),
-              _buildModernOption(
-                context: modalContext,
-                colors: colors,
-                icon: Icons.file_present_rounded,
-                title: 'Local File',
-                subtitle: 'Select a .zip file from your device',
-                onTap: () {
-                  Navigator.pop(modalContext);
-                  _importCourseFromFile(context);
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernOption({
-    required BuildContext context,
-    required AppColorsExtension colors,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: colors.cardBackground,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: colors.border,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(
-                  icon,
-                  color: colors.primary,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 16,
-                color: colors.textSecondary,
-              ),
-            ],
-          ),
-        ),
+      builder: (modalContext) => ImportMethodDrawer(
+        appColors: colors,
+        onFileTap: () {
+          Navigator.pop(modalContext);
+          _importCourseFromFile(context);
+        },
+        onUrlTap: () {
+          Navigator.pop(modalContext);
+          _importCourseFromUrl(context);
+        },
       ),
     );
   }

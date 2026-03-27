@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 class GapFillDropdown extends StatefulWidget {
   const GapFillDropdown({
+    required this.quiz,
     required this.question,
     required this.answers,
     required this.lessonId,
@@ -19,9 +20,11 @@ class GapFillDropdown extends StatefulWidget {
     this.onWordLongPress,
     this.onNext,
     this.onPrev,
+    this.finalActionText,
     super.key,
   });
 
+  final Quiz quiz;
   final String question;
   final List<QuizAnswer> answers;
   final String lessonId;
@@ -33,6 +36,7 @@ class GapFillDropdown extends StatefulWidget {
   final void Function(String word)? onWordLongPress;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<GapFillDropdown> createState() => _GapFillDropdownState();
@@ -42,7 +46,7 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
   // Map of gap ID to selected value
   final Map<String, String> _selections = {};
   bool _isChecked = false;
-  bool _areAllGapsFilled = false;
+  late List<String> _sharedOptions;
 
   // Animation variables
   late PageController _pageController;
@@ -51,11 +55,29 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
   void initState() {
     super.initState();
     _pageController = PageController();
-    _initializeSelections();
-
+    _sharedOptions = _calculateSharedOptions();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadProgress();
     });
+  }
+
+  List<String> _calculateSharedOptions() {
+    debugPrint(
+        '[GapFillDropdown] Calculating shared options for ${widget.answers.length} answers');
+    for (var i = 0; i < widget.answers.length; i++) {
+      debugPrint(
+          '[GapFillDropdown] Answer $i (id: ${widget.answers[i].id}): ${widget.answers[i].answer}');
+    }
+
+    final allAnswers = widget.answers
+        .expand((a) => a.answer)
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    debugPrint('[GapFillDropdown] Generated shared word bank: $allAnswers');
+    return allAnswers;
   }
 
   Future<void> _loadProgress() async {
@@ -66,6 +88,8 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
     );
 
     if (progress != null && mounted) {
+      debugPrint(
+          '[GapFillDropdown] Progress loaded for ${widget.quizId}: ${progress.data}');
       setState(() {
         _isChecked = progress.data?['isChecked'] as bool? ?? false;
 
@@ -91,10 +115,13 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
   Future<void> _saveProgress() async {
     final quizStateProvider = context.read<QuizStateProvider>();
 
-    final totalGaps = widget.answers.length;
-    final filledGaps = _selections.values.where((v) => v.isNotEmpty).length;
+    final totalScore = widget.quiz.totalScore;
+    final filledScore = widget.answers
+        .where((a) => _selections[a.id]?.isNotEmpty == true)
+        .fold(0, (sum, a) => sum + a.score);
 
-    int correctGaps = 0;
+    int correctScore = 0;
+    final Map<String, bool> correctness = {};
     if (_isChecked) {
       for (final answer in widget.answers) {
         final selectedValue = _selections[answer.id] ?? '';
@@ -103,8 +130,9 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
               selectedValue.toLowerCase().trim() == ans.toLowerCase().trim(),
         );
         if (isCorrect) {
-          correctGaps++;
+          correctScore += answer.score;
         }
+        correctness[answer.id] = isCorrect;
       }
     }
 
@@ -112,23 +140,27 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
       lessonId: widget.lessonId,
       quizId: widget.quizId,
       quizType: 'gap-fill-dropdown',
-      completedItems: filledGaps,
-      totalItems: totalGaps,
-      correctItems: correctGaps,
+      completedItems: filledScore,
+      totalItems: totalScore,
+      correctItems: correctScore,
       data: {
         'isChecked': _isChecked,
         'selections': _selections,
+        'correctness': correctness,
       },
     );
+    debugPrint(
+        '[GapFillDropdown] Progress saved for ${widget.quizId}: $_selections');
   }
 
   @override
   void didUpdateWidget(covariant GapFillDropdown oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.question != widget.question) {
+    if (oldWidget.question != widget.question ||
+        oldWidget.answers != widget.answers) {
       setState(() {
         _isChecked = false;
-        _areAllGapsFilled = false;
+        _sharedOptions = _calculateSharedOptions();
       });
       _initializeSelections();
     }
@@ -150,35 +182,16 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
         _selections[id] = '';
       }
     }
-    _checkIfAllGapsFilled();
+    debugPrint('[GapFillDropdown] Initialized selections: $_selections');
   }
 
-  void _checkIfAllGapsFilled() {
-    final allFilled = _selections.values.every((val) => val.isNotEmpty);
-    if (allFilled != _areAllGapsFilled) {
-      setState(() {
-        _areAllGapsFilled = allFilled;
-      });
-    }
-  }
-
-  bool _allGapsCorrect() {
-    for (final answer in widget.answers) {
-      final selectedValue = _selections[answer.id] ?? '';
-      final isCorrect = answer.answer.any(
-        (ans) => selectedValue.toLowerCase().trim() == ans.toLowerCase().trim(),
-      );
-      if (!isCorrect) return false;
-    }
-    return true;
+  bool _checkIfAllGapsFilled() {
+    return _selections.values.every((val) => val.isNotEmpty);
   }
 
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorsExtension>()!;
-    final borderColor = _isChecked
-        ? (_allGapsCorrect() ? Colors.green : Colors.red)
-        : Colors.grey.withValues(alpha: 0.5);
 
     return Stack(
       children: [
@@ -189,63 +202,40 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
             // Question Card
             Expanded(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: appColors.cardBackground,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: CustomPaint(
-                    painter: _DashedBorderPainter(
-                      color: borderColor,
-                      strokeWidth: 2,
-                      gap: 4,
-                      borderRadius: 12,
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Theme(
-                                  data: Theme.of(context).copyWith(
-                                    textTheme:
-                                        Theme.of(context).textTheme.copyWith(
-                                              bodyMedium: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
-                                                  ?.copyWith(fontSize: 16),
-                                            ),
-                                  ),
-                                  child: Builder(
-                                    builder: _buildContent,
-                                  ),
-                                ),
-                              ],
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 24, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Theme(
+                              data: Theme.of(context).copyWith(
+                                textTheme: Theme.of(context).textTheme.copyWith(
+                                      bodyMedium: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(fontSize: 16),
+                                    ),
+                              ),
+                              child: Builder(
+                                builder: _buildContent,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                        if (_isChecked || _areAllGapsFilled)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                _buildActionButtons(appColors),
-                              ],
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
+            ),
+            // Bottom Action Button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 24, 16),
+              child: _buildActionButtons(appColors),
             ),
           ],
         ),
@@ -254,74 +244,79 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
   }
 
   Widget _buildActionButtons(AppColorsExtension appColors) {
+    // Determine button text and action
+    String text;
+    VoidCallback? onPressed;
+    Color? backgroundColor = appColors.primary.withValues(alpha: 0.15);
+    Color? foregroundColor = appColors.primary;
+
     if (_isChecked) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary.withValues(alpha: 0.15),
-          foregroundColor: appColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        onPressed: widget.onNext,
-        child:
-            const Text('Next', style: TextStyle(fontWeight: FontWeight.bold)),
-      );
+      text = widget.finalActionText ?? 'Next';
+      onPressed = widget.onNext;
+    } else {
+      text = 'Check answers';
+      // Enable only if all gaps are filled
+      onPressed = _checkIfAllGapsFilled()
+          ? () {
+              setState(() {
+                _isChecked = true;
+              });
+
+              // Check if all are correct to play sound
+              bool allCorrect = true;
+              for (final answer in widget.answers) {
+                final selectedValue = _selections[answer.id] ?? '';
+                final isCorrect = answer.answer.any(
+                  (ans) =>
+                      selectedValue.toLowerCase().trim() ==
+                      ans.toLowerCase().trim(),
+                );
+                if (!isCorrect) {
+                  allCorrect = false;
+                  break;
+                }
+              }
+
+              if (mounted) {
+                final soundProvider = context.read<SoundEffectProvider>();
+                if (allCorrect) {
+                  soundProvider.playCorrect();
+                } else {
+                  soundProvider.playWrong();
+                }
+              }
+
+              _saveProgress();
+              widget.onCheck?.call();
+            }
+          : null;
     }
 
-    if (_areAllGapsFilled && !_isChecked) {
-      return ElevatedButton(
-        onPressed: () {
-          setState(() {
-            _isChecked = true;
-          });
-
-          // Check if all are correct to play sound
-          bool allCorrect = true;
-          for (final answer in widget.answers) {
-            final selectedValue = _selections[answer.id] ?? '';
-            final isCorrect = answer.answer.any(
-              (ans) =>
-                  selectedValue.toLowerCase().trim() ==
-                  ans.toLowerCase().trim(),
-            );
-            if (!isCorrect) {
-              allCorrect = false;
-              break;
-            }
-          }
-
-          if (mounted) {
-            final soundProvider = context.read<SoundEffectProvider>();
-            if (allCorrect) {
-              soundProvider.playCorrect();
-            } else {
-              soundProvider.playWrong();
-            }
-          }
-
-          _saveProgress();
-          widget.onCheck?.call();
-        },
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary.withValues(alpha: 0.15),
-          foregroundColor: appColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          backgroundColor: backgroundColor,
+          foregroundColor: foregroundColor,
+          disabledBackgroundColor:
+              appColors.textPrimary.withValues(alpha: 0.05),
+          disabledForegroundColor: appColors.textPrimary.withValues(alpha: 0.3),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 0,
         ),
-        child: const Text(
-          'Check answers',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            letterSpacing: 0.5,
+          ),
         ),
-      );
-    }
-
-    return const SizedBox.shrink();
+      ),
+    );
   }
 
   Widget _buildContent(BuildContext context) {
@@ -404,21 +399,248 @@ class _GapFillDropdownState extends State<GapFillDropdown> {
       );
     }
 
-    // Use options from answer object if available, otherwise fallback to possible answers
-    final options =
-        answer.options.isNotEmpty ? answer.options : possibleAnswers;
+    // Use options from answer object if available, otherwise fallback to _sharedOptions
+    final options = answer.options.isNotEmpty ? answer.options : _sharedOptions;
 
     return _DropdownTrigger(
       value: selectedValue,
       options: options,
-      onChanged: (val) {
-        setState(() {
-          _selections[id] = val;
-        });
-        _checkIfAllGapsFilled();
-        _saveProgress();
-      },
+      onTap: () => _showOptionsBottomSheet(
+        context,
+        id,
+        options,
+        selectedValue,
+        appColors,
+      ),
+      onClear: () => _onOptionSelected(id, ''),
       appColors: appColors,
+    );
+  }
+
+  void _onOptionSelected(String id, String val) {
+    debugPrint('[GapFillDropdown] Option selected for $id: $val');
+    setState(() {
+      // Clear other gaps using this value (unique selection)
+      _selections.forEach((key, value) {
+        if (val.isNotEmpty && value == val) {
+          _selections[key] = '';
+        }
+      });
+      _selections[id] = val;
+    });
+    _saveProgress();
+  }
+
+  void _showOptionsBottomSheet(
+    BuildContext context,
+    String id,
+    List<String> options,
+    String currentSelection,
+    AppColorsExtension appColors,
+  ) {
+    debugPrint(
+        '[GapFillDropdown] Showing options for $id. Current: $currentSelection');
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: appColors.drawerBackground,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: appColors.drawerBackground,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(30)),
+                border: Border.all(
+                  color: appColors.border.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: appColors.textSecondary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Header
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Select an answer',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: appColors.textPrimary,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              Text(
+                                'Choose the word that fits the gap',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: appColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => Navigator.pop(context),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: appColors.inputBackground,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: appColors.border.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 18,
+                                color: appColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final opt = options[index];
+                        final isSelected = opt == currentSelection;
+
+                        // Find which gaps have selected this option
+                        final selectedGapIds = _selections.entries
+                            .where((e) => e.value == opt)
+                            .map((e) => e.key)
+                            .toList();
+
+                        final isUsed = selectedGapIds.isNotEmpty;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: (isUsed && !isSelected)
+                                ? null
+                                : () {
+                                    _onOptionSelected(id, opt);
+                                    Navigator.pop(context);
+                                  },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? appColors.textPrimary
+                                        .withValues(alpha: 0.05)
+                                    : appColors.inputBackground,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? appColors.primary.withValues(alpha: 0.3)
+                                      : appColors.border.withValues(alpha: 0.1),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.centerLeft,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      right: isUsed ? 40 : 0,
+                                    ),
+                                    child: Opacity(
+                                      opacity:
+                                          (isUsed && !isSelected) ? 0.35 : 1.0,
+                                      child: Text(
+                                        opt,
+                                        style: TextStyle(
+                                          color: appColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (isUsed)
+                                    Positioned(
+                                      right: -4,
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              for (final gapId
+                                                  in selectedGapIds) {
+                                                _selections[gapId] = '';
+                                              }
+                                            });
+                                            setModalState(() {
+                                              _saveProgress();
+                                            });
+                                            _checkIfAllGapsFilled();
+                                          },
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Icon(
+                                              Icons.close_rounded,
+                                              size: 20,
+                                              color: Colors.red
+                                                  .withValues(alpha: 0.7),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -436,142 +658,63 @@ class _DropdownTrigger extends StatelessWidget {
   const _DropdownTrigger({
     required this.value,
     required this.options,
-    required this.onChanged,
+    required this.onTap,
+    required this.onClear,
     required this.appColors,
   });
 
   final String value;
   final List<String> options;
-  final ValueChanged<String> onChanged;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
   final AppColorsExtension appColors;
 
   @override
   Widget build(BuildContext context) {
-    // Determine width based on longest option or current value
     final displayValue = value.isEmpty ? 'Select...' : value;
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        cardColor: appColors.inputBackground,
-      ),
-      child: PopupMenuButton<String>(
-        onSelected: onChanged,
-        offset: const Offset(0, 30),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: appColors.border, width: 1.5),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color:
+                appColors.primary.withValues(alpha: value.isEmpty ? 0.3 : 1.0),
+            width: value.isEmpty ? 1 : 2,
+          ),
         ),
-        itemBuilder: (context) => options
-            .map(
-              (opt) => PopupMenuItem<String>(
-                value: opt,
-                height: 38,
-                child: Text(
-                  opt,
-                  style: TextStyle(
-                    color: value == opt
-                        ? appColors.primary
-                        : appColors.textPrimary,
-                    fontWeight:
-                        value == opt ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            )
-            .toList(),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: appColors.primary
-                    .withValues(alpha: value.isEmpty ? 0.3 : 1.0),
-                width: value.isEmpty ? 1 : 2,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(4),
+            child: Text(
+              displayValue,
+              style: TextStyle(
+                color: value.isEmpty
+                    ? appColors.textSecondary.withValues(alpha: 0.5)
+                    : appColors.textPrimary,
+                fontWeight: value.isEmpty ? FontWeight.normal : FontWeight.bold,
+                fontSize: 16,
               ),
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                displayValue,
-                style: TextStyle(
-                  color: value.isEmpty
-                      ? appColors.textSecondary.withValues(alpha: 0.5)
-                      : appColors.textPrimary,
-                  fontWeight:
-                      value.isEmpty ? FontWeight.normal : FontWeight.bold,
-                  fontSize: 16,
-                ),
+          if (value.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onClear,
+              child: Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: Colors.red.withValues(alpha: 0.8),
               ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_drop_down,
-                size: 18,
-                color: appColors.primary.withValues(alpha: 0.5),
-              ),
-            ],
-          ),
-        ),
+            ),
+          ],
+        ],
       ),
     );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Custom Painters (Copied for consistency)
-// -----------------------------------------------------------------------------
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
   }
 }

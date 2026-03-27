@@ -56,8 +56,11 @@ class SystemTtsService implements TtsService {
   }
 
   @override
-  Future<void> speak(String text) async {
+  Future<void> speak(String text,
+      {double speed = 1.0, double pitch = 1.0}) async {
     if (text.isEmpty) return;
+    await _flutterTts.setSpeechRate(speed);
+    await _flutterTts.setPitch(pitch);
     await _flutterTts.speak(text);
   }
 

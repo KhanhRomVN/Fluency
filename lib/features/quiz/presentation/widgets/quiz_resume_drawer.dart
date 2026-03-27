@@ -267,19 +267,23 @@ class QuizResumeDrawer extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: ElevatedButton(
                     onPressed: onReset,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: appColors.border),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          appColors.textPrimary.withValues(alpha: 0.1),
+                      foregroundColor: appColors.textPrimary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Restart',
                       style: TextStyle(
-                        color: appColors.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -291,8 +295,13 @@ class QuizResumeDrawer extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onContinue,
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      backgroundColor: appColors.primary,
+                      backgroundColor:
+                          appColors.primary.withValues(alpha: 0.15),
+                      foregroundColor: appColors.primary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -300,7 +309,6 @@ class QuizResumeDrawer extends StatelessWidget {
                     child: const Text(
                       'Continue',
                       style: TextStyle(
-                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -329,10 +337,10 @@ class QuizResumeDrawer extends StatelessWidget {
         typeLabel = 'MULTIPLE CHOICE';
         typeColor = Colors.blue;
       case 'gap-fill-typing':
-        typeLabel = 'GAP FILL';
+        typeLabel = 'GAP FILL TYPING';
         typeColor = Colors.green;
       case 'gap-fill-dropdown':
-        typeLabel = 'GAP FILL';
+        typeLabel = 'GAP FILL DROPDOWN';
         typeColor = Colors.lightGreen;
       case 'matching-dropdown':
         typeLabel = 'MATCHING';

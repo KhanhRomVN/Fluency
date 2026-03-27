@@ -32,6 +32,7 @@ class LessonCard extends StatelessWidget {
     final progressPercentage = quizStateProvider.getLessonProgressPercentage(
       lesson.id,
       lesson.quizzes.length,
+      quizIds: lesson.quizzes.map((q) => q.id).toList(),
     );
     final progress = progressPercentage / 100;
 

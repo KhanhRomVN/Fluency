@@ -108,19 +108,32 @@ class PiperTtsService implements TtsService {
     }
   }
 
+  /// Speak the given [text] with optional [speed] and [pitch]
   @override
-  Future<void> speak(String text) async {
+  Future<void> speak(String text,
+      {double speed = 1.0, double pitch = 1.0}) async {
     if (!_isInitialized || _sendPort == null) {
       await initialize();
       if (!_isInitialized) return;
     }
 
     try {
+      String processedText = text.trim();
+      if (processedText.isNotEmpty &&
+          !processedText.endsWith('.') &&
+          !processedText.endsWith('!') &&
+          !processedText.endsWith('?')) {
+        processedText += '.';
+      }
+
       // 1. Generate Audio via Isolate
+      // We use (speed / pitch) for generation to compensate for playbackRate pitch adjustment
+      final generationSpeed = speed / pitch;
       final responsePort = ReceivePort();
       _sendPort!.send(_IsolateGenerateRequest(
-        text: text,
+        text: processedText,
         replyTo: responsePort.sendPort,
+        speed: generationSpeed,
       ));
 
       final response = await responsePort.first;
@@ -134,6 +147,9 @@ class PiperTtsService implements TtsService {
         debugPrint('Piper generated empty audio');
         return;
       }
+
+      debugPrint(
+          'Generated audio: ${response.samples!.length} samples at ${response.sampleRate}Hz');
 
       // 2. Save to WAV (can stay here or move to isolate, isolate is safer but requires file system access)
       final wavPath = await _saveToWav(response.samples!, response.sampleRate);
@@ -151,6 +167,7 @@ class PiperTtsService implements TtsService {
         }
       });
 
+      await _audioPlayer.setPlaybackRate(pitch);
       await _audioPlayer.play(DeviceFileSource(wavPath));
       await completer.future;
     } catch (e, stack) {
@@ -186,11 +203,15 @@ class PiperTtsService implements TtsService {
             model: data.modelPath,
             tokens: data.tokensPath,
             dataDir: data.dataDir,
+            noiseScale: 0.667,
+            noiseScaleW: 0.8,
+            lengthScale: 1.0,
           ),
           numThreads: 1,
           debug: false,
         ),
       );
+      debugPrint('OfflineTts initialized with speed=1.0');
       offlineTts = sherpa.OfflineTts(config);
     } catch (e) {
       data.sendPort.send('Isolate Init Error: $e');
@@ -209,7 +230,7 @@ class PiperTtsService implements TtsService {
           }
 
           final generated =
-              offlineTts!.generate(text: message.text, speed: 1.0);
+              offlineTts!.generate(text: message.text, speed: message.speed);
           message.replyTo.send(_IsolateGenerateResponse(
             samples: generated.samples,
             sampleRate: generated.sampleRate,
@@ -293,8 +314,13 @@ class _IsolateInitData {
 class _IsolateGenerateRequest {
   final String text;
   final SendPort replyTo;
+  final double speed;
 
-  _IsolateGenerateRequest({required this.text, required this.replyTo});
+  _IsolateGenerateRequest({
+    required this.text,
+    required this.replyTo,
+    this.speed = 1.0,
+  });
 }
 
 class _IsolateGenerateResponse {

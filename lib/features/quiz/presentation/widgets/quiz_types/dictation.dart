@@ -21,6 +21,7 @@ class Dictation extends StatefulWidget {
     this.onPrev,
     this.onWordLongPress,
     this.onCheck,
+    this.finalActionText,
     super.key,
   });
 
@@ -31,6 +32,7 @@ class Dictation extends StatefulWidget {
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<Dictation> createState() => _DictationState();
@@ -43,6 +45,11 @@ class _DictationState extends State<Dictation> {
   String? _playingId;
   final Map<String, Map<String, FocusNode>> _focusNodesByItem = {};
   final Map<String, String> _selectedVoiceByItem = {};
+
+  int get _firstUnpassedIndex {
+    final dictations = widget.quiz.dictations ?? [];
+    return dictations.indexWhere((d) => !(_itemStates[d.id]?.passed ?? false));
+  }
 
   // Animation variables
   late PageController _pageController;
@@ -108,8 +115,20 @@ class _DictationState extends State<Dictation> {
           }
         }
 
+        final savedIndex =
+            progress.data?['currentIndex'] as int? ?? firstUnpassed;
+
+        int indexToUse = savedIndex;
+
+        // Hybrid logic: if we are at the end but have unpassed items, jump back to first unpassed
+        if (savedIndex == dictations.length - 1 &&
+            firstUnpassed != -1 &&
+            firstUnpassed < savedIndex) {
+          indexToUse = firstUnpassed;
+        }
+
         setState(() {
-          _currentIndex = firstUnpassed;
+          _currentIndex = indexToUse;
 
           // If quiz is completed, notify parent to show transcript/etc
           if (progress.isCompleted) {
@@ -455,178 +474,162 @@ class _DictationState extends State<Dictation> {
                 }
               });
 
-              final borderColor = state.passed
-                  ? Colors.green
-                  : (state.attempts > 0
-                      ? Colors.red
-                      : Colors.grey.withValues(alpha: 0.5));
-
               return Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Stack(
                   children: [
-                    // Main Card Container
-                    Container(
+                    // Unconstrained Container (Removed Card UI)
+                    SizedBox(
                       width: double.infinity,
                       height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: appColors.cardBackground,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: borderColor,
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 12,
-                        ),
-                        child: Column(
-                          children: [
-                            // HEADER
-                            _buildCardHeader(
-                              context,
-                              appColors,
-                              dictations,
-                              item,
-                              index,
-                            ),
-                            Divider(
-                              height: 1,
-                              color: appColors.border.withValues(alpha: 0.5),
-                            ),
-
-                            // BODY
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  // Speed & Attempt Info
-                                  Positioned(
-                                    top: 16,
-                                    left: 16,
-                                    child: Text(
-                                      'Attempt ${state.attempts} / 3',
-                                      style: TextStyle(
-                                        color: appColors.textSecondary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
+                      child: Column(
+                        children: [
+                          // BODY
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                // Speed & Attempt Info
+                                Positioned(
+                                  top: 8,
+                                  left: 0,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Attempt',
+                                        style: TextStyle(
+                                          color: appColors.textSecondary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: List.generate(3, (i) {
+                                          Color color = appColors.border
+                                              .withValues(alpha: 0.5);
+                                          if (state.passed) {
+                                            color = Colors.green;
+                                          } else if (i < state.attempts) {
+                                            color = Colors.red;
+                                          }
+                                          return Container(
+                                            margin:
+                                                const EdgeInsets.only(right: 6),
+                                            width: 24,
+                                            height: 6,
+                                            decoration: BoxDecoration(
+                                              color: color,
+                                              borderRadius:
+                                                  BorderRadius.circular(3),
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                    ],
                                   ),
+                                ),
 
-                                  // Centered Content
-                                  Center(
-                                    child: SingleChildScrollView(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        24,
-                                        60,
-                                        24,
-                                        100,
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          // Word Inputs (Using RichTextParser)
-                                          _buildDictationContent(
-                                            context,
-                                            item,
-                                            state,
-                                            appColors,
-                                          ),
+                                // Centered Content
+                                Center(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      24,
+                                      60,
+                                      24,
+                                      100,
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        // Word Inputs (Using RichTextParser)
+                                        _buildDictationContent(
+                                          context,
+                                          item,
+                                          state,
+                                          appColors,
+                                        ),
 
-                                          // Play Button in body
-                                          if (!state.passed && !allFilled)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                  top: 32),
-                                              child: GestureDetector(
-                                                onTap: () => _playAudio(item),
-                                                child: AnimatedContainer(
-                                                  duration: const Duration(
-                                                      milliseconds: 300),
-                                                  width: 56,
-                                                  height: 56,
-                                                  decoration: BoxDecoration(
-                                                    color: _playingId == item.id
-                                                        ? appColors.primary
-                                                            .withValues(
-                                                                alpha: 0.15)
-                                                        : Colors.grey
-                                                            .withValues(
-                                                                alpha: 0.1),
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.volume_up,
-                                                    color: _playingId == item.id
-                                                        ? appColors.primary
-                                                        : Colors.grey,
-                                                    size: 24,
-                                                  ),
+                                        // Play Button in body
+                                        if (!state.passed && !allFilled)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 32),
+                                            child: GestureDetector(
+                                              onTap: () => _playAudio(item),
+                                              child: AnimatedContainer(
+                                                duration: const Duration(
+                                                    milliseconds: 300),
+                                                width: 56,
+                                                height: 56,
+                                                decoration: BoxDecoration(
+                                                  color: (_playingId == item.id
+                                                          ? appColors.primary
+                                                          : appColors
+                                                              .textSecondary)
+                                                      .withValues(alpha: 0.15),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.volume_up_rounded,
+                                                  color: _playingId == item.id
+                                                      ? appColors.primary
+                                                      : appColors.textSecondary,
+                                                  size: 28,
                                                 ),
                                               ),
                                             ),
+                                          ),
 
-                                          // IPA and Translation (shown when passed)
-                                          if (state.passed) ...[
-                                            if (item.ipa != null)
-                                              Text(
-                                                item.ipa!,
+                                        // IPA and Translation (shown when passed)
+                                        if (state.passed) ...[
+                                          if (item.ipa != null)
+                                            Text(
+                                              item.ipa!,
+                                              style: TextStyle(
+                                                color: appColors.primary,
+                                                fontSize: 16,
+                                                fontFamily: 'NotoSans',
+                                              ),
+                                            ),
+                                          if (item.translate != null)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.only(top: 2),
+                                              child: Text(
+                                                item.translate!,
+                                                textAlign: TextAlign.center,
                                                 style: TextStyle(
-                                                  color: appColors.primary,
-                                                  fontSize: 16,
-                                                  fontFamily: 'NotoSans',
+                                                  color:
+                                                      appColors.textSecondary,
+                                                  fontStyle: FontStyle.italic,
+                                                  fontSize: 14,
                                                 ),
                                               ),
-                                            if (item.translate != null)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                    top: 2),
-                                                child: Text(
-                                                  item.translate!,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color:
-                                                        appColors.textSecondary,
-                                                    fontStyle: FontStyle.italic,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ),
-                                          ],
+                                            ),
                                         ],
-                                      ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            if (state.passed ||
-                                (allFilled && state.attempts < 3)) ...[
-                              Divider(
-                                height: 1,
-                                color: appColors.border.withValues(alpha: 0.5),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    _buildFooterActions(
-                                      item,
-                                      state,
-                                      appColors,
-                                      allFilled,
-                                      index,
-                                      dictations.length,
-                                    ),
-                                  ],
                                 ),
-                              ),
-                            ],
-                          ],
-                        ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16.0),
+                            child: _buildFooterActions(
+                              item,
+                              state,
+                              appColors,
+                              allFilled,
+                              index,
+                              dictations.length,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -639,98 +642,6 @@ class _DictationState extends State<Dictation> {
     );
   }
 
-  Widget _buildCardHeader(
-    BuildContext context,
-    AppColorsExtension appColors,
-    List<DictationItem> items,
-    DictationItem currentItem,
-    int index,
-  ) {
-    final state = _itemStates[currentItem.id] ?? _DictationItemState();
-    final isPassed = state.passed;
-
-    // Check total completed count
-    final completedCount =
-        _itemStates.values.where((s) => s.attempts > 0).length;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Item Counter
-          Text(
-            '${index + 1} / ${items.length}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: appColors.textSecondary,
-            ),
-          ),
-
-          Row(
-            children: [
-              // Score badge (shown if passed)
-              if (isPassed)
-                Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: appColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    '+${state.score} pts',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.primary,
-                    ),
-                  ),
-                ),
-
-              // Circular Segmented Progress
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CustomPaint(
-                      size: const Size(32, 32),
-                      painter: _SegmentedProgressPainter(
-                        totalSegments: items.length,
-                        segmentStates: List.generate(items.length, (idx) {
-                          final item = items[idx];
-                          final s =
-                              _itemStates[item.id] ?? _DictationItemState();
-                          if (s.attempts == 0) return 0;
-                          return s.passed ? 1 : 2;
-                        }),
-                        primaryColor: appColors.primary,
-                        errorColor: Colors.red,
-                        emptyColor: appColors.border,
-                      ),
-                    ),
-                    Text(
-                      '$completedCount',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFooterActions(
     DictationItem item,
     _DictationItemState state,
@@ -740,46 +651,73 @@ class _DictationState extends State<Dictation> {
     int totalItems,
   ) {
     if (state.passed) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: appColors.primary.withValues(alpha: 0.15),
-              foregroundColor: appColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              elevation: 0,
-            ),
-            onPressed: () => _handleNext(totalItems),
-            child: Text(index < totalItems - 1 ? 'Next' : 'Finish',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+      final isLast = index == totalItems - 1;
+
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green.withValues(alpha: 0.15),
+            foregroundColor: Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: 0,
           ),
-        ],
+          onPressed: () {
+            if (isLast) {
+              final unpassed = _firstUnpassedIndex;
+              if (unpassed != -1) {
+                _pageController.animateToPage(
+                  unpassed,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              } else {
+                widget.onCheck?.call();
+                widget.onNext?.call();
+              }
+            } else {
+              _handleNext(totalItems);
+            }
+          },
+          child: Text(
+              isLast
+                  ? (_firstUnpassedIndex != -1
+                      ? 'Review Uncompleted'
+                      : (widget.finalActionText ?? 'Finish'))
+                  : 'Next',
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+        ),
       );
     }
 
-    if (!state.passed && allFilled && state.attempts < 3) {
+    if (!state.passed && state.attempts < 3) {
       final hasErrors = state.correctGaps.values.any((v) => v == false);
 
-      return ElevatedButton(
-        onPressed:
-            hasErrors ? () => _handleRetry(item) : () => _checkAnswer(item),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appColors.primary.withValues(alpha: 0.15),
-          foregroundColor: appColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-        ),
-        child: Text(
-          !hasErrors ? 'Check Answer' : 'Retry(${state.attempts})',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: allFilled
+              ? (hasErrors
+                  ? () => _handleRetry(item)
+                  : () => _checkAnswer(item))
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: appColors.primary.withValues(alpha: 0.15),
+            foregroundColor: appColors.primary,
+            disabledBackgroundColor:
+                appColors.textSecondary.withValues(alpha: 0.15),
+            disabledForegroundColor: appColors.textSecondary,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: 0,
+          ),
+          child: Text(
+            !hasErrors ? 'Check Answer' : 'Retry(${state.attempts})',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       );
     }
@@ -902,7 +840,7 @@ class _DictationState extends State<Dictation> {
       TextSpan(children: spans),
       textAlign: TextAlign.center,
       style: TextStyle(
-        fontSize: 18,
+        fontSize: 22,
         height: 1.8,
         color: appColors.textPrimary,
       ),
@@ -1125,118 +1063,5 @@ class _DictationItemState {
       gapInputs: gapInputs ?? this.gapInputs,
       correctGaps: correctGaps ?? this.correctGaps,
     );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
-  }
-}
-
-class _SegmentedProgressPainter extends CustomPainter {
-  _SegmentedProgressPainter({
-    required this.totalSegments,
-    required this.segmentStates,
-    required this.primaryColor,
-    required this.errorColor,
-    required this.emptyColor,
-  });
-  final int totalSegments;
-  final List<int> segmentStates; // 0: Empty, 1: Correct, 2: Wrong
-  final Color primaryColor;
-  final Color errorColor;
-  final Color emptyColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const strokeWidth = 3.0;
-
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-
-    var startAngle = -math.pi / 2;
-    final gap = (totalSegments > 1) ? 0.2 : 0;
-    final totalGap = gap * totalSegments;
-    final segmentAngle = (2 * math.pi - totalGap) / totalSegments;
-
-    for (var i = 0; i < totalSegments; i++) {
-      final state = (i < segmentStates.length) ? segmentStates[i] : 0;
-
-      if (state == 1) {
-        paint.color = primaryColor;
-      } else if (state == 2) {
-        paint.color = errorColor;
-      } else {
-        paint.color = emptyColor;
-      }
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
-        startAngle,
-        segmentAngle,
-        false,
-        paint,
-      );
-
-      startAngle += segmentAngle + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _SegmentedProgressPainter oldDelegate) {
-    return true;
   }
 }

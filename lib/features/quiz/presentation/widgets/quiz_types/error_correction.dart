@@ -14,6 +14,7 @@ class ErrorCorrection extends StatefulWidget {
     this.onPrev,
     this.onWordLongPress,
     this.onCheck,
+    this.finalActionText,
     super.key,
   });
 
@@ -23,6 +24,7 @@ class ErrorCorrection extends StatefulWidget {
   final VoidCallback? onCheck;
   final VoidCallback? onNext;
   final VoidCallback? onPrev;
+  final String? finalActionText;
 
   @override
   State<ErrorCorrection> createState() => _ErrorCorrectionState();
@@ -34,9 +36,15 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
   // Map<ItemID, State>
   final Map<String, _ErrorCorrectionItemState> _itemStates = {};
 
+  int get _firstUnpassedIndex {
+    final items = widget.quiz.errorCorrections ?? [];
+    return items.indexWhere((item) => !(_itemStates[item.id]?.passed ?? false));
+  }
+
   // Selection state
   int? _selectedTokenIndex;
   CorrectionError? _selectedError;
+  Set<int>? _selectedChainIndices;
   String _inputValue = '';
 
   // Controllers
@@ -119,6 +127,7 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     setState(() {
       _currentIndex = index;
       _selectedTokenIndex = null;
+      _selectedChainIndices = null;
       _selectedError = null;
       _inputValue = '';
       _inputController.clear();
@@ -251,26 +260,55 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     final state = _itemStates[item.id] ?? _ErrorCorrectionItemState();
     if (state.passed) return;
 
-    if (token.errorId != null && state.solvedErrorIds.contains(token.errorId)) {
+    // Find the last token in this group (either by groupId or errorId)
+    // to ensure the correction box appears at the end of the phrase.
+    final tokens = _parseTokens(item);
+
+    int tokenIdx = tokens.indexWhere((t) => t.index == token.index);
+    if (tokenIdx == -1) return;
+
+    final currentGroupId = token.groupId;
+    final currentErrorId = token.errorId;
+
+    _Token targetToken = token;
+    final chainIndices = <int>{};
+
+    if (currentErrorId != null) {
+      final relatedTokens =
+          tokens.where((t) => t.errorId == currentErrorId).toList();
+      targetToken = relatedTokens.last;
+      chainIndices
+          .addAll(relatedTokens.map((t) => t.index).where((i) => i != -1));
+    } else if (currentGroupId != null) {
+      final relatedTokens =
+          tokens.where((t) => t.groupId == currentGroupId).toList();
+      targetToken = relatedTokens.last;
+      chainIndices
+          .addAll(relatedTokens.map((t) => t.index).where((i) => i != -1));
+    } else {
+      chainIndices.add(token.index);
+    }
+
+    if (targetToken.errorId != null &&
+        state.solvedErrorIds.contains(targetToken.errorId)) {
       return; // Already solved
     }
 
     // Find error object associated with this token if any
     CorrectionError? error;
-    if (token.isError && token.errorId != null) {
+    if (targetToken.isError && targetToken.errorId != null) {
+      error = item.errors.where((e) => e.id == targetToken.errorId).firstOrNull;
+    } else if (token.errorId != null) {
+      // If tapped was an error but target isn't (e.g. tag chain), still use original error
       error = item.errors.where((e) => e.id == token.errorId).firstOrNull;
-    } else {
-      // Fallback: finding error by index? No, relying on parsed ID is safer if tags exist.
-      // If tags don't exist (legacy), we might match by index?
-      // But we enforced parsing.
-      // If token.isError is false, user clicked a non-error word.
     }
 
     setState(() {
-      _selectedTokenIndex = token.index;
+      _selectedTokenIndex = targetToken.index;
+      _selectedChainIndices = chainIndices;
       _selectedError = error;
 
-      _inputValue = state.corrections[token.index] ?? '';
+      _inputValue = state.corrections[targetToken.index] ?? '';
       _inputController.text = _inputValue;
       _inputController.selection = TextSelection.fromPosition(
         TextPosition(offset: _inputController.text.length),
@@ -426,121 +464,51 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
               final tokens = _parseTokens(item);
 
               return Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.only(
+                    left: 8, top: 8, right: 16, bottom: 16),
                 child: Stack(
                   children: [
-                    Container(
+                    SizedBox(
                       width: double.infinity,
                       height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: appColors.cardBackground,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: state.passed
-                              ? Colors.green
-                              : (state.feedbackMessage.isNotEmpty &&
-                                      !state.isCorrectFeedback
-                                  ? Colors.red
-                                  : appColors.border),
-                          strokeWidth: 2,
-                          gap: 4,
-                          borderRadius: 16,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${index + 1} / ${items.length}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: appColors.textSecondary,
-                                    ),
+                                  _buildTokensWidget(
+                                    item,
+                                    state,
+                                    tokens,
+                                    appColors,
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border:
-                                          Border.all(color: appColors.border),
-                                    ),
-                                    child: Text(
-                                      state.passed ? '✓' : '0',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: state.passed
-                                            ? Colors.green
-                                            : appColors.textSecondary,
-                                      ),
-                                    ),
-                                  ),
+                                  if (state.feedbackMessage.isNotEmpty) ...[
+                                    const SizedBox(height: 32),
+                                    _buildFeedbackMessage(
+                                        appColors, state, item),
+                                  ],
                                 ],
                               ),
                             ),
-                            Divider(height: 1, color: appColors.border),
-                            Expanded(
-                              child: SingleChildScrollView(
-                                padding:
-                                    const EdgeInsets.fromLTRB(24, 24, 24, 100),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildTokensWidget(
-                                      item,
-                                      state,
-                                      tokens,
-                                      appColors,
-                                    ),
-                                    if (!state.passed &&
-                                        _selectedTokenIndex != null)
-                                      _buildInputArea(
-                                        appColors,
-                                        state,
-                                        item,
-                                      ),
-                                    if (state.feedbackMessage.isNotEmpty)
-                                      _buildFeedbackMessage(
-                                        appColors,
-                                        state,
-                                        item,
-                                      ),
-                                  ],
-                                ),
+                          ),
+                          if (state.passed || _selectedTokenIndex != null) ...[
+                            const Divider(height: 1),
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  _buildActionButtons(
+                                      appColors, state, item, items),
+                                ],
                               ),
                             ),
-                            if (state.passed ||
-                                _selectedTokenIndex != null) ...[
-                              Divider(height: 1, color: appColors.border),
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    _buildActionButtons(
-                                      appColors,
-                                      state,
-                                      item,
-                                      items,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ],
-                        ),
+                        ],
                       ),
                     ),
                     if (item.explain != null)
@@ -648,8 +616,13 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         final isTagGroupSelected =
             token.groupId != null && token.groupId == selectedGroupId;
 
-        final showHighlight =
-            isSelected || isErrorGroupSelected || isTagGroupSelected;
+        final isPartofChain =
+            _selectedChainIndices?.contains(token.index) ?? false;
+
+        final showHighlight = isSelected ||
+            isErrorGroupSelected ||
+            isTagGroupSelected ||
+            isPartofChain;
 
         final effectiveFirst = token.groupId == null || token.isFirstInGroup;
         final effectiveLast = token.groupId == null || token.isLastInGroup;
@@ -668,9 +641,9 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         final Color borderColor = hasStyle
             ? (showHighlight
                 ? (state.isCorrectFeedback
-                    ? appColors.textSecondary
-                    : Colors.red)
-                : appColors.textSecondary.withValues(alpha: 0.15))
+                    ? appColors.primary.withValues(alpha: 0.5)
+                    : Colors.red.withValues(alpha: 0.5))
+                : appColors.border.withValues(alpha: 0.4))
             : Colors.transparent;
 
         final Widget wordWidget = GestureDetector(
@@ -684,11 +657,9 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
                   )
                 : null,
             child: Container(
-              margin:
-                  EdgeInsets.only(right: (effectiveLast && hasStyle) ? 8 : 0),
               padding: EdgeInsets.only(
-                left: hasStyle ? (effectiveFirst ? 10 : 2) : 0,
-                right: hasStyle ? (effectiveLast ? 10 : 2) : 0,
+                left: (hasStyle && effectiveFirst) ? 10 : (hasStyle ? 2 : 0),
+                right: (hasStyle && effectiveLast) ? 10 : (hasStyle ? 2 : 0),
                 top: 6,
                 bottom: 6,
               ),
@@ -731,10 +702,9 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
         final savedCorrection = state.corrections[token.index] ?? '';
         final displayValue = isSelected ? _inputValue : savedCorrection;
 
-        if (displayValue.isNotEmpty &&
-            !state.passed &&
-            (isSelected || savedCorrection.isNotEmpty)) {
-          return Row(
+        Widget finalTokenWidget;
+        if (!state.passed && (isSelected || savedCorrection.isNotEmpty)) {
+          finalTokenWidget = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               wordWidget,
@@ -742,116 +712,106 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
               Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
-                color: state.isCorrectFeedback
-                    ? appColors.textSecondary
-                    : Colors.red,
+                color: appColors.textPrimary.withValues(alpha: 0.5),
               ),
               const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: state.isCorrectFeedback
-                      ? appColors.textSecondary.withValues(alpha: 0.1)
-                      : Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: state.isCorrectFeedback
-                        ? appColors.textSecondary.withValues(alpha: 0.2)
-                        : Colors.red.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  displayValue,
-                  style: TextStyle(
-                    fontSize: 20,
-                    height: 1.5,
-                    fontStyle: FontStyle.italic,
-                    color: state.isCorrectFeedback
-                        ? appColors.textSecondary
-                        : Colors.red,
-                  ),
-                ),
-              ),
+              isSelected
+                  ? ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 40),
+                      child: IntrinsicWidth(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: appColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: appColors.primary,
+                              width: 1,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: _inputController,
+                            autofocus: true,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: appColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 6),
+                              hintText: '...',
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                _inputValue = val;
+                                final newCorrections =
+                                    Map<int, String>.from(state.corrections);
+                                if (val.isEmpty) {
+                                  newCorrections.remove(token.index);
+                                } else {
+                                  newCorrections[token.index] = val;
+                                }
+                                _itemStates[item.id] =
+                                    state.copyWith(corrections: newCorrections);
+                              });
+                            },
+                            onSubmitted: (_) => _checkAnswer(),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Colors.green,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        savedCorrection,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
             ],
+          );
+        } else {
+          finalTokenWidget = wordWidget;
+        }
+
+        // Apply the 8px separator margin outside, so it doesn't affect the ribbon border
+        if (effectiveLast && hasStyle) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: finalTokenWidget,
           );
         }
 
-        return wordWidget;
-      }).toList(),
-    );
-  }
+        // Add a small default spacing for non-styled words if they are not followed by a styled one
+        // Though Wrap's spacing: 0 usually needs this.
+        if (!hasStyle) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: finalTokenWidget,
+          );
+        }
 
-  Widget _buildInputArea(
-    AppColorsExtension appColors,
-    _ErrorCorrectionItemState state,
-    ErrorCorrectionItem item,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(top: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: _inputController,
-            autofocus: true,
-            onChanged: (val) {
-              setState(() {
-                _inputValue = val;
-                if (_selectedTokenIndex != null) {
-                  final newCorrections =
-                      Map<int, String>.from(state.corrections);
-                  if (val.isEmpty) {
-                    newCorrections.remove(_selectedTokenIndex);
-                  } else {
-                    newCorrections[_selectedTokenIndex!] = val;
-                  }
-                  _itemStates[item.id] =
-                      state.copyWith(corrections: newCorrections);
-                }
-              });
-            },
-            onSubmitted: (_) => _checkAnswer(),
-            style: TextStyle(fontSize: 16, color: appColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'Type correction...',
-              hintStyle: TextStyle(color: appColors.textSecondary),
-              filled: true,
-              fillColor: appColors.inputBackground,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: state.isCorrectFeedback
-                        ? appColors.primary
-                        : Colors.red,
-                    width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: state.isCorrectFeedback
-                        ? appColors.primary
-                        : Colors.red,
-                    width: 2),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: state.isCorrectFeedback
-                        ? appColors.primary
-                        : Colors.red,
-                    width: 2),
-              ),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.check_circle_outline),
-                color: appColors.primary,
-                onPressed: _checkAnswer,
-              ),
-            ),
-          ),
-        ],
-      ),
+        return finalTokenWidget;
+      }).toList(),
     );
   }
 
@@ -928,46 +888,60 @@ class _ErrorCorrectionState extends State<ErrorCorrection> {
     List<ErrorCorrectionItem> items,
   ) {
     if (state.passed) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: appColors.primary.withValues(alpha: 0.15),
-              foregroundColor: appColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              elevation: 0,
-            ),
-            onPressed: () => _handleNext(items.length),
-            child: Text(
-              _currentIndex < items.length - 1 ? 'Next' : 'Finish',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+      final isLast = _currentIndex == items.length - 1;
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        onPressed: () {
+          if (isLast) {
+            final unpassed = _firstUnpassedIndex;
+            if (unpassed != -1) {
+              _pageController.animateToPage(
+                unpassed,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            } else {
+              widget.onCheck?.call();
+              widget.onNext?.call();
+            }
+          } else {
+            _handleNext(items.length);
+          }
+        },
+        child: Text(
+          isLast
+              ? (_firstUnpassedIndex != -1
+                  ? 'Review Uncompleted'
+                  : (widget.finalActionText ?? 'Finish'))
+              : 'Next',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       );
     }
 
     if (_selectedTokenIndex != null) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: ElevatedButton(
-          onPressed: _checkAnswer,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: appColors.primary.withValues(alpha: 0.15),
-            foregroundColor: appColors.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
-          ),
-          child: const Text('Check Answer'),
+      return ElevatedButton(
+        onPressed: _checkAnswer,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: appColors.primary.withValues(alpha: 0.15),
+          foregroundColor: appColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
+        ),
+        child: const Text(
+          'Check Answer',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       );
     }
@@ -1004,60 +978,6 @@ class _ErrorCorrectionItemState {
       isCorrectFeedback: isCorrectFeedback ?? this.isCorrectFeedback,
       corrections: corrections ?? this.corrections,
     );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1,
-    this.gap = 5,
-    this.borderRadius = 0,
-  });
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double borderRadius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height),
-          Radius.circular(borderRadius),
-        ),
-      );
-
-    final dashedPath = _dashPath(path, width: 8, space: gap);
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  Path _dashPath(Path source, {required double width, required double space}) {
-    final dest = Path();
-    for (final metric in source.computeMetrics()) {
-      double distance = 0;
-      while (distance < metric.length) {
-        final len = (distance + width < metric.length)
-            ? width
-            : metric.length - distance;
-        dest.addPath(metric.extractPath(distance, distance + len), Offset.zero);
-        distance += width + space;
-      }
-    }
-    return dest;
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
   }
 }
 
